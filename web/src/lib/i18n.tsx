@@ -23,6 +23,8 @@ const RU = {
   "mode.label": "Режим обсуждения",
   "mode.open": "Открытый",
   "mode.missing": "нет в команде: {names}",
+  "mode.step": "Шаг {n} из {all}: {name}",
+  "mode.blind": "Шаг {n} из {all}: {name}. Участники не видят ответов друг друга",
 
   "empty.title": "Здесь пока тихо",
   "empty.body": "Напишите первым — без тега ответят {duty}",
@@ -157,6 +159,8 @@ const EN: Record<keyof typeof RU, string> = {
   "mode.label": "Conversation mode",
   "mode.open": "Open",
   "mode.missing": "missing from the team: {names}",
+  "mode.step": "Step {n} of {all}: {name}",
+  "mode.blind": "Step {n} of {all}: {name}. Participants cannot see each other's answers",
 
   "empty.title": "Quiet in here",
   "empty.body": "Write first — with no tag, {duty} will answer",

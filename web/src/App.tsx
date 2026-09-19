@@ -422,9 +422,31 @@ export default function App() {
 
           <DropdownMenu>
             <DropdownMenuTrigger asChild>
-              <Button variant="ghost" size="sm" className="ml-auto gap-1.5 font-normal">
+              <Button
+                variant="ghost"
+                size="sm"
+                className="ml-auto gap-1.5 font-normal"
+                /* Что за шаг и видят ли участники друг друга — подсказкой: нужно это
+                   раз в режим, а места в строке нет. */
+                title={
+                  state.modeState
+                    ? t(state.modeState.hear ? "mode.step" : "mode.blind", {
+                        n: state.modeState.step,
+                        all: state.modeState.steps,
+                        name: state.modeState.stepName,
+                      })
+                    : undefined
+                }
+              >
                 <Icon name={now?.icon ?? "message-circle"} className="size-4" />
                 {state.modeState ? pick(lang, state.modeState.short, state.modeState.shortEn) : t("mode.open")}
+                {/* Где мы внутри режима. Номер шага — состояние, поэтому он здесь,
+                    а не строкой посреди разговора. */}
+                {state.modeState && (
+                  <span className="text-muted-foreground/70">
+                    {state.modeState.step}/{state.modeState.steps}
+                  </span>
+                )}
                 <ChevronDown className="size-3.5" />
               </Button>
             </DropdownMenuTrigger>
