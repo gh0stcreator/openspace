@@ -24,7 +24,7 @@ import {
 import type { Agent, Msg } from "@/lib/api"
 import { cn } from "@/lib/utils"
 import { typo } from "@/lib/typo"
-import { useLang } from "@/lib/i18n"
+import { useLang, pick } from "@/lib/i18n"
 
 /**
  * Палитра участников живёт в теме (index.css): там тон и насыщенность каждого цвета,
@@ -250,7 +250,7 @@ function groups(messages: Msg[]) {
 }
 
 export function ChatFeed({ messages, human, agents, thinking, onReply }: Props) {
-  const { t } = useLang()
+  const { lang, t } = useLang()
   const known = React.useMemo(() => [...Object.keys(agents), human], [agents, human])
   const bySeq = React.useMemo(() => new Map(messages.map((m) => [m.seq, m])), [messages])
 
@@ -311,7 +311,7 @@ export function ChatFeed({ messages, human, agents, thinking, onReply }: Props) 
                                   {m.from}
                                 </span>
                                 {agent?.role && agent.role.toLowerCase() !== m.from.toLowerCase() && (
-                                  <span className="ml-1.5">{agent.role}</span>
+                                  <span className="ml-1.5">{pick(lang, agent.role, agent.roleEn)}</span>
                                 )}
                               </MessageHeader>
                             )}

@@ -309,6 +309,12 @@ export function LangProvider({ children }: { children: React.ReactNode }) {
 
 export const useLang = () => React.useContext(LangCtx)
 
+/**
+ * Подпись из данных пространства: у режимов и ролей английский вариант лежит
+ * в том же файле. Нет перевода — показываем как есть, полупустой список хуже.
+ */
+export const pick = (lang: Lang, ru?: string, en?: string) => (lang === "en" && en ? en : (ru ?? ""))
+
 /** Русское число: 1 шаг, 2 шага, 5 шагов. В английском хватает одной формы. */
 export function plural(lang: Lang, n: number, forms: [string, string, string]) {
   if (lang !== "ru") return n === 1 ? forms[0] : forms[2]

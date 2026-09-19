@@ -20,7 +20,7 @@ import { Spinner } from "@/components/ui/spinner"
 import { Tooltip, TooltipContent, TooltipTrigger } from "@/components/ui/tooltip"
 import { toneVars } from "@/components/chat-feed"
 import { typo } from "@/lib/typo"
-import { useLang } from "@/lib/i18n"
+import { useLang, pick as label } from "@/lib/i18n"
 import { api, type Agent, type FileRef, type Msg } from "@/lib/api"
 
 type Pending = FileRef & { uploading?: boolean }
@@ -39,7 +39,7 @@ type Props = {
 }
 
 export function Composer({ room, agents, human, onError, onSent, replyTo, onCancelReply, insert }: Props) {
-  const { t } = useLang()
+  const { lang, t } = useLang()
   const [text, setText] = React.useState("")
   const [files, setFiles] = React.useState<Pending[]>([])
   const [mention, setMention] = React.useState<string[]>([])
@@ -189,7 +189,7 @@ export function Composer({ room, agents, human, onError, onSent, replyTo, onCanc
               >
                 @{n}
                 <span className="text-muted-foreground ml-auto text-xs">
-                  {n === human ? t("composer.you") : agents[n]?.role}
+                  {n === human ? t("composer.you") : label(lang, agents[n]?.role, agents[n]?.roleEn)}
                 </span>
               </button>
             ))}

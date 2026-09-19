@@ -42,11 +42,15 @@ const short = (m) => {
   return {
     name: m.name,
     title: m.title,
+    titleEn: m.titleEn,
     brief: m.brief,
+    briefEn: m.briefEn,
     for: m.for,
+    forEn: m.forEn,
     icon: m.icon,
     slug: m.slug,
     short: m.short,
+    shortEn: m.shortEn,
     needs: m.needs,
     // Кого режим просит, а в команде нет: выбирая режим, это стоит знать сразу.
     missing: m.needs.filter((n) => !present.includes(n.toLowerCase())),
@@ -57,6 +61,7 @@ const short = (m) => {
 const describe = (name, a) => ({
   label: a.label ?? name,
   role: roleOf(a).title,
+  roleEn: roleOf(a).titleEn,
   roleName: a.role ?? 'peer',
   icon: a.icon ?? roleOf(a).icon,
   color: a.color ?? null,
@@ -65,6 +70,7 @@ const describe = (name, a) => ({
   manner: a.manner ?? '',
   iconCustom: a.icon ?? null,
   brief: a.persona ?? roleOf(a).brief,
+  briefEn: a.persona ?? roleOf(a).briefEn,
   engine: a.kind ?? name,
   model: a.model ?? null,
   trust: a.trust ?? 'safe',
@@ -177,7 +183,13 @@ const server = http.createServer(async (req, res) => {
         agents: Object.fromEntries(
           Object.entries(orch.roster).map(([name, a]) => [name, describe(name, a)]),
         ),
-        roles: listRoles().map((r) => ({ name: r.name, title: r.title, brief: r.brief, icon: r.icon })),
+        roles: listRoles().map((r) => ({
+          name: r.name,
+          title: r.title,
+          titleEn: r.titleEn,
+          brief: r.brief,
+          icon: r.icon,
+        })),
         engines: ['claude', 'codex'],
         trustLevels: ['safe', 'full'],
       });

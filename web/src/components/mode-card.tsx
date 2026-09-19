@@ -20,7 +20,7 @@ import { Textarea } from "@/components/ui/textarea"
 import { Icon } from "@/components/chat-feed"
 import { cn } from "@/lib/utils"
 import { typo } from "@/lib/typo"
-import { useLang, plural } from "@/lib/i18n"
+import { useLang, plural, pick } from "@/lib/i18n"
 import type { FullMode, Step } from "@/lib/api"
 
 /**
@@ -93,7 +93,7 @@ function Who({
 type Props = {
   mode: FullMode
   participants: string[]
-  roles: { name: string; title: string }[]
+  roles: { name: string; title: string; titleEn: string }[]
   onChange: (next: FullMode) => void
   onCopy: () => void
   onRemove: () => void
@@ -130,9 +130,9 @@ export function ModeCard({
         </span>
 
         <button className="min-w-0 flex-1 text-left" onClick={() => setOpen((v) => !v)}>
-          <div className="font-medium">{mode.title}</div>
+          <div className="font-medium">{pick(lang, mode.title, mode.titleEn)}</div>
           <div className="text-muted-foreground truncate text-sm">
-            {typo(mode.for || mode.brief)} · {mode.steps.length}{" "}
+            {typo(pick(lang, mode.for || mode.brief, mode.forEn || mode.briefEn))} · {mode.steps.length}{" "}
             {plural(lang, mode.steps.length, [t("mode.stepOne"), t("mode.stepFew"), t("mode.stepMany")])}
           </div>
         </button>
@@ -207,7 +207,7 @@ export function ModeCard({
                         })
                       }
                     />
-                    {r.title}
+                    {pick(lang, r.title, r.titleEn)}
                   </Label>
                 )
               })}

@@ -17,11 +17,13 @@ export type FileRef = { name: string; size: number; url: string; path: string }
 export type Agent = {
   label: string
   role: string
+  roleEn: string
   roleName: string
   icon: string
   iconCustom: string | null
   color: string | null
   brief: string
+  briefEn: string
   prompt: string
   promptCustom: string | null
   manner: string
@@ -47,7 +49,7 @@ export type Settings = Omit<Config, "defaultResponders"> & {
   catchUp: number
   freeTalk: boolean
   goal: string
-  roles: { name: string; title: string; brief: string; icon: string }[]
+  roles: { name: string; title: string; titleEn: string; brief: string; icon: string }[]
   engines: string[]
   trustLevels: string[]
   icons: Record<string, string>
@@ -57,9 +59,13 @@ export type Mode = {
   name: string
   slug: string
   short: string
+  shortEn: string
   title: string
+  titleEn: string
   brief: string
+  briefEn: string
   for: string
+  forEn: string
   needs: string[]
   missing: string[]
   icon: string
@@ -74,7 +80,9 @@ export type ModeState = {
   name: string
   slug: string
   short: string
+  shortEn: string
   title: string
+  titleEn: string
   step: number
   steps: number
   stepName: string

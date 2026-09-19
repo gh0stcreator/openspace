@@ -35,7 +35,7 @@ import { Composer } from "@/components/composer"
 import { Logo } from "@/components/logo"
 import { SettingsDialog } from "@/components/settings-dialog"
 import { cn } from "@/lib/utils"
-import { useLang } from "@/lib/i18n"
+import { useLang, pick } from "@/lib/i18n"
 import { topicOf } from "@/lib/latin"
 import { api, listen, type Config, type Msg, type RoomState } from "@/lib/api"
 
@@ -252,7 +252,9 @@ export default function App() {
 
         {state.modeState && (
           <div className="bg-muted/40 flex items-center gap-3 border-b px-4 py-1.5 text-xs">
-            <span className="font-medium">{state.modeState.title}</span>
+            <span className="font-medium">
+              {pick(lang, state.modeState.title, state.modeState.titleEn)}
+            </span>
             <span className="text-muted-foreground">
               {state.modeState.step}/{state.modeState.steps} · {state.modeState.stepName}
             </span>
@@ -373,7 +375,7 @@ export default function App() {
                   }
                   className="size-4"
                 />
-                {state.modeState?.short ?? t("mode.open")}
+                {state.modeState ? pick(lang, state.modeState.short, state.modeState.shortEn) : t("mode.open")}
                 <ChevronDown className="size-3.5" />
               </Button>
             </DropdownMenuTrigger>
@@ -397,11 +399,11 @@ export default function App() {
                     />
                     <div className="flex min-w-0 flex-col gap-0.5">
                       <span className="flex items-center gap-1.5 font-medium">
-                        {m.title}
+                        {pick(lang, m.title, m.titleEn)}
                         {current && <Check className="size-3.5 shrink-0" />}
                       </span>
                       <span className="text-muted-foreground/80 text-sm leading-snug">
-                        {m.for || m.brief}
+                        {pick(lang, m.for || m.brief, m.forEn || m.briefEn)}
                       </span>
                       {m.missing.length > 0 && (
                         <span className="text-destructive/90 mt-0.5 flex items-center gap-1 text-sm">

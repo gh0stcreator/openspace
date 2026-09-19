@@ -75,7 +75,12 @@ export function Logo({
     const box = part[key].current
     const node = word[key].current
     if (!box || !node) return
-    if (node.textContent === next) return // то же слово — не дёргаем
+    if (node.textContent === next) {
+      // Слово уже на месте, но половина могла застрять уехавшей: курсор ушёл
+      // ровно между «уехал» и «подменился». Возвращаем её на место.
+      box.classList.remove("is-out", "is-in")
+      return
+    }
     box.classList.remove("is-out", "is-in")
     void box.offsetWidth
     box.classList.add("is-out")

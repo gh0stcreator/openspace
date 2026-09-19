@@ -16,7 +16,7 @@ import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
 import { Textarea } from "@/components/ui/textarea"
 import { COLOR_ORDER, Face, Icon, toneVars } from "@/components/chat-feed"
-import { useLang, type Key } from "@/lib/i18n"
+import { useLang, pick, type Key } from "@/lib/i18n"
 import type { Agent, Settings } from "@/lib/api"
 
 /** Иконки для аватарки — то, чем обычно помечают роль. */
@@ -64,7 +64,7 @@ const brain = (agent: Agent) => {
 }
 
 export function AgentCard({ name, agent, settings, onChange, onRename, onCopy, onFire }: Props) {
-  const { t } = useLang()
+  const { lang, t } = useLang()
   const [open, setOpen] = React.useState(false)
   const [nick, setNick] = React.useState(name)
 
@@ -122,7 +122,9 @@ export function AgentCard({ name, agent, settings, onChange, onRename, onCopy, o
             {/* Движок и модель — техническая пометка, поэтому моноширинной и тише имени. */}
             <span className="text-muted-foreground/70 truncate font-mono text-xs">{brain(agent)}</span>
           </div>
-          <div className="text-muted-foreground truncate text-sm">{agent.brief}</div>
+          <div className="text-muted-foreground truncate text-sm">
+            {pick(lang, agent.brief, agent.briefEn)}
+          </div>
         </button>
 
         <DropdownMenu>
@@ -176,7 +178,7 @@ export function AgentCard({ name, agent, settings, onChange, onRename, onCopy, o
                 <SelectContent>
                   {settings.roles.map((r) => (
                     <SelectItem key={r.name} value={r.name}>
-                      {r.title}
+                      {pick(lang, r.title, r.titleEn)}
                     </SelectItem>
                   ))}
                 </SelectContent>

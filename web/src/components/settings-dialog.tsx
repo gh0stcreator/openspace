@@ -24,7 +24,7 @@ import {
   SelectValue,
 } from "@/components/ui/select"
 import { Switch } from "@/components/ui/switch"
-import { useLang } from "@/lib/i18n"
+import { useLang, pick } from "@/lib/i18n"
 import { api, type Agent, type FullMode, type Settings } from "@/lib/api"
 
 type Props = {
@@ -53,7 +53,7 @@ export function SettingsDialog({
   human,
   currentMode,
 }: Props) {
-  const { t } = useLang()
+  const { lang, t } = useLang()
   const [s, setS] = React.useState<Settings | null>(null)
   const [modes, setModes] = React.useState<FullMode[]>([])
   const [busy, setBusy] = React.useState(false)
@@ -236,7 +236,7 @@ export function SettingsDialog({
                   <SelectContent>
                     {s.roles.map((r) => (
                       <SelectItem key={r.name} value={r.name}>
-                        {r.title}
+                        {pick(lang, r.title, r.titleEn)}
                       </SelectItem>
                     ))}
                   </SelectContent>
@@ -289,10 +289,14 @@ export function SettingsDialog({
                 void copyMode({
                   name: "новый-режим",
                   title: "Новый режим",
+                  titleEn: "",
                   short: "Новый",
+                  shortEn: "",
                   slug: "custom",
                   brief: "",
+                  briefEn: "",
                   for: "",
+                  forEn: "",
                   icon: "list-ordered",
                   needs: [],
                   missing: [],
