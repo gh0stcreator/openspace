@@ -1,9 +1,9 @@
 import * as React from "react"
 
 /**
- * Знак-вызов: слева — как сейчас думаем, в скобках — о чём. Idle показывает
- * настоящее состояние пространства, наведение — только демонстрацию: что обе
- * половины независимы и меняются по отдельности.
+ * Знак-вызов: слева — как сейчас думаем, в скобках — о чём. В покое знак показывает
+ * настоящее состояние пространства; наведение — только демонстрация грамматики:
+ * половины меняются по очереди, сначала режим, потом тема.
  *
  * Демонстрация ничего не меняет в приложении. Ширину в вёрстке держит невидимый
  * якорь с настоящим состоянием, видимая часть лежит поверх и растёт вправо —
@@ -13,17 +13,16 @@ export type Pair = { mode: string; topic: string }
 
 const DEMO: Pair[] = [
   { mode: "redteam", topic: "product_strategy" },
-  { mode: "design", topic: "brand" },
-  { mode: "brainstorm", topic: "new_idea" },
-  { mode: "consult", topic: "career" },
-  { mode: "review", topic: "product" },
   { mode: "research", topic: "market" },
-  { mode: "edit", topic: "book" },
+  { mode: "design", topic: "brand" },
+  { mode: "decide", topic: "pricing" },
+  { mode: "review", topic: "product" },
+  { mode: "brainstorm", topic: "new_idea" },
 ]
 
-const ROLL = 180 // сколько текст уезжает вверх, прежде чем смениться
-const STAGGER = 260 // пауза между сменой левой и правой половины
-const EVERY = 1600 // шаг демонстрации
+// Значения из макета знака: режим уходит коротко, тема — мягче и дольше.
+const HOLD = { mode: 115, topic: 155 }
+const EVERY = 690
 
 export function Logo({
   mode,
@@ -37,20 +36,19 @@ export function Logo({
   className?: string
 }) {
   const wrap = React.useRef<HTMLSpanElement>(null)
-  const box = [React.useRef<HTMLSpanElement>(null), React.useRef<HTMLSpanElement>(null)]
-  const line = [React.useRef<HTMLSpanElement>(null), React.useRef<HTMLSpanElement>(null)]
+  const part = { mode: React.useRef<HTMLSpanElement>(null), topic: React.useRef<HTMLSpanElement>(null) }
+  const word = { mode: React.useRef<HTMLSpanElement>(null), topic: React.useRef<HTMLSpanElement>(null) }
 
   // Настоящее состояние держим в ссылке: оно может смениться прямо во время
   // демонстрации, и тогда по уходу курсора вернуть надо новое, а не старое.
   const idle = React.useRef<Pair>({ mode, topic })
-  idle.current = { mode, topic }
-
   const timers = React.useRef<number[]>([])
   const cycle = React.useRef(0)
-  const at = React.useRef(0)
   const hovering = React.useRef(false)
+  const at = React.useRef(0)
+  const half = React.useRef(0)
 
-  /** Ширину считаем пробником внутри знака: он наследует шрифт, кегль и трекинг. */
+  /** Пробник внутри знака наследует шрифт, кегль и трекинг. */
   const measure = React.useCallback((s: string) => {
     if (!wrap.current) return 0
     const probe = document.createElement("span")
@@ -62,93 +60,112 @@ export function Logo({
     return w
   }, [])
 
-  const put = React.useCallback(
-    (i: number, s: string) => {
-      if (line[i].current) line[i].current!.textContent = s
-      if (box[i].current) box[i].current!.style.width = `${measure(s)}px`
-    },
+  /** Половины лежат вне потока, поэтому ширину каждой задаём числом. */
+  const fit = React.useCallback(() => {
+    for (const key of ["mode", "topic"] as const) {
+      const box = part[key].current
+      const node = word[key].current
+      if (box && node) box.style.width = `${measure(node.textContent ?? "")}px`
+    }
     // eslint-disable-next-line react-hooks/exhaustive-deps
-    [measure]
+  }, [measure])
+
+  /** Одна половина: слово уезжает вверх, подменяется и приходит снизу. */
+  const roll = React.useCallback((key: keyof Pair, next: string) => {
+    const box = part[key].current
+    const node = word[key].current
+    if (!box || !node) return
+    if (node.textContent === next) return // то же слово — не дёргаем
+    box.classList.remove("is-out", "is-in")
+    void box.offsetWidth
+    box.classList.add("is-out")
+    timers.current.push(
+      window.setTimeout(() => {
+        node.textContent = next
+        box.style.width = `${measure(next)}px`
+        box.classList.remove("is-out")
+        box.classList.add("is-in")
+        void box.offsetWidth
+        requestAnimationFrame(() => box.classList.remove("is-in"))
+      }, HOLD[key])
+    )
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [measure])
+
+  const drop = () => {
+    timers.current.forEach(clearTimeout)
+    timers.current = []
+  }
+
+  /** Показать пару: сначала режим, через паузу — тема. */
+  const show = React.useCallback(
+    (pair: Pair) => {
+      roll("mode", pair.mode)
+      timers.current.push(window.setTimeout(() => roll("topic", pair.topic), 210))
+    },
+    [roll]
   )
 
+  // Шрифт догружается позже разметки: после этого знак надо промерить заново.
   React.useEffect(() => {
-    /** Одна половина: текст уезжает вверх, подменяется и приходит снизу. */
-    const roll = (i: number, s: string) => {
-      const b = box[i].current
-      if (!b || !line[i].current) return
-      if (line[i].current!.textContent === s) return // то же слово — не дёргаем
-      b.classList.remove("is-out", "is-in")
-      void b.offsetWidth
-      b.classList.add("is-out")
-      timers.current.push(
-        window.setTimeout(() => {
-          put(i, s)
-          b.classList.remove("is-out")
-          b.classList.add("is-in")
-          void b.offsetWidth
-          requestAnimationFrame(() => b.classList.remove("is-in"))
-        }, ROLL)
-      )
+    fit()
+    document.fonts?.ready.then(fit)
+  }, [fit])
+
+  React.useEffect(() => {
+    // Каждый тик меняет ровно одну половину: mode, topic, mode, topic…
+    const tick = () => {
+      const pair = demoPairs[at.current % demoPairs.length]
+      if (half.current % 2 === 0) roll("mode", pair.mode)
+      else {
+        roll("topic", pair.topic)
+        at.current++
+      }
+      half.current++
     }
 
-    const drop = () => {
-      timers.current.forEach(clearTimeout)
-      timers.current = []
-    }
-
-    // Сначала меняется только режим, через паузу — только тема: видно, что это
-    // две независимые половины, а не одна строка.
-    const step = () => {
-      const next = demoPairs[at.current % demoPairs.length]
-      at.current++
-      roll(0, next.mode)
-      timers.current.push(window.setTimeout(() => roll(1, next.topic), STAGGER))
-    }
-
-    const start = () => {
+    const enter = () => {
       if (cycle.current) return
       hovering.current = true
-      step()
-      cycle.current = window.setInterval(step, EVERY)
+      at.current = 0
+      half.current = 0
+      tick()
+      cycle.current = window.setInterval(tick, EVERY)
     }
 
-    const stop = () => {
+    const leave = () => {
       hovering.current = false
       clearInterval(cycle.current)
       cycle.current = 0
       drop()
-      at.current = 0
-      box.forEach((b) => b.current?.classList.remove("is-out", "is-in"))
-      put(0, idle.current.mode)
-      put(1, idle.current.topic)
+      show(idle.current)
     }
 
-    stop()
     const el = wrap.current
-    el?.addEventListener("mouseenter", start)
-    el?.addEventListener("mouseleave", stop)
+    el?.addEventListener("mouseenter", enter)
+    el?.addEventListener("mouseleave", leave)
     return () => {
-      el?.removeEventListener("mouseenter", start)
-      el?.removeEventListener("mouseleave", stop)
+      el?.removeEventListener("mouseenter", enter)
+      el?.removeEventListener("mouseleave", leave)
       clearInterval(cycle.current)
       cycle.current = 0
       drop()
     }
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [demoPairs, put])
+  }, [demoPairs, roll, show])
 
-  // Настоящее состояние сменилось: вне наведения показываем его сразу,
+  // Настоящее состояние сменилось: вне наведения показываем его той же сменой,
   // под курсором — покажем, когда курсор уйдёт.
   React.useEffect(() => {
+    idle.current = { mode, topic }
     if (hovering.current) return
-    put(0, mode)
-    put(1, topic)
-  }, [mode, topic, put])
+    drop()
+    show({ mode, topic })
+  }, [mode, topic, show])
 
   return (
     <span
       ref={wrap}
-      className={`relative inline-block cursor-pointer font-mono text-xl tracking-tight whitespace-nowrap select-none ${
+      className={`relative inline-block w-max cursor-pointer font-mono text-xl leading-none tracking-[-0.045em] whitespace-nowrap select-none ${
         className ?? ""
       }`}
     >
@@ -157,14 +174,13 @@ export function Logo({
         {mode}({topic})
       </span>
 
-      {/* Без правой границы: видимая часть шире якоря и растёт вправо. */}
-      <span className="absolute top-0 left-0 flex h-full whitespace-nowrap">
-        <span ref={box[0]} className="logo-seg">
-          <span ref={line[0]}>{mode}</span>
+      <span className="absolute top-0 left-0 flex items-baseline whitespace-nowrap">
+        <span ref={part.mode} className="logo-part logo-mode">
+          <span ref={word.mode}>{mode}</span>
         </span>
         <span className="text-muted-foreground">(</span>
-        <span ref={box[1]} className="logo-seg">
-          <span ref={line[1]}>{topic}</span>
+        <span ref={part.topic} className="logo-part logo-topic">
+          <span ref={word.topic}>{topic}</span>
         </span>
         <span className="text-muted-foreground">)</span>
       </span>

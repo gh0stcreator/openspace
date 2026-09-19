@@ -16,6 +16,7 @@ import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
 import { Textarea } from "@/components/ui/textarea"
 import { COLOR_ORDER, Face, Icon, toneVars } from "@/components/chat-feed"
+import { useLang, type Key } from "@/lib/i18n"
 import type { Agent, Settings } from "@/lib/api"
 
 /** Иконки для аватарки — то, чем обычно помечают роль. */
@@ -27,16 +28,16 @@ const ICONS = [
 ]
 
 /** Модели, которые понимают движки. Пустое значение — движок берёт свою по умолчанию. */
-const MODELS: Record<string, { value: string; label: string; hint?: string }[]> = {
+const MODELS: Record<string, { value: string; label: string; hint?: Key }[]> = {
   claude: [
-    { value: "", label: "По умолчанию", hint: "Какую выберет движок" },
-    { value: "opus", label: "Opus 5", hint: "Самая сильная, думает дольше" },
-    { value: "fable", label: "Fable 5.1", hint: "То же поколение, другой характер" },
-    { value: "sonnet", label: "Sonnet 5", hint: "Быстрее и дешевле" },
-    { value: "haiku", label: "Haiku 4.5", hint: "Самая быстрая, для простого" },
+    { value: "", label: "", hint: "model.defaultHint" },
+    { value: "opus", label: "Opus 5", hint: "model.opus" },
+    { value: "fable", label: "Fable 5.1", hint: "model.fable" },
+    { value: "sonnet", label: "Sonnet 5", hint: "model.sonnet" },
+    { value: "haiku", label: "Haiku 4.5", hint: "model.haiku" },
   ],
   codex: [
-    { value: "", label: "По умолчанию", hint: "Какую выберет движок" },
+    { value: "", label: "", hint: "model.defaultHint" },
     { value: "gpt-5.4", label: "GPT-5.4" },
     { value: "gpt-6-astra", label: "GPT-6 Astra" },
   ],
@@ -63,6 +64,7 @@ const brain = (agent: Agent) => {
 }
 
 export function AgentCard({ name, agent, settings, onChange, onRename, onCopy, onFire }: Props) {
+  const { t } = useLang()
   const [open, setOpen] = React.useState(false)
   const [nick, setNick] = React.useState(name)
 
@@ -75,13 +77,13 @@ export function AgentCard({ name, agent, settings, onChange, onRename, onCopy, o
             <button
               className="tone-hover shrink-0 rounded-full transition-shadow"
               style={toneVars(agent.color)}
-              title="Аватарка и цвет"
+              title={t("card.face")}
             >
               <Face name={name} icon={agent.icon} color={agent.color} size="lg" />
             </button>
           </PopoverTrigger>
           <PopoverContent className="w-80 p-2">
-            <div className="text-muted-foreground mb-1.5 text-xs">Цвет</div>
+            <div className="text-muted-foreground mb-1.5 text-xs">{t("card.color")}</div>
             <div className="mb-3 flex flex-wrap gap-1.5 border-b pb-3">
               {COLOR_ORDER.map((c) => (
                 <button
@@ -97,7 +99,7 @@ export function AgentCard({ name, agent, settings, onChange, onRename, onCopy, o
               ))}
             </div>
 
-            <div className="text-muted-foreground mb-1.5 text-xs">Знак</div>
+            <div className="text-muted-foreground mb-1.5 text-xs">{t("card.icon")}</div>
             <div className="grid max-h-56 grid-cols-8 gap-1 overflow-y-auto">
               {ICONS.map((ic) => (
                 <Button
@@ -125,22 +127,22 @@ export function AgentCard({ name, agent, settings, onChange, onRename, onCopy, o
 
         <DropdownMenu>
           <DropdownMenuTrigger asChild>
-            <Button variant="ghost" size="icon" className="text-muted-foreground" aria-label="Ещё">
+            <Button variant="ghost" size="icon" className="text-muted-foreground" aria-label={t("card.more")}>
               <MoreHorizontal />
             </Button>
           </DropdownMenuTrigger>
           <DropdownMenuContent align="end">
             <DropdownMenuItem onClick={() => setOpen((v) => !v)}>
               <Settings2 />
-              Настройки
+              {t("card.settings")}
             </DropdownMenuItem>
             <DropdownMenuItem onClick={onCopy}>
               <Copy />
-              Дублировать
+              {t("card.duplicate")}
             </DropdownMenuItem>
             <DropdownMenuItem variant="destructive" onClick={onFire}>
               <Trash2 />
-              Удалить
+              {t("card.delete")}
             </DropdownMenuItem>
           </DropdownMenuContent>
         </DropdownMenu>
@@ -152,7 +154,7 @@ export function AgentCard({ name, agent, settings, onChange, onRename, onCopy, o
           {/* Сначала кто это и что делает, техническое — ниже. */}
           <div className="grid gap-3 sm:grid-cols-[1fr_1.4fr]">
             <Field>
-              <FieldLabel htmlFor={`nick-${name}`}>Как обращаться</FieldLabel>
+              <FieldLabel htmlFor={`nick-${name}`}>{t("card.nick")}</FieldLabel>
               <Input
                 id={`nick-${name}`}
                 value={nick}
@@ -163,7 +165,7 @@ export function AgentCard({ name, agent, settings, onChange, onRename, onCopy, o
             </Field>
 
             <Field>
-              <FieldLabel>Кем работает</FieldLabel>
+              <FieldLabel>{t("card.role")}</FieldLabel>
               <Select
                 value={agent.roleName}
                 onValueChange={(v) => onChange({ roleName: v, promptCustom: null })}
@@ -184,7 +186,7 @@ export function AgentCard({ name, agent, settings, onChange, onRename, onCopy, o
 
           <Field>
             <div className="flex items-baseline justify-between gap-2">
-              <FieldLabel htmlFor={`prompt-${name}`}>Что делает</FieldLabel>
+              <FieldLabel htmlFor={`prompt-${name}`}>{t("card.prompt")}</FieldLabel>
               {agent.promptCustom && (
                 <Button
                   variant="ghost"
@@ -192,7 +194,7 @@ export function AgentCard({ name, agent, settings, onChange, onRename, onCopy, o
                   className="text-muted-foreground"
                   onClick={() => onChange({ promptCustom: null })}
                 >
-                  Вернуть как у роли
+                  {t("card.promptReset")}
                 </Button>
               )}
             </div>
@@ -200,19 +202,19 @@ export function AgentCard({ name, agent, settings, onChange, onRename, onCopy, o
               id={`prompt-${name}`}
               rows={8}
               value={agent.promptCustom ?? agent.prompt}
-              placeholder="Начинаешь ход с того, что…"
+              placeholder={t("card.promptHint")}
               className="font-mono text-xs leading-relaxed"
               onChange={(e) => onChange({ promptCustom: e.target.value })}
             />
           </Field>
 
           <Field>
-            <FieldLabel htmlFor={`manner-${name}`}>Как говорит</FieldLabel>
+            <FieldLabel htmlFor={`manner-${name}`}>{t("card.manner")}</FieldLabel>
             <Textarea
               id={`manner-${name}`}
               rows={3}
               value={agent.manner ?? ""}
-              placeholder="Коротко и сухо. Не смягчает формулировки. Любит точные числа."
+              placeholder={t("card.mannerHint")}
               onChange={(e) => onChange({ manner: e.target.value })}
             />
             
@@ -220,19 +222,19 @@ export function AgentCard({ name, agent, settings, onChange, onRename, onCopy, o
 
           <div className="grid gap-3 border-t pt-4 sm:grid-cols-3">
             <Field>
-              <FieldLabel>Что может</FieldLabel>
+              <FieldLabel>{t("card.trust")}</FieldLabel>
               <Select value={agent.trust} onValueChange={(v) => onChange({ trust: v })}>
                 <SelectTrigger>
                   <SelectValue />
                 </SelectTrigger>
                 <SelectContent>
-                  <SelectItem value="safe">Читать и править файлы</SelectItem>
-                  <SelectItem value="full">Ещё и запускать команды</SelectItem>
+                  <SelectItem value="safe">{t("card.trustSafe")}</SelectItem>
+                  <SelectItem value="full">{t("card.trustFull")}</SelectItem>
                 </SelectContent>
               </Select>
             </Field>
             <Field>
-              <FieldLabel>Движок</FieldLabel>
+              <FieldLabel>{t("card.engine")}</FieldLabel>
               <Select value={agent.engine} onValueChange={(v) => onChange({ engine: v, model: null })}>
                 <SelectTrigger className="capitalize">
                   <SelectValue />
@@ -247,21 +249,24 @@ export function AgentCard({ name, agent, settings, onChange, onRename, onCopy, o
               </Select>
             </Field>
             <Field>
-              <FieldLabel>Модель</FieldLabel>
+              <FieldLabel>{t("card.model")}</FieldLabel>
               <Select
                 value={agent.model ?? "default"}
                 onValueChange={(v) => onChange({ model: v === "default" ? null : v })}
               >
                 <SelectTrigger>
                   {/* В строке — только название: пояснение живёт в списке. */}
-                  <SelectValue>{models(agent).find((m) => (m.value || "default") === (agent.model ?? "default"))?.label}</SelectValue>
+                  <SelectValue>
+                    {models(agent).find((m) => (m.value || "default") === (agent.model ?? "default"))
+                      ?.label || t("model.default")}
+                  </SelectValue>
                 </SelectTrigger>
                 <SelectContent>
                   {models(agent).map((m) => (
                     <SelectItem key={m.value || "default"} value={m.value || "default"}>
                       <span className="grid gap-0.5">
-                        {m.label}
-                        {m.hint && <span className="text-muted-foreground text-xs">{m.hint}</span>}
+                        {m.label || t("model.default")}
+                        {m.hint && <span className="text-muted-foreground text-xs">{t(m.hint)}</span>}
                       </span>
                     </SelectItem>
                   ))}

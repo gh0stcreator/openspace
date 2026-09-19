@@ -24,6 +24,7 @@ import {
 import type { Agent, Msg } from "@/lib/api"
 import { cn } from "@/lib/utils"
 import { typo } from "@/lib/typo"
+import { useLang } from "@/lib/i18n"
 
 /**
  * Палитра участников живёт в теме (index.css): там тон и насыщенность каждого цвета,
@@ -116,6 +117,7 @@ function Rich({
   agents: Record<string, Agent>
   human: string
 }) {
+  const { t } = useLang()
   const parts = React.useMemo(() => {
     const out: React.ReactNode[] = []
     const re = /```(\w*)\n?([\s\S]*?)```|`([^`\n]+)`|\*\*([^*\n]+)\*\*|(^|[\s(,:;«"'[])@([a-z0-9_-]+)/gi
@@ -150,7 +152,7 @@ function Rich({
               className="tone-name capitalize"
               style={toneVars(hit === human ? "creator" : agents[hit]?.color)}
             >
-              {hit === human ? "Вы" : hit}
+              {hit === human ? t("composer.mine") : hit}
             </b>
           ) : (
             `@${name}`
@@ -161,7 +163,7 @@ function Rich({
     }
     if (last < text.length) out.push(typo(text.slice(last)))
     return out
-  }, [text, known, agents, human])
+  }, [text, known, agents, human, t])
 
   return <span className="whitespace-pre-wrap">{parts}</span>
 }
@@ -214,6 +216,7 @@ function Quote({
   agents: Record<string, Agent>
   human: string
 }) {
+  const { t } = useLang()
   if (!to) return null
   // Цвет автора смешиваем с цветом текста пузыря: на светлом фоне он темнеет,
   // на тёмном светлеет — и нигде не кричит.
@@ -225,10 +228,8 @@ function Quote({
         background: "color-mix(in oklab, currentColor 7%, transparent)",
       }}
     >
-      <div className="font-medium capitalize">
-        {to.from === human ? "Вы" : to.from}
-      </div>
-      <div className="truncate opacity-70">{typo(to.text) || "файл"}</div>
+      <div className="font-medium capitalize">{to.from === human ? t("composer.mine") : to.from}</div>
+      <div className="truncate opacity-70">{typo(to.text) || t("composer.file")}</div>
     </div>
   )
 }
@@ -249,6 +250,7 @@ function groups(messages: Msg[]) {
 }
 
 export function ChatFeed({ messages, human, agents, thinking, onReply }: Props) {
+  const { t } = useLang()
   const known = React.useMemo(() => [...Object.keys(agents), human], [agents, human])
   const bySeq = React.useMemo(() => new Map(messages.map((m) => [m.seq, m])), [messages])
 
@@ -334,8 +336,8 @@ export function ChatFeed({ messages, human, agents, thinking, onReply }: Props) 
                             <Button
                               variant="ghost"
                               size="icon-sm"
-                              aria-label="Ответить"
-                              title="Ответить — или двойной клик по реплике"
+                              aria-label={t("feed.reply")}
+                              title={t("feed.replyTip")}
                               onClick={() => onReply(m)}
                               className="text-muted-foreground absolute top-0 opacity-0 transition-opacity group-hover/message:opacity-100 data-[align=end]:left-0 group-data-[align=end]/message:left-0 group-data-[align=start]/message:right-0"
                             >
@@ -366,8 +368,8 @@ export function ChatFeed({ messages, human, agents, thinking, onReply }: Props) 
                     <Bubble variant="secondary" align="start">
                       <BubbleContent>
                         <span className="text-muted-foreground flex items-center gap-1.5 text-sm">
-                          {thinking.map((t) => `@${t}`).join(" и ")}{" "}
-                          {thinking.length > 1 ? "думают" : "думает"}
+                          {thinking.map((n) => `@${n}`).join(` ${t("feed.and")} `)}{" "}
+                          {t(thinking.length > 1 ? "feed.thinkingMany" : "feed.thinkingOne")}
                           <span className="flex gap-1">
                             {[0, 1, 2].map((d) => (
                               <span

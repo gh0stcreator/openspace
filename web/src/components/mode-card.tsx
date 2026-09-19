@@ -20,6 +20,7 @@ import { Textarea } from "@/components/ui/textarea"
 import { Icon } from "@/components/chat-feed"
 import { cn } from "@/lib/utils"
 import { typo } from "@/lib/typo"
+import { useLang, plural } from "@/lib/i18n"
 import type { FullMode, Step } from "@/lib/api"
 
 /**
@@ -49,12 +50,13 @@ function Who({
   participants: string[]
   onChange: (who: string) => void
 }) {
+  const { t } = useLang()
   const picked = parseWho(step.who)
 
   return (
     <div className="grid gap-2">
       <Label className="flex items-center justify-between gap-3 font-normal">
-        <span>Говорят все</span>
+        <span>{t("step.whoAll")}</span>
         <Switch
           checked={picked === null}
           onCheckedChange={(v) => onChange(v ? "все" : `@${participants[0] ?? ""}`)}
@@ -110,6 +112,7 @@ export function ModeCard({
   fixed,
   current,
 }: Props) {
+  const { lang, t } = useLang()
   const [open, setOpen] = React.useState(false)
   const patch = (p: Partial<FullMode>) => onChange({ ...mode, ...p })
   const patchStep = (i: number, p: Partial<Step>) =>
@@ -129,31 +132,32 @@ export function ModeCard({
         <button className="min-w-0 flex-1 text-left" onClick={() => setOpen((v) => !v)}>
           <div className="font-medium">{mode.title}</div>
           <div className="text-muted-foreground truncate text-sm">
-            {typo(mode.for || mode.brief)} · {mode.steps.length} {plural(mode.steps.length)}
+            {typo(mode.for || mode.brief)} · {mode.steps.length}{" "}
+            {plural(lang, mode.steps.length, [t("mode.stepOne"), t("mode.stepFew"), t("mode.stepMany")])}
           </div>
         </button>
 
-        {current && <Badge variant="secondary">Текущий</Badge>}
+        {current && <Badge variant="secondary">{t("mode.current")}</Badge>}
 
         <DropdownMenu>
           <DropdownMenuTrigger asChild>
-            <Button variant="ghost" size="icon" className="text-muted-foreground" aria-label="Ещё">
+            <Button variant="ghost" size="icon" className="text-muted-foreground" aria-label={t("card.more")}>
               <MoreHorizontal />
             </Button>
           </DropdownMenuTrigger>
           <DropdownMenuContent align="end">
             <DropdownMenuItem onClick={() => setOpen((v) => !v)}>
               <Settings2 />
-              Настройки
+              {t("card.settings")}
             </DropdownMenuItem>
             <DropdownMenuItem onClick={onCopy}>
               <Copy />
-              Дублировать
+              {t("card.duplicate")}
             </DropdownMenuItem>
             {!fixed && (
               <DropdownMenuItem variant="destructive" onClick={onRemove}>
                 <Trash2 />
-                Удалить
+                {t("card.delete")}
               </DropdownMenuItem>
             )}
           </DropdownMenuContent>
@@ -165,7 +169,7 @@ export function ModeCard({
         <div className="grid gap-5 border-t p-4">
           <div className="grid gap-3 sm:grid-cols-[1fr_1.4fr]">
             <Field>
-              <FieldLabel htmlFor={`title-${mode.name}`}>Название</FieldLabel>
+              <FieldLabel htmlFor={`title-${mode.name}`}>{t("mode.name")}</FieldLabel>
               <Input
                 id={`title-${mode.name}`}
                 value={mode.title}
@@ -173,18 +177,18 @@ export function ModeCard({
               />
             </Field>
             <Field>
-              <FieldLabel htmlFor={`for-${mode.name}`}>Для чего</FieldLabel>
+              <FieldLabel htmlFor={`for-${mode.name}`}>{t("mode.for")}</FieldLabel>
               <Input
                 id={`for-${mode.name}`}
                 value={mode.for}
-                placeholder="Проверить решение до того, как его проверит жизнь"
+                placeholder={t("mode.forHint")}
                 onChange={(e) => patch({ for: e.target.value })}
               />
             </Field>
           </div>
 
           <Field>
-            <FieldLabel>Без кого не работает</FieldLabel>
+            <FieldLabel>{t("mode.needs")}</FieldLabel>
             <div className="flex flex-wrap gap-2">
               {roles.map((r) => {
                 const on = mode.needs.some((n) => n.toLowerCase() === r.name.toLowerCase())
@@ -211,7 +215,7 @@ export function ModeCard({
           </Field>
 
           <div className="grid gap-3">
-            <FieldLabel>Шаги</FieldLabel>
+            <FieldLabel>{t("mode.steps")}</FieldLabel>
             {mode.steps.map((st, i) => (
               <div key={i} className="grid gap-4 rounded-lg border p-3">
                 <div className="flex items-center gap-2">
@@ -220,14 +224,14 @@ export function ModeCard({
                   </span>
                   <Input
                     value={st.name}
-                    placeholder="название шага"
+                    placeholder={t("step.name")}
                     onChange={(e) => patchStep(i, { name: e.target.value })}
                   />
                   <Button
                     variant="ghost"
                     size="icon"
                     className="text-muted-foreground shrink-0"
-                    aria-label="Убрать шаг"
+                    aria-label={t("step.remove")}
                     onClick={() => patch({ steps: mode.steps.filter((_, j) => j !== i) })}
                   >
                     <Trash2 />
@@ -236,13 +240,13 @@ export function ModeCard({
 
                 <div className="grid gap-4 pl-8 sm:grid-cols-2">
                   <Field>
-                    <FieldLabel>Кто говорит</FieldLabel>
+                    <FieldLabel>{t("step.who")}</FieldLabel>
                     <Who step={st} participants={participants} onChange={(who) => patchStep(i, { who })} />
                   </Field>
 
                   <div className="grid content-start gap-4">
                     <Field>
-                      <FieldLabel>Чем шаг закрывается</FieldLabel>
+                      <FieldLabel>{t("step.until")}</FieldLabel>
                       <Select
                         value={/человек/i.test(st.until) ? "человек" : "все ответят"}
                         onValueChange={(v) => patchStep(i, { until: v })}
@@ -251,21 +255,17 @@ export function ModeCard({
                           <SelectValue />
                         </SelectTrigger>
                         <SelectContent>
-                          <SelectItem value="все ответят">Когда все ответили</SelectItem>
-                          <SelectItem value="человек">Когда ответили вы</SelectItem>
+                          <SelectItem value="все ответят">{t("step.untilAll")}</SelectItem>
+                          <SelectItem value="человек">{t("step.untilHuman")}</SelectItem>
                         </SelectContent>
                       </Select>
                     </Field>
 
                     <Label className="flex items-start justify-between gap-3 font-normal">
                       <span className="grid gap-0.5">
-                        Слышат друг друга
+                        {t("step.hear")}
                         <span className="text-muted-foreground text-sm">
-                          {typo(
-                            st.hear
-                              ? "Отвечают по очереди, каждый видит предыдущих"
-                              : "Отвечают вслепую — первый ответ не задаёт остальным рамку"
-                          )}
+                          {t(st.hear ? "step.hearYes" : "step.hearNo")}
                         </span>
                       </span>
                       <Switch checked={st.hear} onCheckedChange={(v) => patchStep(i, { hear: v })} />
@@ -275,15 +275,15 @@ export function ModeCard({
 
                 <div className="pl-8">
                   <Field>
-                    <FieldLabel>Что они делают на этом шаге</FieldLabel>
+                    <FieldLabel>{t("step.prompt")}</FieldLabel>
                     <Textarea
                       rows={3}
                       value={st.prompt}
-                      placeholder="Назови три способа, которыми это сломается в первый месяц"
+                      placeholder={t("step.promptHint")}
                       className="font-mono text-xs leading-relaxed"
                       onChange={(e) => patchStep(i, { prompt: e.target.value })}
                     />
-                    <FieldDescription>Добавляется к их роли на время шага</FieldDescription>
+                    <FieldDescription>{t("step.promptNote")}</FieldDescription>
                   </Field>
                 </div>
               </div>
@@ -302,7 +302,7 @@ export function ModeCard({
                 })
               }
             >
-              <Plus /> Добавить шаг
+              <Plus /> {t("step.add")}
             </Button>
           </div>
           </div>
@@ -311,10 +311,3 @@ export function ModeCard({
     </Collapsible>
   )
 }
-
-const plural = (n: number) =>
-  n % 10 === 1 && n % 100 !== 11
-    ? "шаг"
-    : n % 10 >= 2 && n % 10 <= 4 && (n % 100 < 10 || n % 100 >= 20)
-      ? "шага"
-      : "шагов"

@@ -20,6 +20,7 @@ import { Spinner } from "@/components/ui/spinner"
 import { Tooltip, TooltipContent, TooltipTrigger } from "@/components/ui/tooltip"
 import { toneVars } from "@/components/chat-feed"
 import { typo } from "@/lib/typo"
+import { useLang } from "@/lib/i18n"
 import { api, type Agent, type FileRef, type Msg } from "@/lib/api"
 
 type Pending = FileRef & { uploading?: boolean }
@@ -38,6 +39,7 @@ type Props = {
 }
 
 export function Composer({ room, agents, human, onError, onSent, replyTo, onCancelReply, insert }: Props) {
+  const { t } = useLang()
   const [text, setText] = React.useState("")
   const [files, setFiles] = React.useState<Pending[]>([])
   const [mention, setMention] = React.useState<string[]>([])
@@ -65,7 +67,7 @@ export function Composer({ room, agents, human, onError, onSent, replyTo, onCanc
           setFiles((f) => f.map((x) => (x === slot ? done : x)))
         } catch (e) {
           setFiles((f) => f.filter((x) => x !== slot))
-          onError(`не загрузилось «${file.name}» — ${(e as Error).message}`)
+          onError(t("composer.uploadFailed", { name: file.name, error: (e as Error).message }))
         }
       }
     },
@@ -85,7 +87,7 @@ export function Composer({ room, agents, human, onError, onSent, replyTo, onCanc
     } catch (e) {
       setText(body) // не теряем ни набранное,
       setFiles(attached) // ни уже загруженные файлы
-      onError(`сообщение не ушло — ${(e as Error).message}`)
+      onError(t("composer.sendFailed", { error: (e as Error).message }))
     }
   }
 
@@ -167,7 +169,7 @@ export function Composer({ room, agents, human, onError, onSent, replyTo, onCanc
   }, [upload])
 
   // Плейсхолдер держим в одну строку: иначе поле растянуто под него и прыгает, когда начинаешь писать.
-  const hint = "Введите сообщение…"
+  const hint = t("composer.placeholder")
 
   return (
     <div className="bg-background">
@@ -187,7 +189,7 @@ export function Composer({ room, agents, human, onError, onSent, replyTo, onCanc
               >
                 @{n}
                 <span className="text-muted-foreground ml-auto text-xs">
-                  {n === human ? "это ты" : agents[n]?.role}
+                  {n === human ? t("composer.you") : agents[n]?.role}
                 </span>
               </button>
             ))}
@@ -201,15 +203,15 @@ export function Composer({ room, agents, human, onError, onSent, replyTo, onCanc
               style={toneVars(replyColor)}
             >
               <div className="text-sm font-medium capitalize">
-                {replyTo.from === human ? "Вы" : replyTo.from}
+                {replyTo.from === human ? t("composer.mine") : replyTo.from}
               </div>
               <div className="text-muted-foreground truncate text-sm">
-                {typo(replyTo.text) || "файл"}
+                {typo(replyTo.text) || t("composer.file")}
               </div>
             </div>
             <button
               onClick={onCancelReply}
-              aria-label="Отменить ответ"
+              aria-label={t("composer.cancelReply")}
               className="text-muted-foreground hover:text-foreground shrink-0"
             >
               <X className="size-4" />
@@ -247,7 +249,7 @@ export function Composer({ room, agents, human, onError, onSent, replyTo, onCanc
                   <Paperclip />
                 </InputGroupButton>
               </TooltipTrigger>
-              <TooltipContent>Приложить файл — можно перетащить в окно или вставить из буфера</TooltipContent>
+              <TooltipContent>{t("composer.attach")}</TooltipContent>
             </Tooltip>
           </InputGroupAddon>
 
@@ -296,7 +298,7 @@ export function Composer({ room, agents, human, onError, onSent, replyTo, onCanc
       {dragging && (
         <div className="bg-background/80 fixed inset-0 z-50 grid place-items-center backdrop-blur-sm">
           <div className="border-ring rounded-xl border-2 border-dashed px-14 py-10 text-lg">
-            Отпусти — приложу к сообщению
+            {t("composer.drop")}
           </div>
         </div>
       )}

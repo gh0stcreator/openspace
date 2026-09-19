@@ -196,30 +196,36 @@
     color: oklch(0.22 calc(0.02 * var(--c)) var(--h));
   }
 
-/* Знак-вызов при наведении: половины подменяются по очереди — текст уезжает вверх,
-   приходит снизу, ширина едет следом. Маска повторяет строку целиком, поэтому буквы
-   с выносными не срезаются. Длительности и кривая подобраны на глаз. */
-.logo-seg {
+/* Знак-вызов. Половины меняются по очереди: слово уезжает вверх, приходит снизу,
+   ширина едет следом. Режим уходит быстро и коротко, тема — мягче и дольше:
+   так видно, что это две разные половины. Значения из макета знака. */
+.logo-part {
   position: relative;
   display: inline-block;
-  height: 100%;
+  height: 1em;
   overflow: hidden;
-  /* Половина не ужимается под ширину якоря: она задаёт свою и вылезает вправо. */
   flex: none;
-  transition: width 440ms cubic-bezier(0.22, 0.8, 0.2, 1);
+  transition: width 360ms cubic-bezier(0.2, 0.8, 0.2, 1);
 }
-.logo-seg > span {
+.logo-part > span {
   position: absolute;
-  inset: 0;
+  inset: 0 auto auto 0;
   white-space: nowrap;
+}
+.logo-mode > span {
   transition:
-    transform 440ms cubic-bezier(0.22, 0.8, 0.2, 1),
+    transform 300ms cubic-bezier(0.2, 0.8, 0.2, 1),
+    opacity 130ms ease;
+}
+.logo-topic > span {
+  transition:
+    transform 480ms cubic-bezier(0.16, 1, 0.3, 1),
     opacity 180ms ease;
 }
-.logo-seg.is-out > span { transform: translateY(-110%); opacity: 0; }
-.logo-seg.is-in  > span { transform: translateY(110%);  opacity: 0; }
+.logo-part.is-out > span { transform: translateY(-112%); opacity: 0; }
+.logo-part.is-in > span { transform: translateY(112%); opacity: 0; }
 
 @media (prefers-reduced-motion: reduce) {
-  .logo-seg,
-  .logo-seg > span { transition: none; }
+  .logo-part,
+  .logo-part > span { transition: none; }
 }

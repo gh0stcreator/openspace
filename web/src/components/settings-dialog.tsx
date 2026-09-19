@@ -24,6 +24,7 @@ import {
   SelectValue,
 } from "@/components/ui/select"
 import { Switch } from "@/components/ui/switch"
+import { useLang } from "@/lib/i18n"
 import { api, type Agent, type FullMode, type Settings } from "@/lib/api"
 
 type Props = {
@@ -52,6 +53,7 @@ export function SettingsDialog({
   human,
   currentMode,
 }: Props) {
+  const { t } = useLang()
   const [s, setS] = React.useState<Settings | null>(null)
   const [modes, setModes] = React.useState<FullMode[]>([])
   const [busy, setBusy] = React.useState(false)
@@ -141,8 +143,8 @@ export function SettingsDialog({
 
   function hire() {
     const name = hireName.trim()
-    if (!/^[a-zA-Z0-9_\-Ѐ-ӿ]+$/.test(name)) return setError("ник: буквы, цифры, дефис")
-    if (s!.agents[name] || name === human) return setError(`@${name} уже в чате`)
+    if (!/^[a-zA-Z0-9_\-Ѐ-ӿ]+$/.test(name)) return setError(t("hire.badNick"))
+    if (s!.agents[name] || name === human) return setError(t("hire.taken", { name }))
     setHireName("")
     setError("")
     void apply(
@@ -166,14 +168,14 @@ export function SettingsDialog({
         /* vh в шкале нет: диалог не должен вылезать за окно */
       >
         <DialogHeader>
-          <DialogTitle>Настройки</DialogTitle>
+          <DialogTitle>{t("settings.title")}</DialogTitle>
         </DialogHeader>
 
         <Tabs defaultValue="people" className="min-h-0 flex-1">
           <TabsList>
-            <TabsTrigger value="people">Участники</TabsTrigger>
-            <TabsTrigger value="modes">Режимы</TabsTrigger>
-            <TabsTrigger value="space">Пространство</TabsTrigger>
+            <TabsTrigger value="people">{t("settings.people")}</TabsTrigger>
+            <TabsTrigger value="modes">{t("settings.modes")}</TabsTrigger>
+            <TabsTrigger value="space">{t("settings.space")}</TabsTrigger>
           </TabsList>
 
           {/* КТО. Состав команды и что каждый умеет. */}
@@ -206,7 +208,7 @@ export function SettingsDialog({
                   onFire={() => {
                     const agents = { ...s.agents }
                     delete agents[name]
-                    if (!Object.keys(agents).length) return setError("последнего убрать нельзя")
+                    if (!Object.keys(agents).length) return setError(t("hire.lastOne"))
                     patch({ agents })
                   }}
                 />
@@ -215,17 +217,17 @@ export function SettingsDialog({
 
             <div className="mt-3 flex items-end gap-2">
               <Field className="flex-1">
-                <FieldLabel htmlFor="hire">Позвать ещё</FieldLabel>
+                <FieldLabel htmlFor="hire">{t("hire.label")}</FieldLabel>
                 <Input
                   id="hire"
                   value={hireName}
-                  placeholder="имя участника"
+                  placeholder={t("hire.name")}
                   onChange={(e) => setHireName(e.target.value)}
                   onKeyDown={(e) => e.key === "Enter" && hire()}
                 />
               </Field>
               <Field className="w-44">
-                <FieldLabel>Роль</FieldLabel>
+                <FieldLabel>{t("hire.role")}</FieldLabel>
                 <Select value={hireRole} onValueChange={setHireRole}>
                   <SelectTrigger>
                     <SelectValue />
@@ -240,7 +242,7 @@ export function SettingsDialog({
                 </Select>
               </Field>
               <Field className="w-32">
-                <FieldLabel>Движок</FieldLabel>
+                <FieldLabel>{t("hire.engine")}</FieldLabel>
                 <Select value={hireEngine} onValueChange={setHireEngine}>
                   <SelectTrigger className="capitalize">
                     <SelectValue />
@@ -255,7 +257,7 @@ export function SettingsDialog({
                 </Select>
               </Field>
               <Button onClick={hire} disabled={busy}>
-                <Plus /> Позвать
+                <Plus /> {t("hire.button")}
               </Button>
             </div>
           </TabsContent>
@@ -297,7 +299,7 @@ export function SettingsDialog({
                 })
               }
             >
-              <Plus /> Создать режим
+              <Plus /> {t("mode.new")}
             </Button>
           </TabsContent>
 
@@ -305,27 +307,27 @@ export function SettingsDialog({
           <TabsContent value="space" className="-mx-1 min-h-0 flex-1 overflow-y-auto px-1 py-2">
             <div className="grid gap-5">
               <Field>
-                <FieldLabel htmlFor="goal">Зачем мы здесь — общая цель, её видят все</FieldLabel>
+                <FieldLabel htmlFor="goal">{t("space.goal")}</FieldLabel>
                 <Textarea
                   id="goal"
                   rows={2}
                   value={s.goal ?? ""}
-                  placeholder="Собрать к пятнице спецификацию мегаменю, по которой можно писать код"
+                  placeholder={t("space.goalHint")}
                   onChange={(e) => patch({ goal: e.target.value })}
                 />
               </Field>
 
               <Label className="flex items-start justify-between gap-3 font-normal">
                 <span className="grid gap-0.5">
-                  Могут продолжать разговор между собой
-                  <span className="text-muted-foreground text-sm">Иначе после ответа ждут вас</span>
+                  {t("space.freeTalk")}
+                  <span className="text-muted-foreground text-sm">{t("space.freeTalkHint")}</span>
                 </span>
                 <Switch checked={s.freeTalk} onCheckedChange={(v) => patch({ freeTalk: v })} />
               </Label>
 
               <div className="grid gap-4 sm:grid-cols-2">
                 <Field>
-                  <FieldLabel htmlFor="turns">Ходов подряд без вас, потом пауза</FieldLabel>
+                  <FieldLabel htmlFor="turns">{t("space.turns")}</FieldLabel>
                   <Input
                     id="turns"
                     type="number"
@@ -336,7 +338,7 @@ export function SettingsDialog({
                   />
                 </Field>
                 <Field>
-                  <FieldLabel htmlFor="catch">Сколько реплик читает новый участник</FieldLabel>
+                  <FieldLabel htmlFor="catch">{t("space.catchUp")}</FieldLabel>
                 <Input
                   id="catch"
                   type="number"
@@ -350,11 +352,8 @@ export function SettingsDialog({
 
               <Item variant="outline" size="sm">
                 <ItemContent>
-                  <ItemTitle>Сбросить память участников</ItemTitle>
-                  <ItemDescription>
-                    У каждого своя память о разговоре, и она копится. Сброс её стирает: дальше они
-                    читают только хвост ленты. Сообщения в чате остаются
-                  </ItemDescription>
+                  <ItemTitle>{t("space.resetTitle")}</ItemTitle>
+                  <ItemDescription>{t("space.resetBody")}</ItemDescription>
                 </ItemContent>
                 <ItemActions>
                   <Button
@@ -369,18 +368,15 @@ export function SettingsDialog({
                     }}
                   >
                     <RotateCcw />
-                    Сбросить
+                    {t("space.reset")}
                   </Button>
                 </ItemActions>
               </Item>
 
               <Item variant="outline" size="sm">
                 <ItemContent>
-                  <ItemTitle>Очистить чат</ItemTitle>
-                  <ItemDescription>
-                    Сообщения уйдут из ленты, участники забудут разговор. Файл истории сохранится в
-                    rooms/ с отметкой времени
-                  </ItemDescription>
+                  <ItemTitle>{t("space.clearTitle")}</ItemTitle>
+                  <ItemDescription>{t("space.clearBody")}</ItemDescription>
                 </ItemContent>
                 <ItemActions>
                   <Button
@@ -400,7 +396,7 @@ export function SettingsDialog({
                     }}
                   >
                     {armed ? <TriangleAlert /> : <Trash2 />}
-                    {armed ? "Точно? Нажми ещё раз" : "Очистить"}
+                    {armed ? t("space.clearArmed") : t("space.clear")}
                   </Button>
                 </ItemActions>
               </Item>
