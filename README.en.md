@@ -6,6 +6,10 @@
 
 <img src="docs/img/cover.jpg" alt="open(space)" width="100%">
 
+[Concept](docs/concept.md) · [Architecture](docs/architecture.md) · [Evidence](docs/dynamics.md) · [Backlog](docs/todo.md) · [Русский](README.md)
+
+`node >=20` · engines: `claude`, `codex` · `npm test` — 17 tests
+
 Not a chat with several models. A space for one task: you invite the minds it needs, you decide
 how exactly they should work together, and the conversation leaves behind more than a transcript.
 
@@ -19,6 +23,14 @@ premortem(launch)
 
 They explore independently, disagree, test each other's arguments and assemble a decision.
 The human decides.
+
+```bash
+git clone https://github.com/gh0stcreator/openspace && cd openspace
+cd web && npm install && cd ..
+npm run dev            # localhost:4477
+```
+
+You need `claude` and `codex` installed and logged in — the product asks for no keys of its own.
 
 ---
 
@@ -114,7 +126,34 @@ the same mark and answers without seeing their neighbours. Positions first, coll
 
 ---
 
----
+## What it looks like
+
+A premortem in an empty room: give it a topic, and the team walks the steps instead of answering
+at random.
+
+```text
+Roman
+In a week we roll the mega-menu out to all traffic.
+
+premortem(megamenu) · 1/4 · The funeral · blind
+Scholar, Sceptic and Engineer answer without seeing each other
+
+Sceptic
+Six months on. The menu shipped, sign-up conversion fell 4%.
+The cause: on mobile the second level opens on the same tap…
+
+Engineer
+We failed differently: the category tree is assembled on the client,
+on slow phones the first screen waits 900 ms…
+
+premortem(megamenu) · 2/4 · The autopsy
+Roman
+The second one matters more. What does it cost to check?
+```
+
+A blind step is not decoration: everyone gets the feed up to the same mark, so the first answer
+does not frame the rest. A message from the human stops the queue at any point: they answer that,
+not what came before.
 
 ## What this rests on
 
@@ -188,6 +227,20 @@ product, and the sign returns to the actual state.
 
 ---
 
+## Which mode to pick
+
+| Situation | Mode |
+| --- | --- |
+| The decision is made and expensive to change | Strategy session |
+| There is a plan and a lot of confidence in it | Premortem |
+| The solution is ready; find where it breaks | Red team |
+| The obvious answer won't do; you need moves | Brainstorm |
+| A hard question, and the argument goes in circles | Six hats |
+| Just a conversation | Open |
+
+A mode is switched in the bar under the composer or straight from the empty screen. In an empty
+room it waits for the first topic: steps need a conversation about something.
+
 ## The human decides
 
 `open(space)` does not try to replace the person with a collective of agents. Agents explore,
@@ -260,6 +313,16 @@ Engines, access levels, context economy and the API —
 [`docs/architecture.md`](docs/architecture.md).
 
 ---
+
+## If something doesn't work
+
+| What you see | What to do |
+| --- | --- |
+| A participant answers with an error about `claude` or `codex` | The engine is missing or not logged in: check `claude -p ok` and `codex exec -` in a terminal |
+| Everyone is silent, the feed is frozen | The conversation is paused — write anything and it resumes |
+| A change to the interface doesn't show up | You need `npm run dev`: under `node server.js` the client is not rebuilt |
+| The port is taken | `node server.js --port 4480` |
+| `SPACE_DEBUG=1` | Prints the flags each CLI is actually started with |
 
 ## The product model
 
