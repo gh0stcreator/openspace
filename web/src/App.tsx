@@ -289,7 +289,11 @@ export default function App() {
           /* Пустая комната показывает не «здесь тихо», а способы работы: карточка на режим.
              «Открытый» выбран с самого начала, поэтому он в том же ряду и помечен как текущий. */
           <div className="min-h-0 flex-1 overflow-y-auto">
-            <div className="mx-auto flex min-h-full w-full max-w-3xl flex-col justify-center px-4 py-6">
+            {/* Воздух сверху и снизу нужен только когда карточки не влезают и список
+                скроллится. Шесть на пустой экран — это ещё и предложение, а не список,
+                поэтому в обрез: лишние два десятка пикселей включали полосу прокрутки
+                при том, что на экране всё видно. */}
+            <div className="mx-auto flex min-h-full w-full max-w-3xl flex-col justify-center px-4 py-3">
               <div className="grid gap-2 sm:grid-cols-2">
               {cfg.modes?.map((m) => {
                 const current = state.modeState ? state.modeState.name === m.name : m.builtin
