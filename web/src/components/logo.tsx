@@ -23,10 +23,14 @@ export type Pair = { mode: string; subject: string }
 const MODES = ["open", "defense", "brainstorm", "roast", "review", "sixhats"]
 const SUBJECTS = ["space", "pitch", "product", "design", "code", "idea"]
 
-/** Слово из списка, но не то, что уже на экране: подмена на себя же выглядит заминкой. */
-const other = (list: string[], now: string) => {
-  const pool = list.filter((w) => w !== now)
-  return pool[Math.floor(Math.random() * pool.length)] ?? now
+/**
+ * Слово из списка, кроме названных. Исключаем и то, что сейчас на экране (подмена
+ * на себя же выглядит заминкой), и то, что показывали в прошлый раз: два одинаковых
+ * наведения подряд читаются как поломка, а не как случайность.
+ */
+const other = (list: string[], ...skip: (string | undefined)[]) => {
+  const pool = list.filter((w) => !skip.includes(w))
+  return pool[Math.floor(Math.random() * pool.length)] ?? list[0]
 }
 
 // Слово уезжает, через HOLD подменяется и приходит обратно. Одно значение на обе
@@ -64,6 +68,8 @@ export function Logo({
   const timers = React.useRef<number[]>([])
   const hovering = React.useRef(false)
   const playing = React.useRef(false)
+  /** Что показывали в прошлое наведение: второй раз подряд это же не берём. */
+  const last = React.useRef<Partial<Pair>>({})
 
   /** Пробник внутри знака наследует шрифт, кегль и трекинг. */
   const measure = React.useCallback((s: string) => {
@@ -168,8 +174,9 @@ export function Logo({
       if (playing.current) return
       hovering.current = true
       playing.current = true
-      const mode = other(MODES, idle.current.mode)
-      const subject = other(SUBJECTS, idle.current.subject)
+      const mode = other(MODES, idle.current.mode, last.current.mode)
+      const subject = other(SUBJECTS, idle.current.subject, last.current.subject)
+      last.current = { mode, subject }
       roll("mode", mode, colors?.[mode])
       timers.current.push(window.setTimeout(() => roll("subject", subject), EVERY))
       timers.current.push(
