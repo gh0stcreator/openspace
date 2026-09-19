@@ -1,0 +1,17 @@
+{
+  "name": "openspace",
+  "version": "0.1.0",
+  "private": true,
+  "type": "module",
+  "description": "open(space) — локальный чат, где команда агентов и человек разбирают один вопрос в общей ленте",
+  "bin": {
+    "openspace": "./server.js"
+  },
+  "scripts": {
+    "start": "node server.js",
+    "probe": "node lib/probe.js"
+  },
+  "engines": {
+    "node": ">=20"
+  }
+}

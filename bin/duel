@@ -1,0 +1,95 @@
+#!/usr/bin/env node
+/**
+ * Очная ставка: одна и та же роль, один и тот же вопрос, разные движки.
+ * Ответ на «кто лучше в этой роли» даёт твоя задача, а не общие рассуждения.
+ *
+ *   ./bin/duel designer "Экран пустого состояния в ленте: что показываем?"
+ *   ./bin/duel qa "Найди дыры в авторизации" --engines claude,codex
+ *   ./bin/duel editor "Перепиши текст ошибки: «Что-то пошло не так»" --model-claude sonnet
+ *
+ * Идёт мимо сервера и мимо ленты — сравнение не засоряет чат.
+ */
+import path from 'node:path';
+import { fileURLToPath } from 'node:url';
+import fs from 'node:fs';
+import { buildAgent } from '../lib/agents.js';
+import { loadRole, listRoles } from '../lib/roles.js';
+
+const root = path.join(path.dirname(fileURLToPath(import.meta.url)), '..');
+const args = process.argv.slice(2);
+
+const opt = (name, def = null) => {
+  const i = args.indexOf(`--${name}`);
+  if (i === -1) return def;
+  const v = args[i + 1];
+  args.splice(i, 2);
+  return v;
+};
+
+const engines = (opt('engines', 'claude,codex')).split(',').map((s) => s.trim()).filter(Boolean);
+const modelFor = { claude: opt('model-claude'), codex: opt('model-codex') };
+const roleName = args.shift();
+const question = args.join(' ').trim();
+
+if (!roleName || !question) {
+  console.error('нужны роль и вопрос: ./bin/duel designer "как показать пустое состояние?"');
+  console.error('роли:', listRoles().map((r) => r.name).join(', '));
+  process.exit(1);
+}
+
+const role = loadRole(roleName);
+if (role.name !== roleName) {
+  console.error(`роли «${roleName}» нет в roles/. Есть: ${listRoles().map((r) => r.name).join(', ')}`);
+  process.exit(1);
+}
+
+const cfg = JSON.parse(fs.readFileSync(path.join(root, 'openspace.config.json'), 'utf8'));
+const workdir = path.resolve(root, cfg.workdir ?? '..');
+
+const delta = [{ from: cfg.human, text: question, kind: 'message' }];
+
+async function ask(engine) {
+  const agentCfg = {
+    kind: engine,
+    role: roleName,
+    trust: 'safe',
+    lean: true,
+    ...(engine === 'claude' ? { settingSources: 'project' } : { reasoningEffort: 'low' }),
+    ...(modelFor[engine] ? { model: modelFor[engine] } : {}),
+  };
+  const impl = buildAgent(engine, agentCfg);
+  const started = Date.now();
+
+  // Собеседником ставим сам движок, чтобы промпт был идентичен в обоих прогонах.
+  const res = await impl.speak({
+    room: `duel-${roleName}`,
+    delta,
+    ctx: {
+      me: engine,
+      roster: { [engine]: agentCfg },
+      human: cfg.human,
+      workdir,
+    },
+  });
+
+  return { engine, ...res, elapsedMs: Date.now() - started };
+}
+
+console.log(`\n${role.icon}  ${role.title} — очная ставка\n${'─'.repeat(64)}`);
+console.log(`Вопрос: ${question}`);
+console.log(`Движки: ${engines.join(', ')}\n`);
+
+const results = await Promise.all(engines.map(ask));
+
+for (const r of results) {
+  const tok = r.meta?.usage?.input_tokens ? `${Math.round(r.meta.usage.input_tokens / 1000)}k вх.` : '';
+  const model = modelFor[r.engine] ? ` (${modelFor[r.engine]})` : '';
+  console.log('─'.repeat(64));
+  console.log(`▌ ${r.engine}${model}  ·  ${Math.round(r.elapsedMs / 1000)}с  ${tok}`);
+  console.log('─'.repeat(64));
+  console.log(r.error ? `ошибка: ${r.error}` : r.text);
+  console.log();
+}
+
+console.log('─'.repeat(64));
+console.log('Сравнивай по своей задаче: кто увидел то, что важно тебе, а не кто написал длиннее.');

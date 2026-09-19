@@ -1,0 +1,54 @@
+#!/usr/bin/env node
+/**
+ * Закинуть реплику в чат из терминала или из любой другой сессии агента.
+ *   say "@codex глянь диф в src/drawer.tsx"
+ *   say --from codex --room design "готово, смотри"
+ */
+const args = process.argv.slice(2);
+const opt = (name, def) => {
+  const i = args.indexOf(`--${name}`);
+  if (i === -1) return def;
+  const v = args[i + 1];
+  args.splice(i, 2);
+  return v;
+};
+
+if (args.includes('--help') || args.includes('-h')) {
+  console.log('say [--room general] [--from roman] [--port 4477] "текст"');
+  process.exit(0);
+}
+
+// Комната по умолчанию — из конфига, чтобы CLI и браузер писали в одну ленту.
+const { readFileSync } = await import('node:fs');
+const { fileURLToPath } = await import('node:url');
+const { dirname, join } = await import('node:path');
+let fallbackRoom = 'general';
+try {
+  const root = join(dirname(fileURLToPath(import.meta.url)), '..');
+  fallbackRoom = JSON.parse(readFileSync(join(root, 'openspace.config.json'), 'utf8')).defaultRoom || fallbackRoom;
+} catch { /* конфига нет — остаёмся на general */ }
+
+const room = opt('room', fallbackRoom);
+const from = opt('from', null);
+const port = opt('port', process.env.SPACE_PORT || '4477');
+const text = args.join(' ').trim();
+
+if (!text) {
+  console.error('нечего отправлять: say [--room general] [--from roman] "текст"');
+  process.exit(1);
+}
+
+const res = await fetch(`http://localhost:${port}/api/messages?room=${encodeURIComponent(room)}`, {
+  method: 'POST',
+  headers: { 'content-type': 'application/json' },
+  body: JSON.stringify(from ? { text, from } : { text }),
+}).catch((e) => {
+  console.error(`чат не отвечает на :${port} — запущен ли server.js? (${e.message})`);
+  process.exit(1);
+});
+
+if (!res.ok) {
+  console.error(`чат вернул ${res.status}: ${await res.text()}`);
+  process.exit(1);
+}
+console.log(`→ #${room}`);

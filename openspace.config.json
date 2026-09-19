@@ -1,0 +1,87 @@
+{
+  "human": "Создатель",
+  "humanColor": "creator",
+  "port": 4477,
+  "workdir": ".",
+  "defaultRoom": "общая",
+  "maxAutoTurns": 20,
+  "catchUp": 50,
+  "defaultResponders": [
+    "инженер",
+    "скептик",
+    "креатор",
+    "эстет",
+    "академик",
+    "продюсер"
+  ],
+  "freeTalk": true,
+  "agents": {
+    "инженер": {
+      "kind": "claude",
+      "role": "инженер",
+      "color": "blue",
+      "icon": "settings",
+      "trust": "safe",
+      "lean": true,
+      "settingSources": "project",
+      "timeoutMs": 300000,
+      "label": "инженер"
+    },
+    "скептик": {
+      "kind": "codex",
+      "role": "скептик",
+      "color": "red",
+      "icon": "eye",
+      "trust": "safe",
+      "lean": true,
+      "reasoningEffort": "low",
+      "timeoutMs": 300000,
+      "label": "скептик"
+    },
+    "креатор": {
+      "kind": "claude",
+      "role": "креатор",
+      "color": "green",
+      "icon": "rocket",
+      "trust": "safe",
+      "lean": true,
+      "settingSources": "project",
+      "timeoutMs": 300000,
+      "label": "креатор"
+    },
+    "эстет": {
+      "kind": "claude",
+      "role": "эстет",
+      "color": "pink",
+      "icon": "palette",
+      "trust": "safe",
+      "lean": true,
+      "settingSources": "project",
+      "timeoutMs": 300000,
+      "label": "эстет"
+    },
+    "академик": {
+      "kind": "codex",
+      "role": "академик",
+      "color": "indigo",
+      "icon": "brain",
+      "trust": "safe",
+      "lean": true,
+      "reasoningEffort": "low",
+      "timeoutMs": 300000,
+      "label": "академик"
+    },
+    "продюсер": {
+      "kind": "claude",
+      "role": "продюсер",
+      "color": "yellow",
+      "icon": "crown",
+      "trust": "safe",
+      "lean": true,
+      "settingSources": "project",
+      "timeoutMs": 300000,
+      "label": "продюсер"
+    }
+  },
+  "goal": ""
+}
