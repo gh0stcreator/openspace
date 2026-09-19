@@ -108,7 +108,7 @@ const RU = {
   "model.haiku": "Самая быстрая, для простого",
 
   "mode.current": "Текущий",
-  "mode.everyone": "говорят все",
+  "mode.people": "участников: {n}",
   "mode.new": "Создать режим",
   "mode.name": "Название",
   "mode.for": "Для чего",
@@ -230,7 +230,7 @@ const EN: Record<keyof typeof RU, string> = {
   "model.haiku": "Fastest, for simple things",
 
   "mode.current": "Current",
-  "mode.everyone": "everyone speaks",
+  "mode.people": "{n} take part",
   "mode.new": "New mode",
   "mode.name": "Name",
   "mode.for": "What for",

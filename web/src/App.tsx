@@ -266,7 +266,8 @@ export default function App() {
           /* Пустая комната показывает не «здесь тихо», а способы работы: карточка на режим.
              «Открытый» выбран с самого начала, поэтому он в том же ряду и помечен как текущий. */
           <div className="min-h-0 flex-1 overflow-y-auto">
-            <div className="mx-auto grid w-full max-w-3xl gap-2 px-4 py-6 sm:grid-cols-2">
+            <div className="mx-auto flex min-h-full w-full max-w-3xl flex-col justify-center px-4 py-6">
+              <div className="grid gap-2 sm:grid-cols-2">
               {cfg.modes?.map((m) => {
                 const current = state.modeState ? state.modeState.name === m.name : m.builtin
                 return (
@@ -296,7 +297,7 @@ export default function App() {
                       <span className="text-muted-foreground/70 text-sm">
                         {[
                           pick(lang, m.rubric, m.rubricEn),
-                          m.who?.length ? m.who.join(", ") : t("mode.everyone"),
+                          t("mode.people", { n: m.who?.length ?? 0 }),
                         ]
                           .filter(Boolean)
                           .join(" · ")}
@@ -309,7 +310,8 @@ export default function App() {
                     </span>
                   </button>
                 )
-              })}
+                })}
+              </div>
             </div>
           </div>
         ) : (

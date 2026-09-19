@@ -55,12 +55,8 @@ const short = (m) => {
     shortEn: m.shortEn,
     rubric: m.rubric,
     rubricEn: m.rubricEn,
-    // Кто вообще говорит в режиме: объединение всех шагов. Пусто — значит все.
-    who: (() => {
-      const names = Object.keys(orch.roster);
-      const said = new Set(m.steps.flatMap((st) => stepTargets(st, names, orch.roster)));
-      return said.size === names.length ? [] : [...said];
-    })(),
+    // Кто говорит в режиме: объединение по всем шагам. Сколько их — видно в карточке.
+    who: [...new Set(m.steps.flatMap((st) => stepTargets(st, Object.keys(orch.roster), orch.roster)))],
     needs: m.needs,
     // Кого режим просит, а в команде нет: выбирая режим, это стоит знать сразу.
     missing: m.needs.filter((n) => !present.includes(n.toLowerCase())),
