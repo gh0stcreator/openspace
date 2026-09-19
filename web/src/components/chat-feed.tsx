@@ -306,7 +306,7 @@ export function Quote({
       {/* Полоска цветом автора вместо рамки: цитата принадлежит реплике, а не спорит
           с ней за внимание отдельной карточкой. */}
       <span
-        className={cn("h-8 w-0.5 shrink-0 rounded-full", color ? "tone-dot" : "bg-border")}
+        className={cn("w-0.5 shrink-0 self-stretch rounded-full", color ? "tone-dot" : "bg-border")}
         style={color ? toneVars(color) : undefined}
       />
       <div className="min-w-0 flex-1 text-sm leading-tight">
