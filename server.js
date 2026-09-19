@@ -50,6 +50,7 @@ const short = (m) => {
     for: m.for,
     forEn: m.forEn,
     icon: m.icon,
+    color: m.color,
     slug: m.slug,
     short: m.short,
     shortEn: m.shortEn,

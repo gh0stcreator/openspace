@@ -468,6 +468,7 @@ export function SettingsDialog({
                   short: "Новый",
                   shortEn: "",
                   slug: "custom",
+                  color: "",
                   brief: "",
                   briefEn: "",
                   for: "",

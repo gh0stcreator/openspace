@@ -17,7 +17,8 @@ import { Label } from "@/components/ui/label"
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
 import { Switch } from "@/components/ui/switch"
 import { Textarea } from "@/components/ui/textarea"
-import { Icon } from "@/components/chat-feed"
+import { Icon, toneVars } from "@/components/chat-feed"
+import { cn } from "@/lib/utils"
 import { typo } from "@/lib/typo"
 import { useLang, plural, pick } from "@/lib/i18n"
 import type { FullMode, Step } from "@/lib/api"
@@ -121,7 +122,13 @@ export function ModeCard({
     <Collapsible open={open} onOpenChange={setOpen} asChild>
       <div aria-current={current || undefined}>
       <div className="flex min-h-16 items-center gap-3 py-3">
-        <span className="bg-muted text-muted-foreground flex size-10 shrink-0 items-center justify-center rounded-full">
+        <span
+          className={cn(
+            "flex size-10 shrink-0 items-center justify-center rounded-full",
+            mode.color ? "tone-face" : "bg-muted text-muted-foreground"
+          )}
+          style={mode.color ? toneVars(mode.color) : undefined}
+        >
           <Icon name={mode.icon} className="size-5" />
         </span>
 

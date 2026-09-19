@@ -82,6 +82,8 @@ export type Mode = {
   needs: string[]
   missing: string[]
   icon: string
+  /** Цвет режима из палитры участников. Пусто — без цвета. */
+  color: string
   steps: { name: string; who: string; hear: boolean }[]
 }
 

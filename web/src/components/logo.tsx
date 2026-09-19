@@ -1,5 +1,7 @@
 import * as React from "react"
 
+import { toneVars } from "@/components/chat-feed"
+
 /**
  * Знак-вызов: слева — как сейчас думаем, в скобках — о чём. В покое знак показывает
  * настоящее состояние пространства; наведение — только демонстрация грамматики:
@@ -27,11 +29,14 @@ const EVERY = 690
 export function Logo({
   mode,
   subject,
+  color,
   demoPairs = DEMO,
   className,
 }: {
   mode: string
   subject: string
+  /** Цвет режима: им красится левая половина знака — та, что и есть режим. */
+  color?: string | null
   demoPairs?: Pair[]
   className?: string
 }) {
@@ -183,7 +188,11 @@ export function Logo({
       </span>
 
       <span className="absolute top-0 left-0 flex items-baseline whitespace-nowrap">
-        <span ref={part.mode} className="logo-part logo-mode">
+        <span
+          ref={part.mode}
+          className={`logo-part logo-mode${color ? " tone-name" : ""}`}
+          style={color ? toneVars(color) : undefined}
+        >
           <span ref={word.mode}>{first.current.mode}</span>
         </span>
         <span className="text-muted-foreground">(</span>

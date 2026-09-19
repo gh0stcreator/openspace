@@ -126,13 +126,24 @@ export function FaceButton({
 }
 
 /** Имя иконки из роли → компонент Lucide: тот же набор, что в настройках. */
-export function Icon({ name, className }: { name?: string; className?: string }) {
+export function Icon({
+  name,
+  className,
+  style,
+}: {
+  name?: string
+  className?: string
+  style?: React.CSSProperties
+}) {
   const key = (name ?? "bot")
     .split("-")
     .map((p) => p[0]?.toUpperCase() + p.slice(1))
     .join("") as keyof typeof Icons
-  const Cmp = (Icons[key] ?? Icons.Bot) as React.ComponentType<{ className?: string }>
-  return <Cmp className={className ?? "size-4"} />
+  const Cmp = (Icons[key] ?? Icons.Bot) as React.ComponentType<{
+    className?: string
+    style?: React.CSSProperties
+  }>
+  return <Cmp className={className ?? "size-4"} style={style} />
 }
 
 const IMAGE = /\.(png|jpe?g|gif|webp|avif|svg)$/i
