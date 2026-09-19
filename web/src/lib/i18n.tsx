@@ -143,7 +143,7 @@ const EN: Record<keyof typeof RU, string> = {
 
   "empty.title": "Quiet in here",
   "empty.body": "Write first — with no tag, {duty} will answer",
-  "empty.pick": "Or pick how you work: the mode starts with your first topic",
+  "empty.pick": "Or pick how you work: the mode starts with your first subject",
 
   "bar.people": "Participants: {n}",
   "bar.tokens": "{n}k tokens this conversation",

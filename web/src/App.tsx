@@ -34,7 +34,7 @@ import { SettingsDialog } from "@/components/settings-dialog"
 import { cn } from "@/lib/utils"
 import { useLang, people, pick } from "@/lib/i18n"
 import { typo } from "@/lib/typo"
-import { topicOf } from "@/lib/latin"
+import { subjectOf } from "@/lib/latin"
 import { api, listen, type Config, type Msg, type RoomState } from "@/lib/api"
 
 export default function App() {
@@ -206,7 +206,7 @@ export default function App() {
         <header className="flex h-14 shrink-0 items-center gap-3 border-b px-4">
           <a href="/" className="shrink-0">
             <Logo
-              topic={topicOf(room)}
+              subject={subjectOf(room)}
               mode={state.modeState?.slug ?? "open"}
               className={`transition-colors ${
                 live ? "hover:text-muted-foreground" : "text-destructive"

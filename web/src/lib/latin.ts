@@ -13,5 +13,5 @@ export const latin = (s: string) =>
   [...s.toLowerCase()].map((ch) => TRANSLIT[ch] ?? ch).join("")
 
 /** Тема разговора для знака: общая комната — это просто «space». */
-export const topicOf = (room?: string) =>
+export const subjectOf = (room?: string) =>
   !room || room === "общая" || room === "general" ? "space" : latin(room)

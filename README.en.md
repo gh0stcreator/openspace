@@ -48,9 +48,9 @@ a contradiction, to compare options and to decide.
 
 The product's main hypothesis:
 
-> **A team of specialised intelligences, working in an explicitly defined process and a shared
-> accumulated model of the task, lets a person solve hard problems better than a conversation
-> with one universal AI.**
+> **A team of specialised agents, working in an explicitly defined process and a shared
+> accumulated context, lets a person solve hard problems better than a conversation with one
+> universal AI.**
 
 Inside it are three separate bets.
 
@@ -128,7 +128,7 @@ the same mark and answers without seeing their neighbours. Positions first, coll
 
 ## What it looks like
 
-A premortem in an empty room: give it a topic, and the team walks the steps instead of answering
+A premortem in an empty room: give it a subject, and the team walks the steps instead of answering
 at random.
 
 ```text
@@ -200,32 +200,20 @@ premortem "finds 30% more risks" — its confirmed effect is knocking down confi
 ([Veinott, Klein, Wiggins
 2010](https://idl.iscram.org/files/veinott/2010/1049_Veinott_etal2010.pdf)).
 
-## `mode(topic)`
+## `mode(subject)`
 
-The name of the product is also its interface.
-
-```text
-open(space)
-```
-
-**Open space** — a shared room where people talk.
-**Outer space** — emptiness and a sense of room to move.
+The name of the product is its interface. **Open space** — a shared room where people talk;
 **`open(space)`** — a function call: open a space.
 
-The logotype shows the current state:
+The sign in the header shows where you are: on the left, how we are thinking; in the brackets,
+what about.
 
 ```text
-open(space)               an empty space, a conversation with no procedure
-open(product_strategy)    the same freedom, with the topic named
+open(space)               nothing started yet
+open(product_strategy)    no procedure, but the subject is named
 sixhats(megamenu)         taking the question apart in rounds
 premortem(launch)         looking for how this fails
 ```
-
-On the left — **how we are thinking right now**. In the brackets — **what about**. At idle that
-is the real state of the space; on hover both halves change in turn, showing the grammar of the
-product, and the sign returns to the actual state.
-
----
 
 ## Which mode to pick
 
@@ -239,7 +227,7 @@ product, and the sign returns to the actual state.
 | Just a conversation | Open |
 
 A mode is switched in the bar under the composer or straight from the empty screen. In an empty
-room it waits for the first topic: steps need a conversation about something.
+room it waits for the first subject: steps need a conversation about something.
 
 ## The human decides
 

@@ -9,42 +9,42 @@ import * as React from "react"
  * якорь с настоящим состоянием, видимая часть лежит поверх и растёт вправо —
  * поэтому шапка не дёргается.
  */
-export type Pair = { mode: string; topic: string }
+export type Pair = { mode: string; subject: string }
 
 const DEMO: Pair[] = [
-  { mode: "redteam", topic: "product_strategy" },
-  { mode: "research", topic: "market" },
-  { mode: "design", topic: "brand" },
-  { mode: "decide", topic: "pricing" },
-  { mode: "review", topic: "product" },
-  { mode: "brainstorm", topic: "new_idea" },
+  { mode: "redteam", subject: "product_strategy" },
+  { mode: "research", subject: "market" },
+  { mode: "design", subject: "brand" },
+  { mode: "decide", subject: "pricing" },
+  { mode: "review", subject: "product" },
+  { mode: "brainstorm", subject: "new_idea" },
 ]
 
 // Значения из макета знака: режим уходит коротко, тема — мягче и дольше.
-const HOLD = { mode: 115, topic: 155 }
+const HOLD = { mode: 115, subject: 155 }
 const EVERY = 690
 
 export function Logo({
   mode,
-  topic,
+  subject,
   demoPairs = DEMO,
   className,
 }: {
   mode: string
-  topic: string
+  subject: string
   demoPairs?: Pair[]
   className?: string
 }) {
   const wrap = React.useRef<HTMLSpanElement>(null)
-  const part = { mode: React.useRef<HTMLSpanElement>(null), topic: React.useRef<HTMLSpanElement>(null) }
-  const word = { mode: React.useRef<HTMLSpanElement>(null), topic: React.useRef<HTMLSpanElement>(null) }
+  const part = { mode: React.useRef<HTMLSpanElement>(null), subject: React.useRef<HTMLSpanElement>(null) }
+  const word = { mode: React.useRef<HTMLSpanElement>(null), subject: React.useRef<HTMLSpanElement>(null) }
 
   // Настоящее состояние держим в ссылке: оно может смениться прямо во время
   // демонстрации, и тогда по уходу курсора вернуть надо новое, а не старое.
-  const idle = React.useRef<Pair>({ mode, topic })
+  const idle = React.useRef<Pair>({ mode, subject })
   // Текст половин ведёт roll(), а не React: иначе смена режима приходит уже подменённой —
   // roll() видит «слово на месте», не играет смену и оставляет ширину прежнего слова.
-  const first = React.useRef<Pair>({ mode, topic })
+  const first = React.useRef<Pair>({ mode, subject })
   const timers = React.useRef<number[]>([])
   const cycle = React.useRef(0)
   const hovering = React.useRef(false)
@@ -65,7 +65,7 @@ export function Logo({
 
   /** Половины лежат вне потока, поэтому ширину каждой задаём числом. */
   const fit = React.useCallback(() => {
-    for (const key of ["mode", "topic"] as const) {
+    for (const key of ["mode", "subject"] as const) {
       const box = part[key].current
       const node = word[key].current
       if (box && node) box.style.width = `${measure(node.textContent ?? "")}px`
@@ -109,7 +109,7 @@ export function Logo({
   const show = React.useCallback(
     (pair: Pair) => {
       roll("mode", pair.mode)
-      timers.current.push(window.setTimeout(() => roll("topic", pair.topic), 210))
+      timers.current.push(window.setTimeout(() => roll("subject", pair.subject), 210))
     },
     [roll]
   )
@@ -121,12 +121,12 @@ export function Logo({
   }, [fit])
 
   React.useEffect(() => {
-    // Каждый тик меняет ровно одну половину: mode, topic, mode, topic…
+    // Каждый тик меняет ровно одну половину: mode, subject, mode, subject…
     const tick = () => {
       const pair = demoPairs[at.current % demoPairs.length]
       if (half.current % 2 === 0) roll("mode", pair.mode)
       else {
-        roll("topic", pair.topic)
+        roll("subject", pair.subject)
         at.current++
       }
       half.current++
@@ -164,11 +164,11 @@ export function Logo({
   // Настоящее состояние сменилось: вне наведения показываем его той же сменой,
   // под курсором — покажем, когда курсор уйдёт.
   React.useEffect(() => {
-    idle.current = { mode, topic }
+    idle.current = { mode, subject }
     if (hovering.current) return
     drop()
-    show({ mode, topic })
-  }, [mode, topic, show])
+    show({ mode, subject })
+  }, [mode, subject, show])
 
   return (
     <span
@@ -179,7 +179,7 @@ export function Logo({
     >
       {/* Якорь задаёт ширину в вёрстке — видимая часть живёт вне потока. */}
       <span className="invisible" aria-hidden>
-        {mode}({topic})
+        {mode}({subject})
       </span>
 
       <span className="absolute top-0 left-0 flex items-baseline whitespace-nowrap">
@@ -187,8 +187,8 @@ export function Logo({
           <span ref={word.mode}>{first.current.mode}</span>
         </span>
         <span className="text-muted-foreground">(</span>
-        <span ref={part.topic} className="logo-part logo-topic">
-          <span ref={word.topic}>{first.current.topic}</span>
+        <span ref={part.subject} className="logo-part logo-subject">
+          <span ref={word.subject}>{first.current.subject}</span>
         </span>
         <span className="text-muted-foreground">)</span>
       </span>
