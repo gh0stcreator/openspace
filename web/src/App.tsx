@@ -211,6 +211,9 @@ export default function App() {
   }
 
   const spent = messages.reduce((n, m) => n + (m.meta?.usage?.input_tokens ?? 0), 0)
+  // Комната считается пустой, пока в ней нет ни одной реплики: служебные строки
+  // вроде «поставлено на паузу» разговором не являются.
+  const started = messages.some((m) => m.kind === "message")
 
   return (
     <TooltipProvider>
@@ -231,18 +234,22 @@ export default function App() {
             </a>
           </div>
 
-          {/* Кто в пространстве — аватарками: имена не нужны, чтобы это понять. */}
-          <div className="hidden shrink-0 items-center gap-2.5 sm:flex">
-            {Object.entries(cfg.agents).filter(([n]) => here(n)).map(([n, a]) => (
-              <FaceButton
-                key={n}
-                name={n}
-                icon={a.icon}
-                color={a.color}
-                onPick={(name) => setInsert({ name, nonce: Date.now() })}
-              />
-            ))}
-          </div>
+          {/* Кто в пространстве — аватарками: имена не нужны, чтобы это понять.
+              В пустой комнате состав и так нарисован на карточках режимов, поэтому
+              ряд появляется только когда разговор начался. */}
+          {started && (
+            <div className="hidden shrink-0 items-center gap-2.5 sm:flex">
+              {Object.entries(cfg.agents).filter(([n]) => here(n)).map(([n, a]) => (
+                <FaceButton
+                  key={n}
+                  name={n}
+                  icon={a.icon}
+                  color={a.color}
+                  onPick={(name) => setInsert({ name, nonce: Date.now() })}
+                />
+              ))}
+            </div>
+          )}
 
           {/* Профиль: кто вы здесь. Под ним — то, что меняет пространство целиком. */}
           <div className="flex min-w-0 flex-1 basis-0 justify-end">
@@ -267,9 +274,7 @@ export default function App() {
           </div>
         </header>
 
-        {/* Комната считается пустой, пока в ней нет ни одной реплики: служебные
-            строки вроде «поставлено на паузу» разговором не являются. */}
-        {!messages.some((m) => m.kind === "message") ? (
+        {!started ? (
           /* Пустая комната показывает не «здесь тихо», а способы работы: карточка на режим.
              «Открытый» выбран с самого начала, поэтому он в том же ряду и помечен как текущий. */
           <div className="min-h-0 flex-1 overflow-y-auto">
