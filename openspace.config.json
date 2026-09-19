@@ -27,7 +27,7 @@
       "timeoutMs": 300000,
       "icon": "eye",
       "color": "red",
-      "model": "opus"
+      "model": "fable"
     },
     "Креатор": {
       "kind": "claude",
