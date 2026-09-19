@@ -249,18 +249,6 @@ export function Composer({
           </div>
         )}
 
-        <Quote to={editing} agents={agents} className="mb-2">
-          <Button variant="ghost" size="icon-sm" aria-label={t("composer.cancelEdit")} onClick={cancelEdit}>
-            <X />
-          </Button>
-        </Quote>
-
-        <Quote to={replyTo} agents={agents} className="mb-2">
-          <Button variant="ghost" size="icon-sm" aria-label={t("composer.cancelReply")} onClick={onCancelReply}>
-            <X />
-          </Button>
-        </Quote>
-
         {files.length > 0 && (
           <AttachmentGroup className="mb-2">
             {files.map((f, i) => (
@@ -284,6 +272,23 @@ export function Composer({
         )}
 
         <InputGroup className="rounded-2xl">
+          {/* Кому отвечаем — внутри поля, над строкой ввода: ответ и есть часть того,
+              что вы сейчас пишете, а не отдельная карточка над ним. */}
+          {(editing || replyTo) && (
+            <InputGroupAddon align="block-start" className="pt-2 pb-1">
+              <Quote to={editing ?? replyTo} agents={agents}>
+                <Button
+                  variant="ghost"
+                  size="icon-sm"
+                  aria-label={t(editing ? "composer.cancelEdit" : "composer.cancelReply")}
+                  onClick={editing ? cancelEdit : onCancelReply}
+                >
+                  <X />
+                </Button>
+              </Quote>
+            </InputGroupAddon>
+          )}
+
           <InputGroupAddon align="inline-start" className="self-end pb-1.5 pl-1.5 has-[>button]:ml-0">
             <Tooltip>
               <TooltipTrigger asChild>

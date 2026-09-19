@@ -3,7 +3,6 @@ import * as Icons from "lucide-react"
 import { FileText } from "lucide-react"
 
 import { Bubble, BubbleContent } from "@/components/ui/bubble"
-import { Item, ItemActions, ItemContent, ItemDescription, ItemTitle } from "@/components/ui/item"
 import {
   Message,
   MessageAvatar,
@@ -303,15 +302,26 @@ export function Quote({
   if (!to) return null
   const color = getAgent(agents, to.from)?.color
   return (
-    <Item variant="outline" size="xs" className={className}>
-      <ItemContent>
-        <ItemTitle className={color ? "tone-name" : undefined} style={color ? toneVars(color) : undefined}>
+    <div className={cn("flex w-full min-w-0 items-center gap-2", className)}>
+      {/* Полоска цветом автора вместо рамки: цитата принадлежит реплике, а не спорит
+          с ней за внимание отдельной карточкой. */}
+      <span
+        className={cn("h-8 w-0.5 shrink-0 rounded-full", color ? "tone-dot" : "bg-border")}
+        style={color ? toneVars(color) : undefined}
+      />
+      <div className="min-w-0 flex-1 text-sm leading-tight">
+        <div
+          className={cn("truncate font-medium", color && "tone-name")}
+          style={color ? toneVars(color) : undefined}
+        >
           {to.from}
-        </ItemTitle>
-        <ItemDescription>{typo(plain(to.text)) || t("composer.file")}</ItemDescription>
-      </ItemContent>
-      {children && <ItemActions>{children}</ItemActions>}
-    </Item>
+        </div>
+        <div className="text-muted-foreground truncate">
+          {typo(plain(to.text)) || t("composer.file")}
+        </div>
+      </div>
+      {children}
+    </div>
   )
 }
 
