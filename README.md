@@ -162,6 +162,7 @@ cd web && npm install && npm run build
 | | |
 |---|---|
 | [AGENTS.md](AGENTS.md) | канон: дизайн-система, токены, DRY, язык интерфейса |
+| [docs/handoff.md](docs/handoff.md) | где мы сейчас и что дальше — читать первым |
 | [docs/concept.md](docs/concept.md) | концепция продукта и дорожная карта |
 | [docs/architecture.md](docs/architecture.md) | как устроено: движки, доступ, экономия, API |
 | [roles/](roles/) | по файлу на роль |
