@@ -23,14 +23,7 @@ import {
   DropdownMenuSubTrigger,
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu"
-import {
-  Empty,
-  EmptyContent,
-  EmptyDescription,
-  EmptyHeader,
-  EmptyMedia,
-  EmptyTitle,
-} from "@/components/ui/empty"
+import { Badge } from "@/components/ui/badge"
 import { Skeleton } from "@/components/ui/skeleton"
 import { Toaster } from "@/components/ui/sonner"
 import { TooltipProvider } from "@/components/ui/tooltip"
@@ -40,6 +33,7 @@ import { Logo } from "@/components/logo"
 import { SettingsDialog } from "@/components/settings-dialog"
 import { cn } from "@/lib/utils"
 import { useLang, pick } from "@/lib/i18n"
+import { typo } from "@/lib/typo"
 import { topicOf } from "@/lib/latin"
 import { api, listen, type Config, type Msg, type RoomState } from "@/lib/api"
 
@@ -205,7 +199,6 @@ export default function App() {
   }
 
   const spent = messages.reduce((n, m) => n + (m.meta?.usage?.input_tokens ?? 0), 0)
-  const duty = cfg.defaultResponders?.length ? cfg.defaultResponders : [Object.keys(cfg.agents)[0]]
 
   return (
     <TooltipProvider>
@@ -267,41 +260,58 @@ export default function App() {
           </DropdownMenu>
         </header>
 
-        {messages.length === 0 ? (
-          <Empty className="flex-1">
-            <EmptyHeader>
-              <EmptyMedia variant="icon">
-                <Users />
-              </EmptyMedia>
-              <EmptyTitle>{t("empty.title")}</EmptyTitle>
-              <EmptyDescription>{t("empty.body", { duty: duty.join(", ") })}</EmptyDescription>
-            </EmptyHeader>
-            {/* С пустой комнаты чаще начинают не с реплики, а со способа работы.
-                Выбранный режим ждёт первой темы и стартует вместе с ней. */}
-            <EmptyContent>
-              <div className="text-muted-foreground mb-3 text-sm">{t("empty.pick")}</div>
-              <div className="flex max-w-xl flex-wrap justify-center gap-2">
-                {cfg.modes
-                  ?.filter((m) => m.name !== "свободный")
-                  .map((m) => (
-                    <Button
-                      key={m.name}
-                      variant="outline"
-                      size="sm"
-                      className="font-normal"
-                      title={pick(lang, m.for || m.brief, m.forEn || m.briefEn)}
-                      onClick={async () => {
-                        const r = await api.setMode(room, m.name)
-                        setState((st) => ({ ...st, modeState: r.mode }))
-                      }}
-                    >
-                      <Icon name={m.icon} className="size-4" />
-                      {pick(lang, m.short, m.shortEn)}
-                    </Button>
-                  ))}
-              </div>
-            </EmptyContent>
-          </Empty>
+        {/* Комната считается пустой, пока в ней нет ни одной реплики: служебные
+            строки вроде «поставлено на паузу» разговором не являются. */}
+        {!messages.some((m) => m.kind === "message") ? (
+          /* Пустая комната показывает не «здесь тихо», а способы работы: карточка на режим.
+             «Открытый» выбран с самого начала, поэтому он в том же ряду и помечен как текущий. */
+          <div className="min-h-0 flex-1 overflow-y-auto">
+            <div className="mx-auto grid w-full max-w-3xl gap-2 px-4 py-6 sm:grid-cols-2">
+              {cfg.modes?.map((m) => {
+                const current = state.modeState ? state.modeState.name === m.name : m.builtin
+                return (
+                  <button
+                    key={m.name}
+                    aria-current={current || undefined}
+                    className={cn(
+                      "flex gap-3 rounded-lg border p-3 text-left transition-colors",
+                      current ? "bg-accent/40" : "hover:bg-accent/40"
+                    )}
+                    onClick={async () => {
+                      const r = await api.setMode(room, m.builtin ? null : m.name)
+                      setState((st) => ({ ...st, modeState: r.mode }))
+                    }}
+                  >
+                    <span className="bg-muted text-muted-foreground flex size-10 shrink-0 items-center justify-center rounded-full">
+                      <Icon name={m.icon} className="size-5" />
+                    </span>
+                    <span className="grid min-w-0 gap-0.5">
+                      <span className="flex items-center gap-2 font-medium">
+                        {pick(lang, m.title, m.titleEn)}
+                        {current && <Badge variant="secondary">{t("mode.current")}</Badge>}
+                      </span>
+                      <span className="text-muted-foreground text-sm">
+                        {typo(pick(lang, m.for || m.brief, m.forEn || m.briefEn))}
+                      </span>
+                      <span className="text-muted-foreground/70 text-sm">
+                        {[
+                          pick(lang, m.rubric, m.rubricEn),
+                          m.who?.length ? m.who.join(", ") : t("mode.everyone"),
+                        ]
+                          .filter(Boolean)
+                          .join(" · ")}
+                      </span>
+                      {m.missing.length > 0 && (
+                        <span className="text-destructive/90 text-sm">
+                          {t("mode.missing", { names: m.missing.join(", ") })}
+                        </span>
+                      )}
+                    </span>
+                  </button>
+                )
+              })}
+            </div>
+          </div>
         ) : (
           <ChatFeed
             messages={messages}

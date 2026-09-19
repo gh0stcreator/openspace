@@ -379,7 +379,18 @@ const server = http.createServer(async (req, res) => {
     const rel = url.pathname === '/' ? '/index.html' : url.pathname;
     const file = path.join(root, 'public', path.normalize(rel).replace(/^(\.\.[/\\])+/, ''));
     if (fs.existsSync(file) && fs.statSync(file).isFile()) {
-      res.writeHead(200, { 'content-type': MIME[path.extname(file)] ?? 'application/octet-stream' });
+      // Имя собранного файла меняется вместе с содержимым, а index.html — нет.
+      // Закэшированный index.html держит вкладку на прошлой сборке и просит ассеты,
+      // которых уже нет: экран остаётся пустым, а причина не видна.
+      const cache = file.endsWith('.html')
+        ? 'no-store'
+        : file.includes(`${path.sep}assets${path.sep}`)
+          ? 'public, max-age=31536000, immutable'
+          : 'no-cache';
+      res.writeHead(200, {
+        'content-type': MIME[path.extname(file)] ?? 'application/octet-stream',
+        'cache-control': cache,
+      });
       return fs.createReadStream(file).pipe(res);
     }
 
