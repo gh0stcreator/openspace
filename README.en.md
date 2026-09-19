@@ -379,4 +379,4 @@ and stays out of the repository: these are your machine's settings.
 
 ---
 
-**Open a space. Bring who you need. Pick the format of the conversation. Keep what you worked out.**
+**Open a space. Bring who you need. Pick a format. Create.**
