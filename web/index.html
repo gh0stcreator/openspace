@@ -1,10 +1,21 @@
 <!doctype html>
-<html lang="ru" class="dark">
+<html lang="ru">
   <head>
     <meta charset="UTF-8" />
     <link rel="icon" href="/logo.svg" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-    
+    <!-- До первого рендера React: без этого при загрузке на миг мелькнёт светлая
+         тема, пока ThemeProvider не применит класс из localStorage. -->
+    <script>
+      (function () {
+        try {
+          var stored = localStorage.getItem("theme") || "dark"
+          var dark = stored === "dark" ||
+            (stored === "system" && window.matchMedia("(prefers-color-scheme: dark)").matches)
+          document.documentElement.classList.toggle("dark", dark)
+        } catch (e) {}
+      })()
+    </script>
     <title>Openspace</title>
   </head>
   <body>

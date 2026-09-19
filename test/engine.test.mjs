@@ -46,8 +46,9 @@ function setup(names, { delays = {}, fail = {}, dir = null, stateDir = null } = 
   return { orch, calls, built, config, dir };
 }
 
-/** Шаги в порядке появления, без повторов подряд. */
-const order = (calls) => calls.map((c) => c.step).filter((s, i, a) => s !== a[i - 1]);
+/** Шаги режима в порядке появления, без повторов подряд и без закрывающего «итога». */
+const order = (calls) =>
+  calls.map((c) => c.step).filter((s, i, a) => s !== a[i - 1] && s !== 'итог');
 
 test('реплика человека, пришедшая пока участник думает, до него доходит', async () => {
   const { orch, calls } = setup(['первый'], { delays: { первый: 80 } });
@@ -228,4 +229,20 @@ test('перезапуск: режим продолжается с того же
   assert.equal(after?.step, before.step, 'шаг сбился');
   assert.equal(second.orch.state(ROOM).paused, true, 'пауза забылась');
   assert.equal(second.orch.agents.get('первый').lastSeen.get(ROOM), seenBefore, 'прочитанное забылось');
+});
+
+test('режим заканчивает участник репликой, а не служебная строка', async () => {
+  const { orch, calls } = setup(['первый', 'второй']);
+  orch.post(ROOM, { from: 'Roman', text: 'тема' })
+  orch.startMode(ROOM, 'проба');
+  await sleep(1300);
+
+  const feed = orch.store.load(ROOM);
+  assert.equal(orch.modeState(ROOM), null, 'режим не закончился');
+  assert.ok(!feed.some((m) => m.kind === 'system' && /слово за вами|круги/.test(m.text)), 'осталась служебная строка');
+
+  const last = feed.at(-1);
+  assert.equal(last.kind, 'message', 'последнее в ленте — не реплика');
+  assert.equal(last.from, 'первый', 'итог подводит не тот, кто вёл режим');
+  assert.equal(calls.at(-1).step, 'итог');
 });

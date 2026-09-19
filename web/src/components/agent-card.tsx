@@ -1,9 +1,8 @@
 import * as React from "react"
-import { Copy, MoreHorizontal, Settings2, Trash2 } from "lucide-react"
+import { Copy, MoreHorizontal, Settings as Gear, Trash2 } from "lucide-react"
 
 import { Button } from "@/components/ui/button"
 import { Collapsible, CollapsibleContent } from "@/components/ui/collapsible"
-import { cn } from "@/lib/utils"
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -39,6 +38,8 @@ type Props = {
   agent: Agent
   settings: Settings
   onChange: (patch: Partial<Agent>) => void
+  /** Только что созданный участник: карточка открыта, чтобы его сразу настроить. */
+  autoOpen?: boolean
   onRename: (next: string) => void
   onCopy: () => void
   onFire: () => void
@@ -54,15 +55,15 @@ const brain = (agent: Agent) => {
   return `${engine} ${m?.label ?? agent.model}`
 }
 
-export function AgentCard({ name, agent, settings, onChange, onRename, onCopy, onFire }: Props) {
+export function AgentCard({ name, agent, settings, autoOpen, onChange, onRename, onCopy, onFire }: Props) {
   const { lang, t } = useLang()
-  const [open, setOpen] = React.useState(false)
+  const [open, setOpen] = React.useState(autoOpen ?? false)
   const [nick, setNick] = React.useState(name)
 
   return (
     <Collapsible open={open} onOpenChange={setOpen} asChild>
-      <div className={cn("rounded-lg border transition-colors", !open && "hover:bg-accent/40")}>
-      <div className="flex items-center gap-3 p-3">
+      <div>
+      <div className="flex min-h-16 items-center gap-3 py-3">
         <FacePicker
           name={name}
           icon={agent.icon}
@@ -71,15 +72,15 @@ export function AgentCard({ name, agent, settings, onChange, onRename, onCopy, o
         />
 
         <button className="min-w-0 flex-1 text-left" onClick={() => setOpen((v) => !v)}>
-          <div className="flex items-baseline gap-2">
-            <span className="font-medium capitalize">{name}</span>
-            {/* Движок и модель — техническая пометка, поэтому моноширинной и тише имени. */}
-            <span className="text-muted-foreground/70 truncate font-mono text-xs">{brain(agent)}</span>
-          </div>
+          <div className="text-sm font-medium capitalize">{name}</div>
           <div className="text-muted-foreground truncate text-sm">
             {pick(lang, agent.brief, agent.briefEn)}
           </div>
         </button>
+
+        <span className="text-muted-foreground/70 hidden w-28 shrink-0 text-right text-xs sm:block">
+          {brain(agent)}
+        </span>
 
         <DropdownMenu>
           <DropdownMenuTrigger asChild>
@@ -89,7 +90,7 @@ export function AgentCard({ name, agent, settings, onChange, onRename, onCopy, o
           </DropdownMenuTrigger>
           <DropdownMenuContent align="end">
             <DropdownMenuItem onClick={() => setOpen((v) => !v)}>
-              <Settings2 />
+              <Gear />
               {t("card.settings")}
             </DropdownMenuItem>
             <DropdownMenuItem onClick={onCopy}>
@@ -106,7 +107,7 @@ export function AgentCard({ name, agent, settings, onChange, onRename, onCopy, o
 
       {/* Раскрытие анимируем компонентом системы: карточка не прыгает. */}
       <CollapsibleContent className="data-[state=closed]:animate-collapsible-up data-[state=open]:animate-collapsible-down overflow-hidden">
-        <div className="grid gap-5 border-t p-4">
+        <div className="grid gap-5 pt-1 pb-4">
           {/* Сначала кто это и что делает, техническое — ниже. */}
           <div className="grid gap-3 sm:grid-cols-[1fr_1.4fr]">
             <Field>

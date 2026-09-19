@@ -3,7 +3,7 @@
   "version": "0.1.0",
   "private": true,
   "type": "module",
-  "description": "open(space) — локальный чат, где команда агентов и человек разбирают один вопрос в общей ленте",
+  "description": "Среда совместного мышления для человека и ИИ-агентов",
   "bin": {
     "openspace": "./server.js"
   },
@@ -14,5 +14,11 @@
   },
   "engines": {
     "node": ">=20"
-  }
+  },
+  "license": "MIT",
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/gh0stcreator/openspace.git"
+  },
+  "homepage": "https://github.com/gh0stcreator/openspace#readme"
 }

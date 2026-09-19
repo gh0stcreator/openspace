@@ -44,9 +44,6 @@ export function toneVars(color?: string | null): React.CSSProperties {
   } as React.CSSProperties
 }
 
-/** Бледные цвета требуют тёмного текста в пузыре — это единственное исключение. */
-export const isPale = (color?: string | null) => color === "white"
-
 /** Ник могли записать в другом регистре (старые логи, ручной ввод) — ищем без учёта регистра. */
 function getAgent(agents: Record<string, Agent>, name?: string): Agent | undefined {
   if (!name) return undefined
@@ -412,7 +409,7 @@ export function ChatFeed({ messages, user, agents, thinking, onReply, onMention,
                                 className={cn(
                                   "cursor-pointer text-base leading-normal",
                                   // Своя реплика — нейтральная: цветом кодируются собеседники.
-                                  !mine && (isPale(agent?.color) ? "tone-bubble-pale" : "tone-bubble"),
+                                  !mine && "tone-bubble",
                                   tagged && "is-tagged"
                                 )}
                                 style={mine ? undefined : toneVars(agent?.color)}
@@ -455,7 +452,7 @@ export function ChatFeed({ messages, user, agents, thinking, onReply, onMention,
                       <BubbleContent
                         className={cn(
                           "text-sm",
-                          isPale(getAgent(agents, thinking[0])?.color) ? "tone-bubble-pale" : "tone-bubble"
+                          "tone-bubble"
                         )}
                         style={toneVars(getAgent(agents, thinking[0])?.color)}
                       >

@@ -4,12 +4,22 @@ import { COLOR_ORDER, Face, Icon, toneVars } from "@/components/chat-feed"
 import { cn } from "@/lib/utils"
 import { useLang } from "@/lib/i18n"
 
-/** Иконки для аватарки — то, чем обычно помечают роль. */
+/**
+ * Знаки для аватарки: по одному на смысл, без синонимов. Раньше в списке стояли
+ * и microscope, и flask-conical, и code, и terminal, и git-branch — на 16 пикселях
+ * они различаются хуже, чем кажется в макете, а выбирать из тридцати двух похожих трудно.
+ */
 export const ICONS = [
-  "book-open", "sparkles", "eye", "palette", "settings", "users", "brain", "compass",
-  "microscope", "flask-conical", "ruler", "pen-tool", "type", "megaphone", "scale",
-  "target", "flag", "rocket", "lightbulb", "shield", "bug", "code", "terminal",
-  "git-branch", "database", "globe", "heart", "flame", "music", "coffee", "crown", "gem",
+  // думает
+  "brain", "lightbulb", "sparkles", "eye", "compass",
+  // проверяет
+  "shield", "bug", "scale", "microscope", "search",
+  // делает
+  "settings", "wrench", "code", "terminal", "rocket",
+  // говорит
+  "megaphone", "pen-line", "type", "book-open", "target",
+  // прочее
+  "users", "crown", "palette", "globe",
 ]
 
 /**
@@ -21,12 +31,15 @@ export function FacePicker({
   icon,
   color,
   size = "lg",
+  label,
   onChange,
 }: {
   name: string
   icon?: string
   color?: string | null
   size?: "md" | "lg"
+  /** Подпись рядом с кружком: без неё непонятно, что это не просто картинка. */
+  label?: string
   onChange: (patch: { icon?: string; color?: string }) => void
 }) {
   const { t } = useLang()
@@ -34,11 +47,12 @@ export function FacePicker({
     <Popover>
       <PopoverTrigger asChild>
         <button
-          className="tone-hover shrink-0 rounded-full transition-shadow"
+          className="flex items-center gap-2 rounded-full text-sm transition-shadow"
           style={toneVars(color)}
           title={t("card.face")}
         >
-          <Face name={name} icon={icon} color={color} size={size} />
+          <Face name={name} icon={icon} color={color} size={size} className="tone-hover" />
+          {label && <span className="text-muted-foreground hover:text-foreground">{label}</span>}
         </button>
       </PopoverTrigger>
       <PopoverContent className="w-80 p-2">

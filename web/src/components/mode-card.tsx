@@ -1,5 +1,5 @@
 import * as React from "react"
-import { Copy, MoreHorizontal, Plus, Settings2, Trash2 } from "lucide-react"
+import { Copy, MoreHorizontal, Plus, Settings, Trash2 } from "lucide-react"
 
 import { Badge } from "@/components/ui/badge"
 import { Button } from "@/components/ui/button"
@@ -18,7 +18,6 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { Switch } from "@/components/ui/switch"
 import { Textarea } from "@/components/ui/textarea"
 import { Icon } from "@/components/chat-feed"
-import { cn } from "@/lib/utils"
 import { typo } from "@/lib/typo"
 import { useLang, plural, pick } from "@/lib/i18n"
 import type { FullMode, Step } from "@/lib/api"
@@ -120,17 +119,14 @@ export function ModeCard({
 
   return (
     <Collapsible open={open} onOpenChange={setOpen} asChild>
-      <div
-        aria-current={current || undefined}
-        className={cn("rounded-lg border transition-colors", !open && "hover:bg-accent/40")}
-      >
-      <div className="flex items-center gap-3 p-3">
+      <div aria-current={current || undefined}>
+      <div className="flex min-h-16 items-center gap-3 py-3">
         <span className="bg-muted text-muted-foreground flex size-10 shrink-0 items-center justify-center rounded-full">
           <Icon name={mode.icon} className="size-5" />
         </span>
 
         <button className="min-w-0 flex-1 text-left" onClick={() => setOpen((v) => !v)}>
-          <div className="font-medium">{pick(lang, mode.title, mode.titleEn)}</div>
+          <div className="text-sm font-medium">{pick(lang, mode.title, mode.titleEn)}</div>
           <div className="text-muted-foreground truncate text-sm">
             {typo(pick(lang, mode.for || mode.brief, mode.forEn || mode.briefEn))} · {mode.steps.length}{" "}
             {plural(lang, mode.steps.length, [t("mode.stepOne"), t("mode.stepFew"), t("mode.stepMany")])}
@@ -147,7 +143,7 @@ export function ModeCard({
           </DropdownMenuTrigger>
           <DropdownMenuContent align="end">
             <DropdownMenuItem onClick={() => setOpen((v) => !v)}>
-              <Settings2 />
+              <Settings />
               {t("card.settings")}
             </DropdownMenuItem>
             <DropdownMenuItem onClick={onCopy}>
@@ -166,7 +162,7 @@ export function ModeCard({
 
       {/* Раскрытие анимируем компонентом системы: карточка не прыгает. */}
       <CollapsibleContent className="data-[state=closed]:animate-collapsible-up data-[state=open]:animate-collapsible-down overflow-hidden">
-        <div className="grid gap-5 border-t p-4">
+        <div className="grid gap-5 pt-1 pb-4">
           <div className="grid gap-3 sm:grid-cols-[1fr_1.4fr]">
             <Field>
               <FieldLabel htmlFor={`title-${mode.name}`}>{t("mode.name")}</FieldLabel>

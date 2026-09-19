@@ -1,5 +1,6 @@
 import * as React from "react"
-import { Plus, RotateCcw, Trash2, TriangleAlert } from "lucide-react"
+import { Plus, RotateCcw, Trash2 } from "lucide-react"
+import { useTheme } from "next-themes"
 
 import { Button } from "@/components/ui/button"
 import {
@@ -8,15 +9,31 @@ import {
   DialogHeader,
   DialogTitle,
 } from "@/components/ui/dialog"
-import { Field, FieldDescription, FieldGroup, FieldLabel, FieldSeparator } from "@/components/ui/field"
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+  AlertDialogTrigger,
+} from "@/components/ui/alert-dialog"
+import {
+  Field,
+  FieldContent,
+  FieldDescription,
+  FieldGroup,
+  FieldLabel,
+  FieldSeparator,
+} from "@/components/ui/field"
 import { Input } from "@/components/ui/input"
-import { Item, ItemActions, ItemContent, ItemDescription, ItemTitle } from "@/components/ui/item"
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
 import { Textarea } from "@/components/ui/textarea"
 import { AgentCard } from "@/components/agent-card"
 import { FacePicker } from "@/components/face-picker"
 import { ModeCard } from "@/components/mode-card"
-import { Label } from "@/components/ui/label"
 import {
   Select,
   SelectContent,
@@ -31,8 +48,20 @@ import { api, type Agent, type FullMode, type Settings } from "@/lib/api"
 /** Ссылки автора: репозиторий и канал. Пустая строка — ссылка не показывается. */
 const AUTHOR = {
   repo: "https://github.com/gh0stcreator/openspace",
-  channel: "",
+  channel: "https://t.me/romanticcollection86",
 }
+
+/** Пункт навигации: активное состояние как у меню shadcn, без своих индикаторов. */
+const NAV = [
+  "min-h-9 justify-start rounded-md border-transparent px-3 text-sm hover:bg-accent/50",
+  // Активное состояние — только заливка. Вариант вкладок рисует свою рамку, и под dark:
+  // тоже, поэтому гасим оба правила: иначе поверх заливки видна вторая рамка.
+  "data-active:border-transparent data-active:bg-accent data-active:text-accent-foreground",
+  "dark:data-active:border-transparent dark:data-active:bg-accent dark:data-active:text-accent-foreground",
+  // Фокус — кольцо. Штатная обводка у вкладок волосяная и в упор к тексту: рядом
+  // с заливкой активного пункта она читается как вторая рамка.
+  "focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring",
+].join(" ")
 
 type Props = {
   open: boolean
@@ -61,10 +90,13 @@ export function SettingsDialog({
   currentMode,
 }: Props) {
   const { lang, setLang, t } = useLang()
+  const { theme, setTheme } = useTheme()
   const [s, setS] = React.useState<Settings | null>(null)
   const [modes, setModes] = React.useState<FullMode[]>([])
-  const [busy, setBusy] = React.useState(false)
-  const [armed, setArmed] = React.useState(false)
+  const [hiring, setHiring] = React.useState(false)
+  // Созданный участник — заготовка: всё остальное настраивают в его карточке, и она
+  // открывается сразу, чтобы не искать его в списке.
+  const [created, setCreated] = React.useState("")
   const [hireName, setHireName] = React.useState("")
   const [hireRole, setHireRole] = React.useState("")
   const [hireEngine, setHireEngine] = React.useState("claude")
@@ -72,7 +104,6 @@ export function SettingsDialog({
 
   React.useEffect(() => {
     if (!open) return
-    setArmed(false)
     setError("")
     api.settings().then((v) => {
       setS(v)
@@ -156,6 +187,8 @@ export function SettingsDialog({
     if (!/^[a-zA-Z0-9_\-Ѐ-ӿ]+$/.test(name)) return setError(t("hire.badNick"))
     if (s!.agents[name] || name === user) return setError(t("hire.taken", { name }))
     setHireName("")
+    setHiring(false)
+    setCreated(name)
     setError("")
     void apply(
       {
@@ -174,43 +207,57 @@ export function SettingsDialog({
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
       <DialogContent
-        /* Высота постоянная: иначе диалог прыгает на каждой вкладке. Таких величин
-           в шкале нет — 36rem это «примерно полтора списка участников». */
-        className="flex h-[min(36rem,85vh)] flex-col gap-4 sm:max-w-3xl"
+        /* Размер обычного настроечного окна, а не приложения во весь экран. Он постоянный,
+           иначе диалог прыгает на каждом разделе; отступы свои у колонки и у страницы. */
+        className="flex h-[640px] max-h-[calc(100vh-48px)] w-[900px] max-w-[calc(100vw-48px)] gap-0 overflow-hidden p-0 sm:max-w-[900px]"
       >
-        <DialogHeader>
-          <DialogTitle>{t("settings.title")}</DialogTitle>
-        </DialogHeader>
+        <Tabs orientation="vertical" defaultValue="general" className="min-w-0 flex-1 gap-0">
+          {/* Слева — куда идти, справа — сама настройка. Заголовок диалога живёт в колонке,
+              потому что он и есть её шапка. */}
+          <div className="bg-muted/30 flex w-[220px] shrink-0 flex-col border-r p-4">
+            <DialogHeader className="mb-4 px-3">
+              <DialogTitle className="text-muted-foreground text-sm font-medium">
+                {t("settings.title")}
+              </DialogTitle>
+            </DialogHeader>
+            <TabsList className="w-full gap-0.5 bg-transparent p-0">
+              <TabsTrigger value="general" className={NAV}>{t("settings.general")}</TabsTrigger>
+              <TabsTrigger value="people" className={NAV}>{t("settings.people")}</TabsTrigger>
+              <TabsTrigger value="modes" className={NAV}>{t("settings.modes")}</TabsTrigger>
+              <TabsTrigger value="space" className={NAV}>{t("settings.space")}</TabsTrigger>
+            </TabsList>
 
-        <Tabs defaultValue="general" className="min-h-0 flex-1">
-          <TabsList>
-            <TabsTrigger value="general">{t("settings.general")}</TabsTrigger>
-            <TabsTrigger value="people">{t("settings.people")}</TabsTrigger>
-            <TabsTrigger value="modes">{t("settings.modes")}</TabsTrigger>
-            <TabsTrigger value="space">{t("settings.space")}</TabsTrigger>
-          </TabsList>
+            <div className="text-muted-foreground mt-auto grid gap-1 px-3 text-xs">
+              <a className="hover:text-foreground truncate" href={AUTHOR.channel} target="_blank" rel="noopener">
+                {t("general.channel")}
+              </a>
+              <a className="hover:text-foreground" href={AUTHOR.repo} target="_blank" rel="noopener">
+                GitHub
+              </a>
+            </div>
+          </div>
 
           {/* Я. Как меня зовут, как я выгляжу и на каком языке говорит оболочка. */}
-          <TabsContent value="general" className="-mx-1 min-h-0 flex-1 overflow-y-auto px-1 py-2">
-            <FieldGroup>
+          <TabsContent value="general" className="min-w-0 flex-1 overflow-y-auto p-6">
+            <h2 className="text-xl font-semibold">{t("settings.general")}</h2>
+            <FieldGroup className="mt-6 max-w-2xl gap-5">
               <Field>
-                <FieldLabel htmlFor="me">{t("general.name")}</FieldLabel>
-                <div className="flex items-center gap-3">
+                <FieldLabel>{t("general.face")}</FieldLabel>
+                <div>
                   <FacePicker
                     name={s.user}
                     icon={s.userIcon}
                     color={s.userColor || null}
                     size="md"
+                    label={t("general.faceEdit")}
                     onChange={(p) => patch({ userIcon: p.icon ?? s.userIcon, userColor: p.color ?? s.userColor })}
                   />
-                  <Input
-                    id="me"
-                    className="flex-1"
-                    value={s.user}
-                    onChange={(e) => patch({ user: e.target.value })}
-                  />
                 </div>
-                <FieldDescription>{t("general.nameHint")}</FieldDescription>
+              </Field>
+
+              <Field>
+                <FieldLabel htmlFor="me">{t("general.name")}</FieldLabel>
+                <Input id="me" value={s.user} onChange={(e) => patch({ user: e.target.value })} />
               </Field>
 
               <Field>
@@ -226,34 +273,32 @@ export function SettingsDialog({
                 </Select>
               </Field>
 
-              <FieldSeparator />
+              <Field>
+                <FieldLabel htmlFor="theme">{t("profile.theme")}</FieldLabel>
+                <Select value={theme} onValueChange={setTheme}>
+                  <SelectTrigger id="theme">
+                    <SelectValue />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="light">{t("theme.light")}</SelectItem>
+                    <SelectItem value="dark">{t("theme.dark")}</SelectItem>
+                    <SelectItem value="system">{t("theme.system")}</SelectItem>
+                  </SelectContent>
+                </Select>
+              </Field>
 
-              {/* Подпись автора: строка со ссылками, а не карточка — это не настройка. */}
-              <div className="text-muted-foreground flex flex-wrap items-center gap-x-1.5 gap-y-1 text-sm">
-                <span>{t("general.by")}</span>
-                <span>·</span>
-                <a className="hover:text-foreground underline underline-offset-4" href={AUTHOR.repo} target="_blank" rel="noopener">
-                  {t("general.source")}
-                </a>
-                {AUTHOR.channel && (
-                  <>
-                    <span>·</span>
-                    <a className="hover:text-foreground underline underline-offset-4" href={AUTHOR.channel} target="_blank" rel="noopener">
-                      {t("general.channel")}
-                    </a>
-                  </>
-                )}
-              </div>
             </FieldGroup>
           </TabsContent>
 
           {/* КТО. Состав команды и что каждый умеет. */}
-          <TabsContent value="people" className="-mx-1 min-h-0 flex-1 overflow-y-auto px-1 py-2">
-            <div className="flex flex-col gap-2">
+          <TabsContent value="people" className="min-w-0 flex-1 overflow-y-auto p-6">
+            <h2 className="mb-6 text-xl font-semibold">{t("settings.people")}</h2>
+            <div className="max-w-2xl divide-y">
               {Object.entries(s.agents).map(([name, a]) => (
                 <AgentCard
                   key={name}
                   name={name}
+                  autoOpen={created === name}
                   agent={a}
                   settings={s}
                   onChange={(p) => patch({ agents: { ...s.agents, [name]: { ...a, ...p } } })}
@@ -284,57 +329,72 @@ export function SettingsDialog({
               ))}
             </div>
 
-            {/* На узком экране строка найма складывается в столбик. */}
-            <div className="mt-3 grid gap-2 sm:grid-cols-[1fr_11rem_8rem_auto] sm:items-end">
-              <Field>
-                <FieldLabel htmlFor="hire">{t("hire.label")}</FieldLabel>
-                <Input
-                  id="hire"
-                  value={hireName}
-                  placeholder={t("hire.name")}
-                  onChange={(e) => setHireName(e.target.value)}
-                  onKeyDown={(e) => e.key === "Enter" && hire()}
-                />
-              </Field>
-              <Field>
-                <FieldLabel>{t("hire.role")}</FieldLabel>
-                <Select value={hireRole} onValueChange={setHireRole}>
-                  <SelectTrigger>
-                    <SelectValue />
-                  </SelectTrigger>
-                  <SelectContent>
-                    {s.roles.map((r) => (
-                      <SelectItem key={r.name} value={r.name}>
-                        {pick(lang, r.title, r.titleEn)}
-                      </SelectItem>
-                    ))}
-                  </SelectContent>
-                </Select>
-              </Field>
-              <Field>
-                <FieldLabel>{t("hire.engine")}</FieldLabel>
-                <Select value={hireEngine} onValueChange={setHireEngine}>
-                  <SelectTrigger className="capitalize">
-                    <SelectValue />
-                  </SelectTrigger>
-                  <SelectContent>
-                    {s.engines.map((e) => (
-                      <SelectItem key={e} value={e} className="capitalize">
-                        {e}
-                      </SelectItem>
-                    ))}
-                  </SelectContent>
-                </Select>
-              </Field>
-              <Button onClick={hire} disabled={busy}>
-                <Plus /> {t("hire.button")}
+            {/* Состав смотрят постоянно, зовут редко: форма приглашения открывается по кнопке
+                и не занимает низ экрана всё остальное время. */}
+            {hiring ? (
+              <FieldGroup className="mt-4 max-w-2xl gap-4">
+                <Field>
+                  <FieldLabel htmlFor="hire">{t("hire.name")}</FieldLabel>
+                  <Input
+                    id="hire"
+                    autoFocus
+                    value={hireName}
+                    onChange={(e) => setHireName(e.target.value)}
+                    onKeyDown={(e) => e.key === "Enter" && hire()}
+                  />
+                </Field>
+                <div className="grid gap-4 sm:grid-cols-2">
+                  <Field>
+                    <FieldLabel>{t("hire.role")}</FieldLabel>
+                    <Select value={hireRole} onValueChange={setHireRole}>
+                      <SelectTrigger>
+                        <SelectValue />
+                      </SelectTrigger>
+                      <SelectContent>
+                        {s.roles.map((r) => (
+                          <SelectItem key={r.name} value={r.name}>
+                            {pick(lang, r.title, r.titleEn)}
+                          </SelectItem>
+                        ))}
+                      </SelectContent>
+                    </Select>
+                  </Field>
+                  <Field>
+                    <FieldLabel>{t("hire.engine")}</FieldLabel>
+                    <Select value={hireEngine} onValueChange={setHireEngine}>
+                      <SelectTrigger className="capitalize">
+                        <SelectValue />
+                      </SelectTrigger>
+                      <SelectContent>
+                        {s.engines.map((e) => (
+                          <SelectItem key={e} value={e} className="capitalize">
+                            {e}
+                          </SelectItem>
+                        ))}
+                      </SelectContent>
+                    </Select>
+                  </Field>
+                </div>
+                <div className="flex justify-end gap-2">
+                  <Button variant="ghost" size="sm" onClick={() => setHiring(false)}>
+                    {t("space.cancel")}
+                  </Button>
+                  <Button size="sm" onClick={hire}>
+                    {t("hire.button")}
+                  </Button>
+                </div>
+              </FieldGroup>
+            ) : (
+              <Button variant="outline" size="sm" className="mt-4" onClick={() => setHiring(true)}>
+                <Plus /> {t("hire.open")}
               </Button>
-            </div>
+            )}
           </TabsContent>
 
           {/* КАК. Правила поведения поверх участников. */}
-          <TabsContent value="modes" className="-mx-1 min-h-0 flex-1 overflow-y-auto px-1 py-2">
-            <div className="flex flex-col gap-2">
+          <TabsContent value="modes" className="min-w-0 flex-1 overflow-y-auto p-6">
+            <h2 className="mb-6 text-xl font-semibold">{t("settings.modes")}</h2>
+            <div className="max-w-2xl divide-y">
               {modes.map((m) => (
                 <ModeCard
                   key={m.name}
@@ -351,9 +411,9 @@ export function SettingsDialog({
             </div>
 
             <Button
-              variant="ghost"
+              variant="outline"
               size="sm"
-              className="mt-3"
+              className="mt-4"
               onClick={() =>
                 void copyMode({
                   name: "новый-режим",
@@ -382,8 +442,9 @@ export function SettingsDialog({
           </TabsContent>
 
           {/* ГДЕ. Общий контекст задачи и то, что пространство помнит. */}
-          <TabsContent value="space" className="-mx-1 min-h-0 flex-1 overflow-y-auto px-1 py-2">
-            <div className="grid gap-5">
+          <TabsContent value="space" className="min-w-0 flex-1 overflow-y-auto p-6">
+            <h2 className="mb-6 text-xl font-semibold">{t("settings.space")}</h2>
+            <FieldGroup className="max-w-2xl gap-5">
               <Field>
                 <FieldLabel htmlFor="goal">{t("space.goal")}</FieldLabel>
                 <Textarea
@@ -393,96 +454,121 @@ export function SettingsDialog({
                   placeholder={t("space.goalHint")}
                   onChange={(e) => patch({ goal: e.target.value })}
                 />
+                <FieldDescription>{t("space.goalSeen")}</FieldDescription>
               </Field>
 
-              <Label className="flex items-start justify-between gap-3 font-normal">
-                <span className="grid gap-0.5">
-                  {t("space.freeTalk")}
-                  <span className="text-muted-foreground text-sm">{t("space.freeTalkHint")}</span>
-                </span>
-                <Switch checked={s.freeTalk} onCheckedChange={(v) => patch({ freeTalk: v })} />
-              </Label>
+              <Field orientation="horizontal">
+                <FieldContent>
+                  <FieldLabel htmlFor="free">{t("space.freeTalk")}</FieldLabel>
+                  <FieldDescription>{t("space.freeTalkHint")}</FieldDescription>
+                </FieldContent>
+                <Switch id="free" checked={s.freeTalk} onCheckedChange={(v) => patch({ freeTalk: v })} />
+              </Field>
 
-              <div className="grid gap-4 sm:grid-cols-2">
-                <Field>
+              <Field orientation="horizontal">
+                <FieldContent>
                   <FieldLabel htmlFor="turns">{t("space.turns")}</FieldLabel>
-                  <Input
-                    id="turns"
-                    type="number"
-                    min={1}
-                    max={100}
-                    value={s.maxAutoTurns}
-                    onChange={(e) => patch({ maxAutoTurns: Number(e.target.value) })}
-                  />
-                </Field>
-                <Field>
+                  <FieldDescription>{t("space.turnsHint")}</FieldDescription>
+                </FieldContent>
+                <Input
+                  id="turns"
+                  type="number"
+                  min={1}
+                  max={100}
+                  className="w-24"
+                  value={s.maxAutoTurns}
+                  onChange={(e) => patch({ maxAutoTurns: Number(e.target.value) })}
+                />
+              </Field>
+
+              <Field orientation="horizontal">
+                <FieldContent>
                   <FieldLabel htmlFor="catch">{t("space.catchUp")}</FieldLabel>
+                  <FieldDescription>{t("space.catchUpHint")}</FieldDescription>
+                </FieldContent>
                 <Input
                   id="catch"
                   type="number"
                   min={1}
                   max={500}
+                  className="w-24"
                   value={s.catchUp}
-                    onChange={(e) => patch({ catchUp: Number(e.target.value) })}
-                  />
-                </Field>
-              </div>
+                  onChange={(e) => patch({ catchUp: Number(e.target.value) })}
+                />
+              </Field>
 
-              <Item variant="outline" size="sm">
-                <ItemContent>
-                  <ItemTitle>{t("space.resetTitle")}</ItemTitle>
-                  <ItemDescription>{t("space.resetBody")}</ItemDescription>
-                </ItemContent>
-                <ItemActions>
-                  <Button
-                    variant="ghost"
-                    size="sm"
-                    disabled={busy}
-                    onClick={async () => {
-                      setBusy(true)
-                      await api.reset(room)
-                      setBusy(false)
-                      onOpenChange(false)
-                    }}
-                  >
-                    <RotateCcw />
-                    {t("space.reset")}
-                  </Button>
-                </ItemActions>
-              </Item>
+              <FieldSeparator />
 
-              <Item variant="outline" size="sm">
-                <ItemContent>
-                  <ItemTitle>{t("space.clearTitle")}</ItemTitle>
-                  <ItemDescription>{t("space.clearBody")}</ItemDescription>
-                </ItemContent>
-                <ItemActions>
-                  <Button
-                    variant={armed ? "destructive" : "ghost"}
-                    size="sm"
-                    disabled={busy}
-                    onClick={async () => {
-                      if (!armed) {
-                        setArmed(true)
-                        setTimeout(() => setArmed(false), 4000)
-                        return
-                      }
-                      setArmed(false)
-                      await api.clear(room)
-                      onCleared()
-                      onOpenChange(false)
-                    }}
-                  >
-                    {armed ? <TriangleAlert /> : <Trash2 />}
-                    {armed ? t("space.clearArmed") : t("space.clear")}
-                  </Button>
-                </ItemActions>
-              </Item>
-            </div>
+              <Field orientation="horizontal">
+                <FieldContent>
+                  <FieldLabel>{t("space.resetTitle")}</FieldLabel>
+                  <FieldDescription>{t("space.resetBody")}</FieldDescription>
+                </FieldContent>
+                <AlertDialog>
+                  <AlertDialogTrigger asChild>
+                    <Button variant="destructive" size="sm">
+                      <RotateCcw />
+                      {t("space.reset")}
+                    </Button>
+                  </AlertDialogTrigger>
+                  <AlertDialogContent>
+                    <AlertDialogHeader>
+                      <AlertDialogTitle>{t("space.resetTitle")}</AlertDialogTitle>
+                      <AlertDialogDescription>{t("space.resetBody")}</AlertDialogDescription>
+                    </AlertDialogHeader>
+                    <AlertDialogFooter>
+                      <AlertDialogCancel>{t("space.cancel")}</AlertDialogCancel>
+                      <AlertDialogAction
+                        onClick={async () => {
+                          await api.reset(room)
+                          onOpenChange(false)
+                        }}
+                      >
+                        {t("space.reset")}
+                      </AlertDialogAction>
+                    </AlertDialogFooter>
+                  </AlertDialogContent>
+                </AlertDialog>
+              </Field>
+
+              <Field orientation="horizontal">
+                <FieldContent>
+                  <FieldLabel>{t("space.clearTitle")}</FieldLabel>
+                  <FieldDescription>{t("space.clearBody")}</FieldDescription>
+                </FieldContent>
+                <AlertDialog>
+                  <AlertDialogTrigger asChild>
+                    <Button variant="destructive" size="sm">
+                      <Trash2 />
+                      {t("space.clear")}
+                    </Button>
+                  </AlertDialogTrigger>
+                  <AlertDialogContent>
+                    <AlertDialogHeader>
+                      <AlertDialogTitle>{t("space.clearTitle")}</AlertDialogTitle>
+                      <AlertDialogDescription>{t("space.clearBody")}</AlertDialogDescription>
+                    </AlertDialogHeader>
+                    <AlertDialogFooter>
+                      <AlertDialogCancel>{t("space.cancel")}</AlertDialogCancel>
+                      <AlertDialogAction
+                        onClick={async () => {
+                          await api.clear(room)
+                          onCleared()
+                          onOpenChange(false)
+                        }}
+                      >
+                        {t("space.clear")}
+                      </AlertDialogAction>
+                    </AlertDialogFooter>
+                  </AlertDialogContent>
+                </AlertDialog>
+              </Field>
+            </FieldGroup>
           </TabsContent>
+          {error && (
+            <span className="text-destructive absolute right-6 bottom-4 text-sm">{error}</span>
+          )}
         </Tabs>
-
-        {error && <span className="text-destructive text-sm">{error}</span>}
       </DialogContent>
     </Dialog>
   )

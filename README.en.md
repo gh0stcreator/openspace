@@ -360,8 +360,8 @@ what you worked out there.
 
 Everything is edited in the interface, **Profile → Settings**, and applies without a restart:
 participants (who is here), modes (how you work) and the space (why you are here and what is
-remembered). The mode editor writes the same `modes/*.md` files. On disk the same state is
-described by `openspace.config.json`.
+remembered). The mode editor writes the same `modes/*.md` files. On disk the same state is described by `openspace.config.json` — it is created on first run
+and stays out of the repository: these are your machine's settings.
 
 ## Repository map
 
@@ -379,4 +379,4 @@ described by `openspace.config.json`.
 
 ---
 
-**Open a space. Bring the right minds. Give them a way to think together. Keep what they learn.**
+**Open a space. Bring who you need. Pick the format of the conversation. Keep what you worked out.**

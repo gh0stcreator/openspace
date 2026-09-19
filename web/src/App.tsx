@@ -3,7 +3,7 @@ import {
   AtSign,
   Check,
   ChevronDown,
-  Settings2,
+  Settings,
   TriangleAlert,
   Users,
 } from "lucide-react"
@@ -235,7 +235,7 @@ export default function App() {
             </DropdownMenuTrigger>
             <DropdownMenuContent align="end">
               <DropdownMenuItem onClick={() => setSettingsOpen(true)}>
-                <Settings2 />
+                <Settings />
                 {t("profile.settings")}
               </DropdownMenuItem>
             </DropdownMenuContent>
