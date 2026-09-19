@@ -32,7 +32,7 @@ import { Composer } from "@/components/composer"
 import { Logo } from "@/components/logo"
 import { SettingsDialog } from "@/components/settings-dialog"
 import { cn } from "@/lib/utils"
-import { useLang, pick } from "@/lib/i18n"
+import { useLang, people, pick } from "@/lib/i18n"
 import { typo } from "@/lib/typo"
 import { topicOf } from "@/lib/latin"
 import { api, listen, type Config, type Msg, type RoomState } from "@/lib/api"
@@ -297,7 +297,7 @@ export default function App() {
                       <span className="text-muted-foreground/70 text-sm">
                         {[
                           pick(lang, m.rubric, m.rubricEn),
-                          t("mode.people", { n: m.who?.length ?? 0 }),
+                          people(lang, m.who?.length ?? 0),
                         ]
                           .filter(Boolean)
                           .join(" · ")}

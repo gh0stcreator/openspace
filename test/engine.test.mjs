@@ -16,8 +16,8 @@ const { Store } = await import('../lib/store.js');
 const sleep = (ms) => new Promise((r) => setTimeout(r, ms));
 const ROOM = 'r';
 
-function setup(names, { delays = {}, fail = {} } = {}) {
-  const dir = fs.mkdtempSync(path.join(os.tmpdir(), 'openspace-test-'));
+function setup(names, { delays = {}, fail = {}, dir = null, stateDir = null } = {}) {
+  dir = dir ?? fs.mkdtempSync(path.join(os.tmpdir(), 'openspace-test-'));
   const calls = [];
   const built = [];
   const build = (name) => {
@@ -40,8 +40,10 @@ function setup(names, { delays = {}, fail = {} } = {}) {
     freeTalk: false,
     workdir: dir,
   };
-  const orch = new Orchestrator({ store: new Store(dir), config, build, log: { error() {} } });
-  return { orch, calls, built, config };
+  const orch = new Orchestrator({
+    store: new Store(dir), config, build, log: { error() {} }, stateDir,
+  });
+  return { orch, calls, built, config, dir };
 }
 
 /** Шаги в порядке появления, без повторов подряд. */
@@ -199,4 +201,31 @@ test('правка реплики: лента показывает новый т
   assert.ok(raw.includes('вынлядит'), 'исходная строка пропала из файла');
 
   assert.throws(() => orch.edit(ROOM, 2, 'чужое'), /только свою/);
+});
+
+test('перезапуск: режим продолжается с того же шага, участники помнят прочитанное', async () => {
+  const dir = fs.mkdtempSync(path.join(os.tmpdir(), 'openspace-state-'));
+  // Участники отвечают медленно: к моменту снимка режим ещё на первом шаге.
+  const first = setup(['первый', 'второй'], {
+    dir, stateDir: dir, delays: { первый: 300, второй: 300 },
+  });
+  first.orch.store.append(ROOM, { from: 'Roman', text: 'тема' });
+  first.orch.startMode(ROOM, 'проба');
+  await sleep(60);
+  first.orch.pause(ROOM, true);
+  await sleep(400);
+  first.orch.flush(ROOM);
+
+  const before = first.orch.modeState(ROOM);
+  const seenBefore = first.orch.agents.get('первый').lastSeen.get(ROOM);
+  assert.ok(before, 'режим не запустился');
+
+  // Новый процесс: та же папка, та же лента, ничего в памяти.
+  const second = setup(['первый', 'второй'], { dir, stateDir: dir });
+  const after = second.orch.modeState(ROOM);
+
+  assert.equal(after?.name, before.name, 'режим не пережил перезапуск');
+  assert.equal(after?.step, before.step, 'шаг сбился');
+  assert.equal(second.orch.state(ROOM).paused, true, 'пауза забылась');
+  assert.equal(second.orch.agents.get('первый').lastSeen.get(ROOM), seenBefore, 'прочитанное забылось');
 });

@@ -114,6 +114,53 @@ the same mark and answers without seeing their neighbours. Positions first, coll
 
 ---
 
+---
+
+## What this rests on
+
+The modes are not a matter of taste. Here is what they lean on, with numbers and links.
+The full breakdown with evidence labels, including work that does **not** support the popular
+claims, is in [`docs/dynamics.md`](docs/dynamics.md) (in Russian).
+
+**Apart first, together after.** A meta-analysis of 65 studies and 3189 groups: in discussion,
+commonly held information comes up about 2 SD more often than unique information, and groups
+where one member held the key were 8 times less likely to solve the task ([Lu, Yuan, McLeod
+2012](https://journals.sagepub.com/doi/abs/10.1177/1088868311417243)). Hence steps with
+`hear: no`.
+
+**Disagreement beats being right.** Groups with diverging starting positions solved the task
+significantly more often — even when none of the positions was correct ([Schulz-Hardt et al.
+2006](https://www.semanticscholar.org/paper/679ba16b7a51e1c0bbd53e900c22820b4aadcbfe),
+135 groups). Hence the "Position" step before any analysis.
+
+**An assigned sceptic works worse than a real one.** A devil's advocate by appointment makes
+everyone else dig into their original view ([Nemeth, Brown, Rogers
+2001](https://onlinelibrary.wiley.com/doi/abs/10.1002/ejsp.58)). So disagreement comes from
+setup — a different engine, its own context — not from a "push back" line in the prompt.
+
+**Three is no worse than six.** Groups of 3, 4 and 5 beat the best of as many individuals,
+but 4 and 5 are no better than 3 ([Laughlin et al.
+2006](https://pubmed.ncbi.nlm.nih.gov/16649860/)). Size only helps where a correct answer is
+recognisable once seen ([Amir et al.
+2018](https://journals.plos.org/plosone/article?id=10.1371/journal.pone.0192213)). Hence
+3–4 participants per mode rather than "everyone".
+
+**Agent debate does not pay for itself.** Across 5 methods, 9 benchmarks and 4 models, debate
+often loses to plain chain-of-thought at many times the cost; what helps is **model
+heterogeneity** ([Zhang et al. 2025](https://arxiv.org/abs/2502.08788)). Agents are also
+conformist ([Zhang et al., ACL 2024](https://aclanthology.org/2024.acl-long.782/)), and a wrong
+peer misleads a correct model more easily than a correct one repairs a wrong model ([Qu, Fu, Hu
+2026](https://arxiv.org/abs/2606.01637)). Hence two engines, not one.
+
+**The human is the strongest anchor in the room.** Sycophancy is baked into RLHF preferences
+([Sharma et al. 2023](https://arxiv.org/abs/2310.13548)), so the participant prompt carries an
+explicit ban on echoing the human's wording.
+
+What the literature does not have: evidence that Six Hats works as a whole method, or that a
+premortem "finds 30% more risks" — its confirmed effect is knocking down confidence in the plan
+([Veinott, Klein, Wiggins
+2010](https://idl.iscram.org/files/veinott/2010/1049_Veinott_etal2010.pdf)).
+
 ## `mode(topic)`
 
 The name of the product is also its interface.

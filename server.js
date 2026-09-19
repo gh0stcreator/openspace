@@ -24,7 +24,7 @@ function parseArgs(argv) {
 
 const config = loadConfig(root, parseArgs(process.argv.slice(2)));
 const store = new Store(path.join(root, 'rooms'));
-const orch = new Orchestrator({ store, config });
+const orch = new Orchestrator({ store, config, stateDir: path.join(root, 'rooms') });
 const clients = new Set();
 const configFile = path.join(root, 'openspace.config.json');
 

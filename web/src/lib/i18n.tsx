@@ -108,7 +108,6 @@ const RU = {
   "model.haiku": "Самая быстрая, для простого",
 
   "mode.current": "Текущий",
-  "mode.people": "участников: {n}",
   "mode.new": "Создать режим",
   "mode.name": "Название",
   "mode.for": "Для чего",
@@ -230,7 +229,6 @@ const EN: Record<keyof typeof RU, string> = {
   "model.haiku": "Fastest, for simple things",
 
   "mode.current": "Current",
-  "mode.people": "{n} take part",
   "mode.new": "New mode",
   "mode.name": "Name",
   "mode.for": "What for",
@@ -314,6 +312,17 @@ export const useLang = () => React.useContext(LangCtx)
  * в том же файле. Нет перевода — показываем как есть, полупустой список хуже.
  */
 export const pick = (lang: Lang, ru?: string, en?: string) => (lang === "en" && en ? en : (ru ?? ""))
+
+/**
+ * Сколько человек: «трое», а не «участников: 3». Счётчик рядом с рубрикой читается
+ * как подпись, а не как таблица, и не спорит со строкой «Участники» под лентой,
+ * где речь про состав комнаты.
+ */
+const CROWD = ["", "один", "двое", "трое", "четверо", "пятеро", "шестеро", "семеро", "восьмеро"]
+export function people(lang: Lang, n: number) {
+  if (lang === "en") return n === 1 ? "one person" : `${n} people`
+  return CROWD[n] ?? `${n} участников`
+}
 
 /** Русское число: 1 шаг, 2 шага, 5 шагов. В английском хватает одной формы. */
 export function plural(lang: Lang, n: number, forms: [string, string, string]) {
