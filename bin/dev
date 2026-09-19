@@ -13,12 +13,19 @@ import { fileURLToPath } from 'node:url';
 const root = path.join(path.dirname(fileURLToPath(import.meta.url)), '..');
 const args = process.argv.slice(2);
 
-const children = [
-  spawn('npm', ['--prefix', 'web', 'run', 'build', '--', '--watch'], { cwd: root, stdio: 'inherit' }),
-  spawn(process.execPath, ['server.js', ...args], { cwd: root, stdio: 'inherit' }),
-];
+const watcher = spawn('npm', ['--prefix', 'web', 'run', 'build', '--', '--watch'], {
+  cwd: root, stdio: 'inherit',
+});
+const server = spawn(process.execPath, ['server.js', ...args], { cwd: root, stdio: 'inherit' });
 
-const stop = () => children.forEach((c) => c.kill('SIGTERM'));
+const stop = () => { watcher.kill('SIGTERM'); server.kill('SIGTERM'); };
 process.on('SIGINT', stop);
 process.on('SIGTERM', stop);
-for (const c of children) c.on('exit', (code) => { stop(); process.exit(code ?? 0); });
+
+// Падение сборки клиента не должно ронять сервер: ошибка в web/ — это ошибка в web/,
+// комната при этом продолжает работать на прошлой сборке.
+watcher.on('exit', (code) => {
+  if (code) console.error(`\nсборка клиента остановилась (код ${code}); сервер работает дальше`);
+});
+
+server.on('exit', (code) => { stop(); process.exit(code ?? 0); });
