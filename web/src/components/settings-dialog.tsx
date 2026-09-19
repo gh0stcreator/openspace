@@ -215,8 +215,9 @@ export function SettingsDialog({
               ))}
             </div>
 
-            <div className="mt-3 flex items-end gap-2">
-              <Field className="flex-1">
+            {/* На узком экране строка найма складывается в столбик. */}
+            <div className="mt-3 grid gap-2 sm:grid-cols-[1fr_11rem_8rem_auto] sm:items-end">
+              <Field>
                 <FieldLabel htmlFor="hire">{t("hire.label")}</FieldLabel>
                 <Input
                   id="hire"
@@ -226,7 +227,7 @@ export function SettingsDialog({
                   onKeyDown={(e) => e.key === "Enter" && hire()}
                 />
               </Field>
-              <Field className="w-44">
+              <Field>
                 <FieldLabel>{t("hire.role")}</FieldLabel>
                 <Select value={hireRole} onValueChange={setHireRole}>
                   <SelectTrigger>
@@ -241,7 +242,7 @@ export function SettingsDialog({
                   </SelectContent>
                 </Select>
               </Field>
-              <Field className="w-32">
+              <Field>
                 <FieldLabel>{t("hire.engine")}</FieldLabel>
                 <Select value={hireEngine} onValueChange={setHireEngine}>
                   <SelectTrigger className="capitalize">
