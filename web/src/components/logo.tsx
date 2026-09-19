@@ -13,13 +13,11 @@ import { toneVars } from "@/components/chat-feed"
  */
 export type Pair = { mode: string; subject: string }
 
+/** Запасные пары: настоящие режимы приезжают из конфига, это на случай пустого списка. */
 const DEMO: Pair[] = [
-  { mode: "redteam", subject: "product_strategy" },
-  { mode: "research", subject: "market" },
-  { mode: "design", subject: "brand" },
-  { mode: "decide", subject: "pricing" },
-  { mode: "review", subject: "product" },
-  { mode: "brainstorm", subject: "new_idea" },
+  { mode: "redteam", subject: "space" },
+  { mode: "brainstorm", subject: "space" },
+  { mode: "premortem", subject: "space" },
 ]
 
 // Значения из макета знака: режим уходит коротко, тема — мягче и дольше.
@@ -125,10 +123,22 @@ export function Logo({
     document.fonts?.ready.then(fit)
   }, [fit])
 
+  // Комната бывает одна: тогда вторую половину менять не на что, и тик, который
+  // её «меняет», оказался бы пустой паузой в полторы секунды.
+  const twoSided = React.useMemo(
+    () => new Set(demoPairs.map((p) => p.subject)).size > 1,
+    [demoPairs]
+  )
+
   React.useEffect(() => {
     // Каждый тик меняет ровно одну половину: mode, subject, mode, subject…
     const tick = () => {
       const pair = demoPairs[at.current % demoPairs.length]
+      if (!twoSided) {
+        roll("mode", pair.mode)
+        at.current++
+        return
+      }
       if (half.current % 2 === 0) roll("mode", pair.mode)
       else {
         roll("subject", pair.subject)
@@ -164,7 +174,7 @@ export function Logo({
       cycle.current = 0
       drop()
     }
-  }, [demoPairs, roll, show])
+  }, [demoPairs, twoSided, roll, show])
 
   // Настоящее состояние сменилось: вне наведения показываем его той же сменой,
   // под курсором — покажем, когда курсор уйдёт.

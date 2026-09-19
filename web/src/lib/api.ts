@@ -47,11 +47,13 @@ export type Config = {
   defaultResponders: string[]
   /** Кого выключили в этой комнате. Состав общий, присутствие — своё у каждой комнаты. */
   off: string[]
+  /** Комнаты этой машины: знак листает их под курсором. */
+  rooms: string[]
   modes: Mode[]
   agents: Record<string, Agent>
 }
 
-export type Settings = Omit<Config, "defaultResponders" | "off"> & {
+export type Settings = Omit<Config, "defaultResponders" | "off" | "rooms"> & {
   catchUp: number
   freeTalk: boolean
   goal: string

@@ -24,7 +24,7 @@ import { Switch } from "@/components/ui/switch"
 import { Skeleton } from "@/components/ui/skeleton"
 import { Toaster } from "@/components/ui/sonner"
 import { TooltipProvider } from "@/components/ui/tooltip"
-import { ChatFeed, Face, FaceButton, Icon, toneVars } from "@/components/chat-feed"
+import { ChatFeed, Face, FaceButton, Icon } from "@/components/chat-feed"
 import { Composer } from "@/components/composer"
 import { Logo } from "@/components/logo"
 import { SettingsDialog } from "@/components/settings-dialog"
@@ -216,6 +216,12 @@ export default function App() {
   const started = messages.some((m) => m.kind === "message")
   // Текущий режим целиком: из него берём и знак, и цвет.
   const now = cfg.modes?.find((m) => (state.modeState ? m.name === state.modeState.name : m.builtin))
+  // Знак под курсором листает настоящие режимы и комнаты, а не выдуманные слова:
+  // это же и есть список того, что здесь можно выбрать. Нынешний режим пропускаем —
+  // подставлять то, что и так на экране, значит показать пустой ход.
+  const demo = cfg.modes
+    ?.filter((m) => m.slug !== now?.slug)
+    .map((m, i) => ({ mode: m.slug, subject: subjectOf(cfg.rooms[i % cfg.rooms.length]) }))
 
   return (
     <TooltipProvider>
@@ -230,6 +236,7 @@ export default function App() {
                 subject={subjectOf(room)}
                 mode={state.modeState?.slug ?? "open"}
                 color={live ? now?.color : null}
+                demoPairs={demo?.length ? demo : undefined}
                 className={`transition-colors ${
                   live ? "hover:text-muted-foreground" : "text-destructive"
                 }`}
@@ -295,13 +302,7 @@ export default function App() {
                     )}
                     onClick={() => void switchMode(m)}
                   >
-                    <span
-                      className={cn(
-                        "flex size-10 shrink-0 items-center justify-center rounded-full",
-                        m.color ? "tone-face" : "bg-muted text-muted-foreground"
-                      )}
-                      style={m.color ? toneVars(m.color) : undefined}
-                    >
+                    <span className="bg-muted text-muted-foreground flex size-10 shrink-0 items-center justify-center rounded-full">
                       <Icon name={m.icon} className="size-5" />
                     </span>
                     <span className="grid min-w-0 gap-0.5">
@@ -416,11 +417,7 @@ export default function App() {
           <DropdownMenu>
             <DropdownMenuTrigger asChild>
               <Button variant="ghost" size="sm" className="ml-auto gap-1.5 font-normal">
-                <Icon
-                  name={now?.icon ?? "message-circle"}
-                  className={cn("size-4", now?.color && "tone-name")}
-                  style={now?.color ? toneVars(now.color) : undefined}
-                />
+                <Icon name={now?.icon ?? "message-circle"} className="size-4" />
                 {state.modeState ? pick(lang, state.modeState.short, state.modeState.shortEn) : t("mode.open")}
                 <ChevronDown className="size-3.5" />
               </Button>
