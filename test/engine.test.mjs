@@ -296,3 +296,24 @@ test('тема из зоны интереса будит участника св
   await sleep(200);
   assert.ok(!calls.some((c) => c.who === 'первый'), 'вступил туда, где ему нечего сказать');
 });
+
+test('перезапуск посреди шага: оборванный шаг доспрашивает тех, кто не успел', async () => {
+  const dir = fs.mkdtempSync(path.join(os.tmpdir(), 'openspace-resume-'));
+  // Первый отвечает медленно: к моменту «падения» шаг ещё ждёт его.
+  const first = setup(['первый', 'второй'], { dir, stateDir: dir, delays: { первый: 400 } });
+  first.orch.store.append(ROOM, { from: 'Roman', text: 'тема' });
+  first.orch.startMode(ROOM, 'проба');
+  await sleep(60);
+  first.orch.flush(ROOM);
+  assert.deepEqual(first.orch.state(ROOM).pending, ['первый'], 'шаг ждёт не того');
+
+  // Новый процесс: очереди нет, на диске осталось «ждём первого».
+  const second = setup(['первый', 'второй'], { dir, stateDir: dir });
+  assert.deepEqual(second.orch.state(ROOM).pending, ['первый'], 'состояние не поднялось');
+  assert.equal(second.calls.length, 0, 'кто-то заговорил сам по себе');
+
+  const woken = second.orch.resumeAll();
+  assert.equal(woken.length, 1, 'оборванный шаг не найден');
+  await sleep(200);
+  assert.ok(second.calls.some((c) => c.who === 'первый'), 'недоспрошенного так и не позвали');
+});

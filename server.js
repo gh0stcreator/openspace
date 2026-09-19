@@ -26,6 +26,12 @@ const config = loadConfig(root, parseArgs(process.argv.slice(2)));
 const store = new Store(path.join(root, 'rooms'));
 const orch = new Orchestrator({ store, config, stateDir: path.join(root, 'rooms') });
 const clients = new Set();
+
+// Сервер мог упасть или перезапуститься посреди шага режима. Состояние на диске помнит,
+// кого ждут, но очередь ходов живёт в процессе и перезапуск не переживает.
+for (const { room, mode, step, pending } of orch.resumeAll()) {
+  console.log(`продолжаем #${room}: ${mode}, шаг ${step} — ждём ${pending.join(', ')}`);
+}
 const configFile = path.join(root, 'openspace.config.json');
 
 function saveConfig(cfg) {
