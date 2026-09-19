@@ -379,4 +379,4 @@ and stays out of the repository: these are your machine's settings.
 
 ---
 
-**Open a space. Bring who you need. Pick a format. Create.**
+**Open a space. Bring who you need. Pick your format. Create.**
