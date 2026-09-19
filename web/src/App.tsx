@@ -72,9 +72,15 @@ export default function App() {
 
   /** Режим приводит свой состав: вместе с ним меняется и кто в комнате. */
   const switchMode = async (m: { name: string; builtin: boolean }) => {
-    const r = await api.setMode(room, m.builtin ? null : m.name)
-    setState((st) => ({ ...st, modeState: r.mode }))
-    setCfg((c) => (c ? { ...c, off: r.off } : c))
+    try {
+      const r = await api.setMode(room, m.builtin ? null : m.name)
+      setState((st) => ({ ...st, modeState: r.mode }))
+      setCfg((c) => (c ? { ...c, off: r.off } : c))
+    } catch (e) {
+      // Сервер отказал — режим остался прежним, и сказать об этом должен экран:
+      // молча проглоченный отказ выглядит как «нажал, и ничего не случилось».
+      toast.error((e as Error).message)
+    }
   }
 
   const local = React.useCallback((text: string) => toast.error(text), [])
