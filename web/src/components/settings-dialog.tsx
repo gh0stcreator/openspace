@@ -1,5 +1,5 @@
 import * as React from "react"
-import { Plus, RotateCcw, Trash2 } from "lucide-react"
+import { Layers, MessageCircle, Plus, RotateCcw, Settings as Gear, Trash2, Users } from "lucide-react"
 import { useTheme } from "next-themes"
 
 import { Button } from "@/components/ui/button"
@@ -50,6 +50,27 @@ const AUTHOR = {
   repo: "https://github.com/gh0stcreator/openspace",
   channel: "https://t.me/romanticcollection86",
 }
+
+/** Знаки канала и гитхаба — свои, не из Lucide: это чужие логотипы, а не иконки
+    интерфейса, и в реестре Lucide их больше нет. */
+const Octocat = (props: React.SVGProps<SVGSVGElement>) => (
+  <svg viewBox="0 0 16 16" fill="none" aria-hidden {...props}>
+    <path
+      d="M8 0C3.58 0 0 3.58 0 8c0 3.54 2.29 6.53 5.47 7.59.4.07.55-.17.55-.38 0-.19-.01-.82-.01-1.49-2.01.37-2.53-.49-2.69-.94-.09-.23-.48-.94-.82-1.13-.28-.15-.68-.52-.01-.53.63-.01 1.08.58 1.23.82.72 1.21 1.87.87 2.33.66.07-.52.28-.87.51-1.07-1.78-.2-3.64-.89-3.64-3.95 0-.87.31-1.59.82-2.15-.08-.2-.36-1.02.08-2.12 0 0 .67-.21 2.2.82.64-.18 1.32-.27 2-.27s1.36.09 2 .27c1.53-1.04 2.2-.82 2.2-.82.44 1.1.16 1.92.08 2.12.51.56.82 1.27.82 2.15 0 3.07-1.87 3.75-3.65 3.95.29.25.54.73.54 1.48 0 1.07-.01 1.93-.01 2.2 0 .21.15.46.55.38A8.01 8.01 0 0 0 16 8c0-4.42-3.58-8-8-8Z"
+      fill="currentColor"
+    />
+  </svg>
+)
+
+
+const Romantic = (props: React.SVGProps<SVGSVGElement>) => (
+  <svg viewBox="0 0 16 11" fill="none" aria-hidden {...props}>
+    <path
+      d="M2.65787 0.00473247L6.99442 4.34129L5.32678 6.00893L7.68288 8.36503L13.3853 2.6626L12.7017 1.97897L7.64559 7.03506L6.65606 6.04552L12.7017 -0.000101271L15.3644 2.6626L7.68219 10.3448L0 2.6626L2.65787 0.00473247ZM4.33655 5.0187L5.01397 4.34129L2.65787 1.98518L1.98045 2.6626L4.33655 5.0187Z"
+      fill="currentColor"
+    />
+  </svg>
+)
 
 /** Пункт навигации: активное состояние как у меню shadcn, без своих индикаторов. */
 const NAV = [
@@ -221,17 +242,39 @@ export function SettingsDialog({
               </DialogTitle>
             </DialogHeader>
             <TabsList className="w-full gap-0.5 bg-transparent p-0">
-              <TabsTrigger value="general" className={NAV}>{t("settings.general")}</TabsTrigger>
-              <TabsTrigger value="people" className={NAV}>{t("settings.people")}</TabsTrigger>
-              <TabsTrigger value="modes" className={NAV}>{t("settings.modes")}</TabsTrigger>
-              <TabsTrigger value="space" className={NAV}>{t("settings.space")}</TabsTrigger>
+              <TabsTrigger value="general" className={NAV}>
+                <Gear /> {t("settings.general")}
+              </TabsTrigger>
+              <TabsTrigger value="people" className={NAV}>
+                <Users /> {t("settings.people")}
+              </TabsTrigger>
+              <TabsTrigger value="modes" className={NAV}>
+                <MessageCircle /> {t("settings.modes")}
+              </TabsTrigger>
+              <TabsTrigger value="space" className={NAV}>
+                <Layers /> {t("settings.space")}
+              </TabsTrigger>
             </TabsList>
 
-            <div className="text-muted-foreground mt-auto grid gap-1 px-3 text-xs">
-              <a className="hover:text-foreground truncate" href={AUTHOR.channel} target="_blank" rel="noopener">
-                {t("general.channel")}
+            {/* Чей это продукт. Ряды те же, что у навигации, только тише: это ссылки наружу,
+                а не разделы настроек. */}
+            <div className="text-muted-foreground mt-auto grid gap-0.5 text-sm">
+              <a
+                className="hover:bg-accent/50 hover:text-foreground flex min-h-9 items-center gap-2 rounded-md border border-transparent px-3"
+                href={AUTHOR.channel}
+                target="_blank"
+                rel="noopener"
+              >
+                <Romantic className="size-4 shrink-0" />
+                <span className="truncate">{t("general.channel")}</span>
               </a>
-              <a className="hover:text-foreground" href={AUTHOR.repo} target="_blank" rel="noopener">
+              <a
+                className="hover:bg-accent/50 hover:text-foreground flex min-h-9 items-center gap-2 rounded-md border border-transparent px-3"
+                href={AUTHOR.repo}
+                target="_blank"
+                rel="noopener"
+              >
+                <Octocat className="size-4 shrink-0" />
                 GitHub
               </a>
             </div>
