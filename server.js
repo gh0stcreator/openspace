@@ -7,7 +7,7 @@ import { Store } from './lib/store.js';
 import { Orchestrator } from './lib/orchestrator.js';
 import { loadConfig } from './lib/config.js';
 import { roleOf, listRoles } from './lib/roles.js';
-import { BUILTIN, listModes, removeMode, saveMode, stepTargets } from './lib/modes.js';
+import { BUILTIN, listModes, loadMode, removeMode, saveMode, stepTargets } from './lib/modes.js';
 
 const root = path.dirname(fileURLToPath(import.meta.url));
 
@@ -347,6 +347,14 @@ const server = http.createServer(async (req, res) => {
       const mode = body.mode
         ? orch.startMode(room, body.mode)
         : orch.stopMode(room);
+      // Один тихий след в ленте: как теперь работаем. Пишем только по действию
+      // человека — внутри режима шаги сменяются сами, и комментировать их незачем.
+      store.append(room, {
+        from: 'system',
+        kind: 'system',
+        text: mode ? mode.title : loadMode(BUILTIN).title,
+        mentions: [],
+      });
       // Режим приводит свой состав, поэтому присутствие возвращаем вместе с ним.
       return json(res, 200, { mode, off: orch.state(room).off });
     }
