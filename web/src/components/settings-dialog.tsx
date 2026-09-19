@@ -272,8 +272,8 @@ export function SettingsDialog({
                   mode={m}
                   participants={people}
                   roles={s.roles}
-                  current={(currentMode ?? "свободный") === m.name}
-                  fixed={m.name === "свободный"}
+                  current={currentMode ? currentMode === m.name : m.builtin}
+                  fixed={m.builtin}
                   onChange={saveMode}
                   onCopy={() => void copyMode(m)}
                   onRemove={() => void dropMode(m)}
@@ -300,6 +300,7 @@ export function SettingsDialog({
                   icon: "list-ordered",
                   needs: [],
                   missing: [],
+                  builtin: false,
                   steps: [{ name: "разговор", who: "все", hear: true, until: "все ответят", prompt: "" }],
                 })
               }

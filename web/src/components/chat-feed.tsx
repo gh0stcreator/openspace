@@ -1,10 +1,9 @@
 import * as React from "react"
 import * as Icons from "lucide-react"
-import { FileText, Reply } from "lucide-react"
-
-import { Button } from "@/components/ui/button"
+import { FileText } from "lucide-react"
 
 import { Bubble, BubbleContent } from "@/components/ui/bubble"
+import { Item, ItemActions, ItemContent, ItemDescription, ItemTitle } from "@/components/ui/item"
 import {
   Message,
   MessageAvatar,
@@ -20,6 +19,7 @@ import {
   MessageScrollerItem,
   MessageScrollerProvider,
   MessageScrollerViewport,
+  useMessageScroller,
 } from "@/components/ui/message-scroller"
 import type { Agent, Msg } from "@/lib/api"
 import { cn } from "@/lib/utils"
@@ -37,15 +37,24 @@ export const COLOR_ORDER = [
 
 /** Переменные тона для элемента: дальше цвет считают классы .tone-* из темы. */
 export function toneVars(color?: string | null): React.CSSProperties {
-  const name = color && (COLOR_ORDER.includes(color) || color === "creator") ? color : "blue"
+  const known = color && COLOR_ORDER.includes(color)
   return {
-    "--h": `var(--tone-${name})`,
-    "--c": `var(--chroma-${name})`,
+    "--h": `var(--tone-${known ? color : "blue"})`,
+    "--c": known ? `var(--chroma-${color})` : "0",
   } as React.CSSProperties
 }
 
 /** Бледные цвета требуют тёмного текста в пузыре — это единственное исключение. */
 export const isPale = (color?: string | null) => color === "white"
+
+/** Ник могли записать в другом регистре (старые логи, ручной ввод) — ищем без учёта регистра. */
+function getAgent(agents: Record<string, Agent>, name?: string): Agent | undefined {
+  if (!name) return undefined
+  if (agents[name]) return agents[name]
+  const lower = name.toLowerCase()
+  const key = Object.keys(agents).find((k) => k.toLowerCase() === lower)
+  return key ? agents[key] : undefined
+}
 
 /**
  * Аватарка. Размер — ступенью, а не классом по месту: иначе кружок меняется,
@@ -91,6 +100,34 @@ export function Face({
   )
 }
 
+/** Аватарка, по клику ставящая обращение: одна и та же в шапке, у реплики и у индикатора. */
+export function FaceButton({
+  name,
+  icon,
+  color,
+  onPick,
+}: {
+  name: string
+  icon?: string
+  color?: string | null
+  onPick: (name: string) => void
+}) {
+  return (
+    <button
+      type="button"
+      aria-label={name}
+      className="tone-hover rounded-full transition-shadow"
+      style={toneVars(color)}
+      onClick={(e) => {
+        e.stopPropagation()
+        onPick(name)
+      }}
+    >
+      <Face name={name} icon={icon} color={color} size="md" />
+    </button>
+  )
+}
+
 /** Имя иконки из роли → компонент Lucide: тот же набор, что в настройках. */
 export function Icon({ name, className }: { name?: string; className?: string }) {
   const key = (name ?? "bot")
@@ -105,19 +142,52 @@ const IMAGE = /\.(png|jpe?g|gif|webp|avif|svg)$/i
 const size = (b: number) =>
   b > 1048576 ? `${(b / 1048576).toFixed(1)} МБ` : `${Math.max(1, Math.round(b / 1024))} КБ`
 
+/**
+ * Имя — кнопка: по клику встаёт обращением в поле ввода. В тексте реплики оно просто жирное,
+ * без собаки и без цвета: несколько тонов в одном абзаце спорят с тоном самого бабла.
+ * Над репликой имя идёт в тоне автора; у кого цвета нет (человек) — нейтральное.
+ */
+function Name({
+  name,
+  color,
+  onPick,
+  className = "font-bold",
+}: {
+  name: string
+  color?: string | null
+  onPick: (name: string) => void
+  /** Вес: в тексте имя жирное, над репликой — весом заголовка. */
+  className?: string
+}) {
+  return (
+    // Кнопка стоит в строке текста: Button из системы — inline-flex со своей высотой,
+    // он рвёт строку и сбивает базовую линию.
+    <button
+      type="button"
+      className={cn("hover:underline", className, color && "tone-name")}
+      style={color ? toneVars(color) : undefined}
+      onClick={(e) => {
+        e.stopPropagation()
+        onPick(name)
+      }}
+    >
+      {name}
+    </button>
+  )
+}
+
 /** Разметка внутри реплики: код, выделение, упоминания. Текст экранирует React. */
 function Rich({
   text,
   known,
   agents,
-  user,
+  onMention,
 }: {
   text: string
   known: string[]
   agents: Record<string, Agent>
-  user: string
+  onMention: (name: string) => void
 }) {
-  const { t } = useLang()
   const parts = React.useMemo(() => {
     const out: React.ReactNode[] = []
     const re = /```(\w*)\n?([\s\S]*?)```|`([^`\n]+)`|\*\*([^*\n]+)\*\*|(^|[\s(,:;«"'[])@([a-z0-9_\-Ѐ-ӿ]+)/gi
@@ -146,24 +216,14 @@ function Rich({
         out.push(m[5])
         const hit = known.find((k) => k.toLowerCase() === name.toLowerCase())
         out.push(
-          hit ? (
-            <b
-              key={i++}
-              className="tone-name capitalize"
-              style={toneVars(hit === user ? "creator" : agents[hit]?.color)}
-            >
-              {hit === user ? t("composer.mine") : hit}
-            </b>
-          ) : (
-            `@${name}`
-          )
+          hit ? <Name key={i++} name={hit} onPick={onMention} /> : `@${name}`
         )
       }
       last = re.lastIndex
     }
     if (last < text.length) out.push(typo(text.slice(last)))
     return out
-  }, [text, known, agents, user, t])
+  }, [text, known, agents, onMention])
 
   return <span className="whitespace-pre-wrap">{parts}</span>
 }
@@ -174,7 +234,7 @@ function Files({ files }: { files?: Msg["files"] }) {
     <div className="mt-2 flex flex-wrap gap-2">
       {files.map((f) =>
         IMAGE.test(f.name) ? (
-          <a key={f.url} href={f.url} target="_blank" rel="noopener">
+          <a key={f.url} href={f.url} target="_blank" rel="noopener" onClick={(e) => e.stopPropagation()}>
             <img
               src={f.url}
               alt={f.name}
@@ -187,6 +247,7 @@ function Files({ files }: { files?: Msg["files"] }) {
             href={f.url}
             target="_blank"
             rel="noopener"
+            onClick={(e) => e.stopPropagation()}
             className="bg-background/60 flex items-center gap-2 rounded-md border px-2.5 py-1.5 text-xs"
           >
             <FileText className="size-3.5" />
@@ -204,33 +265,45 @@ type Props = {
   agents: Record<string, Agent>
   thinking: string[]
   onReply: (m: Msg) => void
+  /** Клик по своей реплике: не отвечать же себе — правим её. */
+  onEdit: (m: Msg) => void
+  /** Клик по имени в ленте: поставить обращение в поле ввода. */
+  onMention: (name: string) => void
 }
 
-/** Цитата — компактная подложка с полоской в цвете автора, как в мессенджере. */
-function Quote({
+/** Текст без разметки: в цитате нет ни кода, ни жирного, ни собак у имён. */
+const plain = (text: string) =>
+  text.replace(/[`*]/g, "").replace(/(^|[\s(,:;«"'[])@([a-z0-9_\-Ѐ-ӿ]+)/gi, "$1$2")
+
+/**
+ * Цитата — системный Item: одна и та же в реплике и над полем ввода. Тон автора несёт
+ * только имя, текст нейтральный и без разметки.
+ */
+export function Quote({
   to,
   agents,
-  user,
+  children,
+  className,
 }: {
-  to?: Msg
+  to?: Msg | null
   agents: Record<string, Agent>
-  user: string
+  /** Действие справа: над полем ввода там стоит отмена ответа. */
+  children?: React.ReactNode
+  className?: string
 }) {
   const { t } = useLang()
   if (!to) return null
-  // Цвет автора смешиваем с цветом текста пузыря: на светлом фоне он темнеет,
-  // на тёмном светлеет — и нигде не кричит.
+  const color = getAgent(agents, to.from)?.color
   return (
-    <div
-      className="tone-name mb-1.5 overflow-hidden rounded-md border-l-2 border-current px-2 py-1 text-sm"
-      style={{
-        ...toneVars(to.from === user ? "creator" : agents[to.from]?.color),
-        background: "color-mix(in oklab, currentColor 7%, transparent)",
-      }}
-    >
-      <div className="font-medium capitalize">{to.from === user ? t("composer.mine") : to.from}</div>
-      <div className="truncate opacity-70">{typo(to.text) || t("composer.file")}</div>
-    </div>
+    <Item variant="outline" size="xs" className={className}>
+      <ItemContent>
+        <ItemTitle className={color ? "tone-name" : undefined} style={color ? toneVars(color) : undefined}>
+          {to.from}
+        </ItemTitle>
+        <ItemDescription>{typo(plain(to.text)) || t("composer.file")}</ItemDescription>
+      </ItemContent>
+      {children && <ItemActions>{children}</ItemActions>}
+    </Item>
   )
 }
 
@@ -249,13 +322,26 @@ function groups(messages: Msg[]) {
   return out
 }
 
-export function ChatFeed({ messages, user, agents, thinking, onReply }: Props) {
+/** Отправил сам — лента уходит вниз, даже если была отмотана: как в любом мессенджере. */
+function FollowMine({ seq }: { seq?: number }) {
+  const { scrollToEnd } = useMessageScroller()
+  const seen = React.useRef(seq)
+  React.useEffect(() => {
+    if (seq === undefined || seq === seen.current) return
+    seen.current = seq
+    scrollToEnd({ behavior: "smooth" })
+  }, [seq, scrollToEnd])
+  return null
+}
+
+export function ChatFeed({ messages, user, agents, thinking, onReply, onMention, onEdit }: Props) {
   const { lang, t } = useLang()
   const known = React.useMemo(() => [...Object.keys(agents), user], [agents, user])
   const bySeq = React.useMemo(() => new Map(messages.map((m) => [m.seq, m])), [messages])
 
   return (
-    <MessageScrollerProvider autoScroll defaultScrollPosition="end" scrollPreviousItemPeek={64}>
+    <MessageScrollerProvider autoScroll defaultScrollPosition="end">
+      <FollowMine seq={messages.findLast((m) => m.from === user)?.seq} />
       <MessageScroller className="min-h-0 flex-1">
         <MessageScrollerViewport>
           <MessageScrollerContent className="mx-auto w-full max-w-3xl px-4 py-6">
@@ -279,7 +365,7 @@ export function ChatFeed({ messages, user, agents, thinking, onReply }: Props) {
               }
 
               const mine = first.from === user
-              const agent = agents[first.from]
+              const agent = getAgent(agents, first.from)
 
               return (
                 <MessageGroup key={first.id}>
@@ -291,25 +377,21 @@ export function ChatFeed({ messages, user, agents, thinking, onReply }: Props) {
                       m.meta?.usage?.input_tokens
                         ? `${Math.round(m.meta.usage.input_tokens / 1000)}k`
                         : "",
+                      m.edited ? t("feed.edited") : "",
                     ].filter(Boolean)
 
                     return (
-                      <MessageScrollerItem key={m.id} messageId={m.id} scrollAnchor={mine} id={`msg-${m.seq}`}>
-                        <Message
-                          align={mine ? "end" : "start"}
-                          onDoubleClick={() => onReply(m)}
-                        >
+                      <MessageScrollerItem key={m.id} messageId={m.id} id={`msg-${m.seq}`}>
+                        <Message align={mine ? "end" : "start"}>
                           {!mine && (
                             <MessageAvatar className="bg-transparent">
-                              <Face name={m.from} icon={agent?.icon} color={agent?.color} size="md" />
+                              <FaceButton name={m.from} icon={agent?.icon} color={agent?.color} onPick={onMention} />
                             </MessageAvatar>
                           )}
-                          <MessageContent>
+                          <MessageContent className="gap-1">
                             {!mine && i === 0 && (
                               <MessageHeader className="text-sm">
-                                <span className="tone-name capitalize" style={toneVars(agent?.color)}>
-                                  {m.from}
-                                </span>
+                                <Name name={m.from} color={agent?.color} onPick={onMention} className="" />
                                 {agent?.role && agent.role.toLowerCase() !== m.from.toLowerCase() && (
                                   <span className="ml-1.5">{pick(lang, agent.role, agent.roleEn)}</span>
                                 )}
@@ -320,29 +402,26 @@ export function ChatFeed({ messages, user, agents, thinking, onReply }: Props) {
                               align={mine ? "end" : "start"}
                             >
                               <BubbleContent
+                                // Ответить — кликом по реплике. Клик, которым закончили
+                                // выделять текст, ответом не считается.
+                                onClick={() => {
+                                  if (window.getSelection()?.toString()) return
+                                  if (mine) onEdit(m)
+                                  else onReply(m)
+                                }}
                                 className={cn(
-                                  "text-base leading-normal",
+                                  "cursor-pointer text-base leading-normal",
                                   // Своя реплика — нейтральная: цветом кодируются собеседники.
                                   !mine && (isPale(agent?.color) ? "tone-bubble-pale" : "tone-bubble"),
                                   tagged && "is-tagged"
                                 )}
                                 style={mine ? undefined : toneVars(agent?.color)}
                               >
-                                <Quote to={m.replyTo ? bySeq.get(m.replyTo) : undefined} agents={agents} user={user} />
-                                {m.text && <Rich text={m.text} known={known} agents={agents} user={user} />}
+                                <Quote to={m.replyTo ? bySeq.get(m.replyTo) : undefined} agents={agents} className="mb-1.5" />
+                                {m.text && <Rich text={m.text} known={known} agents={agents} onMention={onMention} />}
                                 <Files files={m.files} />
                               </BubbleContent>
                             </Bubble>
-                            <Button
-                              variant="ghost"
-                              size="icon-sm"
-                              aria-label={t("feed.reply")}
-                              title={t("feed.replyTip")}
-                              onClick={() => onReply(m)}
-                              className="text-muted-foreground absolute top-0 opacity-0 transition-opacity group-hover/message:opacity-100 data-[align=end]:left-0 group-data-[align=end]/message:left-0 group-data-[align=start]/message:right-0"
-                            >
-                              <Reply />
-                            </Button>
                             {/* Время и расход — служебная строка: размер системный, тон тише имени. */}
                             {i === group.length - 1 && (
                               <MessageFooter className="text-muted-foreground/70 font-normal">
@@ -362,7 +441,12 @@ export function ChatFeed({ messages, user, agents, thinking, onReply }: Props) {
               <MessageGroup>
                 <Message align="start">
                   <MessageAvatar className="bg-transparent">
-                    <Face name={thinking[0]} icon={agents[thinking[0]]?.icon} color={agents[thinking[0]]?.color} size="md" />
+                    <FaceButton
+                      name={thinking[0]}
+                      icon={getAgent(agents, thinking[0])?.icon}
+                      color={getAgent(agents, thinking[0])?.color}
+                      onPick={onMention}
+                    />
                   </MessageAvatar>
                   <MessageContent>
                     <Bubble variant="secondary" align="start">
@@ -371,13 +455,20 @@ export function ChatFeed({ messages, user, agents, thinking, onReply }: Props) {
                       <BubbleContent
                         className={cn(
                           "text-sm",
-                          isPale(agents[thinking[0]]?.color) ? "tone-bubble-pale" : "tone-bubble"
+                          isPale(getAgent(agents, thinking[0])?.color) ? "tone-bubble-pale" : "tone-bubble"
                         )}
-                        style={toneVars(agents[thinking[0]]?.color)}
+                        style={toneVars(getAgent(agents, thinking[0])?.color)}
                       >
                         <span className="flex items-center gap-1.5 opacity-70">
-                          {thinking.map((n) => `@${n}`).join(` ${t("feed.and")} `)}{" "}
-                          {t(thinking.length > 1 ? "feed.thinkingMany" : "feed.thinkingOne")}
+                          <span>
+                            {thinking.map((n, i) => (
+                              <React.Fragment key={n}>
+                                {i > 0 && ` ${t("feed.and")} `}
+                                <Name name={n} onPick={onMention} />
+                              </React.Fragment>
+                            ))}{" "}
+                            {t(thinking.length > 1 ? "feed.thinkingMany" : "feed.thinkingOne")}
+                          </span>
                           <span className="flex gap-1">
                             {[0, 1, 2].map((d) => (
                               <span

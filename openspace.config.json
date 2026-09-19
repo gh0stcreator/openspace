@@ -1,6 +1,5 @@
 {
   "user": "Roman",
-  "userColor": "creator",
   "port": 4477,
   "workdir": ".",
   "defaultRoom": "общая",
@@ -16,17 +15,19 @@
       "lean": true,
       "timeoutMs": 300000,
       "icon": "settings",
-      "color": "blue"
+      "color": "blue",
+      "model": "sonnet"
     },
     "Скептик": {
-      "kind": "codex",
+      "kind": "claude",
       "role": "скептик",
       "trust": "safe",
       "label": "Скептик",
       "lean": true,
       "timeoutMs": 300000,
       "icon": "eye",
-      "color": "red"
+      "color": "red",
+      "model": "opus"
     },
     "Креатор": {
       "kind": "claude",
@@ -36,7 +37,8 @@
       "lean": true,
       "timeoutMs": 300000,
       "icon": "rocket",
-      "color": "green"
+      "color": "green",
+      "model": "opus"
     },
     "Эстет": {
       "kind": "claude",
@@ -46,17 +48,19 @@
       "lean": true,
       "timeoutMs": 300000,
       "icon": "palette",
-      "color": "pink"
+      "color": "pink",
+      "model": "sonnet"
     },
     "Академик": {
-      "kind": "codex",
+      "kind": "claude",
       "role": "академик",
       "trust": "safe",
       "label": "Академик",
       "lean": true,
       "timeoutMs": 300000,
       "icon": "brain",
-      "color": "indigo"
+      "color": "indigo",
+      "model": "opus"
     },
     "Продюсер": {
       "kind": "claude",
@@ -66,7 +70,8 @@
       "lean": true,
       "timeoutMs": 300000,
       "icon": "crown",
-      "color": "yellow"
+      "color": "yellow",
+      "model": "sonnet"
     }
   },
   "goal": "",
@@ -77,5 +82,6 @@
     "эстет",
     "академик",
     "продюсер"
-  ]
+  ],
+  "userColor": "creator"
 }

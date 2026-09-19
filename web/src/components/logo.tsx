@@ -42,6 +42,9 @@ export function Logo({
   // Настоящее состояние держим в ссылке: оно может смениться прямо во время
   // демонстрации, и тогда по уходу курсора вернуть надо новое, а не старое.
   const idle = React.useRef<Pair>({ mode, topic })
+  // Текст половин ведёт roll(), а не React: иначе смена режима приходит уже подменённой —
+  // roll() видит «слово на месте», не играет смену и оставляет ширину прежнего слова.
+  const first = React.useRef<Pair>({ mode, topic })
   const timers = React.useRef<number[]>([])
   const cycle = React.useRef(0)
   const hovering = React.useRef(false)
@@ -181,11 +184,11 @@ export function Logo({
 
       <span className="absolute top-0 left-0 flex items-baseline whitespace-nowrap">
         <span ref={part.mode} className="logo-part logo-mode">
-          <span ref={word.mode}>{mode}</span>
+          <span ref={word.mode}>{first.current.mode}</span>
         </span>
         <span className="text-muted-foreground">(</span>
         <span ref={part.topic} className="logo-part logo-topic">
-          <span ref={word.topic}>{topic}</span>
+          <span ref={word.topic}>{first.current.topic}</span>
         </span>
         <span className="text-muted-foreground">)</span>
       </span>

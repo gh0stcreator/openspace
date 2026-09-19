@@ -16,28 +16,25 @@ const RU = {
   "profile.settings": "Настройки",
   "profile.lang": "Язык",
 
-  "mode.waiting": "Ждём вас",
-  "mode.blind": "вслепую",
-  "mode.finish": "Закончить режим",
   "mode.label": "Режим обсуждения",
   "mode.open": "Открытый",
   "mode.missing": "нет в команде: {names}",
 
   "empty.title": "Здесь пока тихо",
   "empty.body": "Напишите первым — без тега ответят {duty}",
+  "empty.pick": "Или выберите, как работаем: режим начнётся с вашей первой темы",
 
   "bar.people": "Участники: {n}",
   "bar.tokens": "{n}k токенов за разговор",
   "bar.resume": "Продолжить",
   "bar.stop": "Стоп",
   "bar.resumeTip": "Продолжить разговор",
-  "bar.stopTip": "Остановить ответы. Кто уже пишет — договорит",
+  "bar.stopTip": "Пауза. Начатые ответы допишутся",
 
   "notify.calls": "{name} зовёт вас",
 
   "composer.placeholder": "Введите сообщение…",
   "composer.you": "это вы",
-  "composer.mine": "Вы",
   "composer.file": "файл",
   "composer.cancelReply": "Отменить ответ",
   "composer.attach": "Приложить файл. Можно перетащить или вставить из буфера",
@@ -46,11 +43,12 @@ const RU = {
   "composer.uploadFailed": "Не загрузилось «{name}» — {error}",
   "composer.sendFailed": "Сообщение не ушло — {error}",
 
-  "feed.reply": "Ответить",
-  "feed.replyTip": "Ответить — или двойной клик по реплике",
   "feed.thinkingOne": "печатает",
   "feed.thinkingMany": "печатают",
   "feed.and": "и",
+  "feed.edited": "изменено",
+  "composer.cancelEdit": "Отменить правку",
+  "composer.editFailed": "Правка не сохранилась — {error}",
 
   "settings.title": "Настройки",
   "settings.people": "Участники",
@@ -139,28 +137,25 @@ const EN: Record<keyof typeof RU, string> = {
   "profile.settings": "Settings",
   "profile.lang": "Language",
 
-  "mode.waiting": "Waiting for you",
-  "mode.blind": "blind",
-  "mode.finish": "End the mode",
   "mode.label": "Conversation mode",
   "mode.open": "Open",
   "mode.missing": "missing from the team: {names}",
 
   "empty.title": "Quiet in here",
   "empty.body": "Write first — with no tag, {duty} will answer",
+  "empty.pick": "Or pick how you work: the mode starts with your first topic",
 
   "bar.people": "Participants: {n}",
   "bar.tokens": "{n}k tokens this conversation",
   "bar.resume": "Resume",
   "bar.stop": "Stop",
   "bar.resumeTip": "Resume the conversation",
-  "bar.stopTip": "Stop the replies. Whoever is already writing will finish",
+  "bar.stopTip": "Pause. Replies already under way will finish",
 
   "notify.calls": "{name} is calling you",
 
   "composer.placeholder": "Write a message…",
   "composer.you": "that's you",
-  "composer.mine": "You",
   "composer.file": "file",
   "composer.cancelReply": "Cancel the reply",
   "composer.attach": "Attach a file. Drag it in or paste from the clipboard",
@@ -169,11 +164,12 @@ const EN: Record<keyof typeof RU, string> = {
   "composer.uploadFailed": "“{name}” didn't upload — {error}",
   "composer.sendFailed": "The message didn't go — {error}",
 
-  "feed.reply": "Reply",
-  "feed.replyTip": "Reply — or double-click the message",
   "feed.thinkingOne": "is typing",
   "feed.thinkingMany": "are typing",
   "feed.and": "and",
+  "feed.edited": "edited",
+  "composer.cancelEdit": "Cancel the edit",
+  "composer.editFailed": "The edit wasn't saved — {error}",
 
   "settings.title": "Settings",
   "settings.people": "Participants",

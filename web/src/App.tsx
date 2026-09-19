@@ -3,8 +3,6 @@ import {
   AtSign,
   Check,
   ChevronDown,
-  Pause,
-  Play,
   Languages,
   Settings2,
   TriangleAlert,
@@ -25,11 +23,18 @@ import {
   DropdownMenuSubTrigger,
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu"
-import { Empty, EmptyDescription, EmptyHeader, EmptyMedia, EmptyTitle } from "@/components/ui/empty"
+import {
+  Empty,
+  EmptyContent,
+  EmptyDescription,
+  EmptyHeader,
+  EmptyMedia,
+  EmptyTitle,
+} from "@/components/ui/empty"
 import { Skeleton } from "@/components/ui/skeleton"
 import { Toaster } from "@/components/ui/sonner"
-import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip"
-import { ChatFeed, Face, Icon, toneVars } from "@/components/chat-feed"
+import { TooltipProvider } from "@/components/ui/tooltip"
+import { ChatFeed, Face, FaceButton, Icon } from "@/components/chat-feed"
 import { Composer } from "@/components/composer"
 import { Logo } from "@/components/logo"
 import { SettingsDialog } from "@/components/settings-dialog"
@@ -48,6 +53,22 @@ export default function App() {
   const [live, setLive] = React.useState(true)
   const [settingsOpen, setSettingsOpen] = React.useState(false)
   const [replyTo, setReplyTo] = React.useState<Msg | null>(null)
+  const [editing, setEditing] = React.useState<Msg | null>(null)
+
+  /**
+   * Лента на экране — только реплики. Правка приходит отдельным событием и меняет
+   * свою реплику на месте; в истории с сервера она уже применена.
+   */
+  const take = React.useCallback(
+    (prev: Msg[], m: Msg) =>
+      m.kind === "edit"
+        ? prev.map((x) => (x.seq === m.target ? { ...x, text: m.text, mentions: m.mentions, edited: m.ts } : x))
+        : prev.some((x) => x.seq === m.seq)
+          ? prev
+          : [...prev, m],
+    []
+  )
+  const shown = (list: Msg[]) => list.filter((m) => m.kind !== "edit")
   const [insert, setInsert] = React.useState<{ name: string; nonce: number }>()
 
   const local = React.useCallback((text: string) => toast.error(text), [])
@@ -65,13 +86,13 @@ export default function App() {
     let alive = true
     api.history(room).then(({ messages, state }) => {
       if (!alive) return
-      setMessages(messages)
+      setMessages(shown(messages))
       setState(state)
     })
     const stop = listen(
       room,
       (m) => {
-        setMessages((prev) => (prev.some((x) => x.seq === m.seq) ? prev : [...prev, m]))
+        setMessages((prev) => take(prev, m))
         void api.history(room, 0).then(({ state }) => setState(state))
       },
       (who, status) =>
@@ -79,7 +100,7 @@ export default function App() {
       setLive,
       () =>
         void api.history(room).then(({ messages, state }) => {
-          setMessages(messages)
+          setMessages(shown(messages))
           setState(state)
         })
     )
@@ -87,7 +108,7 @@ export default function App() {
       alive = false
       stop()
     }
-  }, [room])
+  }, [room, take])
 
   /**
    * Непрочитанные обращения. Прочитанным считаем то, что было на экране, пока лента
@@ -203,16 +224,13 @@ export default function App() {
           {/* Кто в пространстве — аватарками: имена не нужны, чтобы это понять. */}
           <div className="hidden min-w-0 flex-1 items-center justify-center gap-2.5 sm:flex">
             {Object.entries(cfg.agents).map(([n, a]) => (
-              <button
+              <FaceButton
                 key={n}
-                title={`${n} · ${a.brief}`}
-                aria-label={n}
-                className="tone-hover rounded-full transition-shadow"
-                style={toneVars(a.color)}
-                onClick={() => setInsert({ name: n, nonce: Date.now() })}
-              >
-                <Face name={n} icon={a.icon} color={a.color} size="md" />
-              </button>
+                name={n}
+                icon={a.icon}
+                color={a.color}
+                onPick={(name) => setInsert({ name, nonce: Date.now() })}
+              />
             ))}
           </div>
 
@@ -258,6 +276,31 @@ export default function App() {
               <EmptyTitle>{t("empty.title")}</EmptyTitle>
               <EmptyDescription>{t("empty.body", { duty: duty.join(", ") })}</EmptyDescription>
             </EmptyHeader>
+            {/* С пустой комнаты чаще начинают не с реплики, а со способа работы.
+                Выбранный режим ждёт первой темы и стартует вместе с ней. */}
+            <EmptyContent>
+              <div className="text-muted-foreground mb-3 text-sm">{t("empty.pick")}</div>
+              <div className="flex max-w-xl flex-wrap justify-center gap-2">
+                {cfg.modes
+                  ?.filter((m) => m.name !== "свободный")
+                  .map((m) => (
+                    <Button
+                      key={m.name}
+                      variant="outline"
+                      size="sm"
+                      className="font-normal"
+                      title={pick(lang, m.for || m.brief, m.forEn || m.briefEn)}
+                      onClick={async () => {
+                        const r = await api.setMode(room, m.name)
+                        setState((st) => ({ ...st, modeState: r.mode }))
+                      }}
+                    >
+                      <Icon name={m.icon} className="size-4" />
+                      {pick(lang, m.short, m.shortEn)}
+                    </Button>
+                  ))}
+              </div>
+            </EmptyContent>
           </Empty>
         ) : (
           <ChatFeed
@@ -265,7 +308,15 @@ export default function App() {
             user={cfg.user}
             agents={cfg.agents}
             thinking={thinking}
-            onReply={setReplyTo}
+            onReply={(m) => {
+              setEditing(null)
+              setReplyTo(m)
+            }}
+            onEdit={(m) => {
+              setReplyTo(null)
+              setEditing(m)
+            }}
+            onMention={(name) => setInsert({ name, nonce: Date.now() })}
           />
         )}
 
@@ -295,9 +346,12 @@ export default function App() {
           agents={cfg.agents}
           user={cfg.user}
           onError={local}
-          onSent={(m) => setMessages((prev) => (prev.some((x) => x.seq === m.seq) ? prev : [...prev, m]))}
+          onSent={(m) => setMessages((prev) => take(prev, m))}
           replyTo={replyTo}
           onCancelReply={() => setReplyTo(null)}
+          editing={editing}
+          onEdit={setEditing}
+          lastMine={messages.findLast((m) => m.kind === "message" && m.from === cfg.user)}
           insert={insert}
         />
 
@@ -317,28 +371,12 @@ export default function App() {
             {t("bar.people", { n: Object.keys(cfg.agents).length })}
           </Button>
 
-          <Tooltip>
-            <TooltipTrigger asChild>
-              <Button
-                variant="ghost"
-                size="icon-sm"
-                aria-label={state.paused ? t("bar.resume") : t("bar.stop")}
-                onClick={async () => setState((await api.pause(room, !state.paused)).state)}
-              >
-                {state.paused ? <Play /> : <Pause />}
-              </Button>
-            </TooltipTrigger>
-            <TooltipContent className="max-w-72">
-              {state.paused ? t("bar.resumeTip") : t("bar.stopTip")}
-            </TooltipContent>
-          </Tooltip>
-
           <DropdownMenu>
             <DropdownMenuTrigger asChild>
               <Button variant="ghost" size="sm" className="ml-auto gap-1.5 font-normal">
                 <Icon
                   name={
-                    cfg.modes?.find((m) => m.name === (state.modeState?.name ?? "свободный"))?.icon ??
+                    cfg.modes?.find((m) => (state.modeState ? m.name === state.modeState.name : m.builtin))?.icon ??
                     "message-circle"
                   }
                   className="size-4"
@@ -351,13 +389,13 @@ export default function App() {
             <DropdownMenuContent align="end" className="w-80">
               <DropdownMenuLabel>{t("mode.label")}</DropdownMenuLabel>
               {cfg.modes?.map((m) => {
-                const current = (state.modeState?.name ?? "свободный") === m.name
+                const current = state.modeState ? state.modeState.name === m.name : m.builtin
                 return (
                   <DropdownMenuItem
                     key={m.name}
                     className={cn("items-start gap-3 py-2", current && "bg-accent/60")}
                     onClick={async () => {
-                      const r = await api.setMode(room, m.name === "свободный" ? null : m.name)
+                      const r = await api.setMode(room, m.builtin ? null : m.name)
                       setState((st) => ({ ...st, modeState: r.mode }))
                     }}
                   >

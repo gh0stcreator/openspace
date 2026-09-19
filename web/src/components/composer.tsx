@@ -18,8 +18,8 @@ import {
 } from "@/components/ui/attachment"
 import { Spinner } from "@/components/ui/spinner"
 import { Tooltip, TooltipContent, TooltipTrigger } from "@/components/ui/tooltip"
-import { toneVars } from "@/components/chat-feed"
-import { typo } from "@/lib/typo"
+import { Button } from "@/components/ui/button"
+import { Quote } from "@/components/chat-feed"
 import { useLang, pick as label } from "@/lib/i18n"
 import { api, type Agent, type FileRef, type Msg } from "@/lib/api"
 
@@ -34,11 +34,28 @@ type Props = {
   onSent: (m: Msg) => void
   replyTo: Msg | null
   onCancelReply: () => void
+  /** Реплика, которую сейчас правят: её текст в поле, отправка сохраняет правку. */
+  editing: Msg | null
+  onEdit: (m: Msg | null) => void
+  /** Последняя своя реплика — её поднимает стрелка вверх в пустом поле. */
+  lastMine?: Msg
   /** Клик по участнику в шапке: {name, nonce} — nonce меняется, чтобы повтор тоже сработал. */
   insert?: { name: string; nonce: number }
 }
 
-export function Composer({ room, agents, user, onError, onSent, replyTo, onCancelReply, insert }: Props) {
+export function Composer({
+  room,
+  agents,
+  user,
+  onError,
+  onSent,
+  replyTo,
+  onCancelReply,
+  editing,
+  onEdit,
+  lastMine,
+  insert,
+}: Props) {
   const { lang, t } = useLang()
   const [text, setText] = React.useState("")
   const [files, setFiles] = React.useState<Pending[]>([])
@@ -49,11 +66,6 @@ export function Composer({ room, agents, user, onError, onSent, replyTo, onCance
   const picker = React.useRef<HTMLInputElement>(null)
 
   const names = React.useMemo(() => [...Object.keys(agents), user], [agents, user])
-  const replyColor = replyTo
-    ? replyTo.from === user
-      ? "creator"
-      : (agents[replyTo.from]?.color ?? null)
-    : null
   const ready = files.filter((f) => !f.uploading)
   const canSend = Boolean(text.trim() || ready.length)
 
@@ -77,6 +89,19 @@ export function Composer({ room, agents, user, onError, onSent, replyTo, onCance
   async function send() {
     if (!canSend) return
     const body = text.trim()
+    if (editing) {
+      if (!body) return
+      setText("")
+      onEdit(null)
+      try {
+        if (body !== editing.text) onSent((await api.edit(room, editing.seq, body)).edit)
+      } catch (e) {
+        setText(body)
+        onEdit(editing)
+        onError(t("composer.editFailed", { error: (e as Error).message }))
+      }
+      return
+    }
     const attached = ready
     setText("")
     setFiles([])
@@ -121,11 +146,39 @@ export function Composer({ room, agents, user, onError, onSent, replyTo, onCance
       if (e.key === "Tab" || e.key === "Enter") return (e.preventDefault(), choose(mention[pick]))
       if (e.key === "Escape") return setMention([])
     }
+    if (e.key === "Escape" && editing) return cancelEdit()
     if (e.key === "Escape" && replyTo) return onCancelReply()
+    // Стрелка вверх в пустом поле поднимает последнюю свою реплику, как в мессенджерах.
+    if (e.key === "ArrowUp" && !text && !editing && lastMine) {
+      e.preventDefault()
+      return onEdit(lastMine)
+    }
     if (e.key === "Enter" && !e.shiftKey) {
       e.preventDefault()
       void send()
     }
+  }
+
+  // Выбрал реплику для ответа — значит, сейчас будешь писать: курсор уже в поле.
+  React.useEffect(() => {
+    if (replyTo) ref.current?.focus()
+  }, [replyTo])
+
+  // Правка: текст реплики встаёт в поле, курсор — в конец.
+  React.useEffect(() => {
+    if (!editing) return
+    setText(editing.text)
+    queueMicrotask(() => {
+      const el = ref.current
+      if (!el) return
+      el.focus()
+      el.selectionStart = el.selectionEnd = el.value.length
+    })
+  }, [editing])
+
+  function cancelEdit() {
+    setText("")
+    onEdit(null)
   }
 
   React.useEffect(() => {
@@ -196,28 +249,17 @@ export function Composer({ room, agents, user, onError, onSent, replyTo, onCance
           </div>
         )}
 
-        {replyTo && (
-          <div className="mb-2 flex items-center gap-2">
-            <div
-              className="tone-name min-w-0 flex-1 border-l-2 border-current pl-2"
-              style={toneVars(replyColor)}
-            >
-              <div className="text-sm font-medium capitalize">
-                {replyTo.from === user ? t("composer.mine") : replyTo.from}
-              </div>
-              <div className="text-muted-foreground truncate text-sm">
-                {typo(replyTo.text) || t("composer.file")}
-              </div>
-            </div>
-            <button
-              onClick={onCancelReply}
-              aria-label={t("composer.cancelReply")}
-              className="text-muted-foreground hover:text-foreground shrink-0"
-            >
-              <X className="size-4" />
-            </button>
-          </div>
-        )}
+        <Quote to={editing} agents={agents} className="mb-2">
+          <Button variant="ghost" size="icon-sm" aria-label={t("composer.cancelEdit")} onClick={cancelEdit}>
+            <X />
+          </Button>
+        </Quote>
+
+        <Quote to={replyTo} agents={agents} className="mb-2">
+          <Button variant="ghost" size="icon-sm" aria-label={t("composer.cancelReply")} onClick={onCancelReply}>
+            <X />
+          </Button>
+        </Quote>
 
         {files.length > 0 && (
           <AttachmentGroup className="mb-2">

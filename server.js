@@ -7,7 +7,7 @@ import { Store } from './lib/store.js';
 import { Orchestrator } from './lib/orchestrator.js';
 import { loadConfig } from './lib/config.js';
 import { roleOf, listRoles } from './lib/roles.js';
-import { listModes, loadMode, removeMode, saveMode } from './lib/modes.js';
+import { BUILTIN, listModes, removeMode, saveMode, stepTargets } from './lib/modes.js';
 
 const root = path.dirname(fileURLToPath(import.meta.url));
 
@@ -41,6 +41,8 @@ const short = (m) => {
   const present = Object.keys(config.agents).map((n) => n.toLowerCase());
   return {
     name: m.name,
+    // Клиенту незачем знать русское имя файла встроенного режима.
+    builtin: m.name === BUILTIN,
     title: m.title,
     titleEn: m.titleEn,
     brief: m.brief,
@@ -51,6 +53,14 @@ const short = (m) => {
     slug: m.slug,
     short: m.short,
     shortEn: m.shortEn,
+    rubric: m.rubric,
+    rubricEn: m.rubricEn,
+    // Кто вообще говорит в режиме: объединение всех шагов. Пусто — значит все.
+    who: (() => {
+      const names = Object.keys(orch.roster);
+      const said = new Set(m.steps.flatMap((st) => stepTargets(st, names, orch.roster)));
+      return said.size === names.length ? [] : [...said];
+    })(),
     needs: m.needs,
     // Кого режим просит, а в команде нет: выбирая режим, это стоит знать сразу.
     missing: m.needs.filter((n) => !present.includes(n.toLowerCase())),
@@ -113,18 +123,31 @@ const MIME = {
   '.woff2': 'font/woff2', '.woff': 'font/woff', '.ico': 'image/x-icon', '.map': 'application/json',
 };
 
+const LOCAL = /^(localhost|127\.0\.0\.1|\[::1\])(:\d+)?$/;
+
 const server = http.createServer(async (req, res) => {
   const url = new URL(req.url, `http://${req.headers.host}`);
   const room = url.searchParams.get('room') || config.defaultRoom || 'general';
 
   try {
+    // Сервер слушает только localhost, но браузер ходит на localhost с любой страницы.
+    // Чужой сайт не должен уметь написать в ленту: реплика здесь — это команда агенту
+    // с доступом к файлам. У своих запросов Origin наш, у curl и bin/say его нет вовсе.
+    // Свой Origin — любой локальный: клиент в разработке живёт на порту Vite.
+    const origin = req.headers.origin;
+    if (req.method !== 'GET' && req.method !== 'HEAD' && origin && !LOCAL.test(new URL(origin).host)) {
+      return json(res, 403, { error: 'запрос с чужого сайта' });
+    }
+    // Тот же довод про имя хоста: чужой домен можно направить на 127.0.0.1.
+    if (!LOCAL.test(req.headers.host ?? '')) {
+      return json(res, 403, { error: 'сервер отвечает только по localhost' });
+    }
     if (url.pathname === '/api/config') {
       const agents = Object.fromEntries(
         Object.entries(orch.roster).map(([name, a]) => [name, describe(name, a)]),
       );
       return json(res, 200, {
         user: config.user,
-        userColor: config.userColor ?? 'green',
         workdir: config.workdir,
         maxAutoTurns: config.maxAutoTurns,
         defaultRoom: config.defaultRoom ?? 'general',
@@ -172,7 +195,6 @@ const server = http.createServer(async (req, res) => {
     if (url.pathname === '/api/settings' && req.method === 'GET') {
       return json(res, 200, {
         user: config.user,
-        userColor: config.userColor ?? 'green',
         workdir: config.workdir,
         maxAutoTurns: config.maxAutoTurns,
         catchUp: config.catchUp,
@@ -251,16 +273,32 @@ const server = http.createServer(async (req, res) => {
       const since = Number(url.searchParams.get('since') ?? 0);
       return json(res, 200, {
         messages: store.since(room, since),
-        state: { ...orch.state(room), modeState: orch.modeState(room) },
+        state: orch.view(room),
       });
+    }
+
+    if (url.pathname === '/api/messages/edit' && req.method === 'POST') {
+      const body = await readBody(req);
+      const text = String(body.text ?? '').trim();
+      if (!text) return json(res, 400, { error: 'пустая реплика' });
+      try {
+        return json(res, 200, { edit: orch.edit(room, Number(body.seq), text) });
+      } catch (e) {
+        return json(res, 400, { error: e.message });
+      }
     }
 
     if (url.pathname === '/api/messages' && req.method === 'POST') {
       const body = await readBody(req);
       if (!body.text?.trim() && !body.files?.length) return json(res, 400, { error: 'пустое сообщение' });
       body.text = body.text ?? '';
+      // Автор — человек или участник из состава: самозванцев в ленте потом не разобрать.
+      const from = body.from || config.user;
+      if (from !== config.user && !orch.names.includes(from)) {
+        return json(res, 400, { error: `в пространстве нет @${from}` });
+      }
       const msg = orch.post(room, {
-        from: body.from || config.user,
+        from,
         text: body.text.trim(),
         files: Array.isArray(body.files) ? body.files.slice(0, 10) : undefined,
         replyTo: Number.isFinite(body.replyTo) ? body.replyTo : undefined,
@@ -300,7 +338,8 @@ const server = http.createServer(async (req, res) => {
 
     if (url.pathname === '/api/pause' && req.method === 'POST') {
       const body = await readBody(req);
-      return json(res, 200, { state: orch.pause(room, body.on !== false) });
+      orch.pause(room, body.on !== false);
+      return json(res, 200, { state: orch.view(room) });
     }
 
     if (url.pathname === '/api/clear' && req.method === 'POST') {
@@ -350,8 +389,16 @@ const server = http.createServer(async (req, res) => {
   }
 });
 
+server.on('error', (e) => {
+  if (e.code !== 'EADDRINUSE') throw e;
+  console.error(`Порт ${config.port} занят — скорее всего, сервер уже запущен.`);
+  console.error(`Открыть: http://localhost:${config.port}`);
+  console.error(`Остановить прежний запуск: kill $(lsof -nP -t -iTCP:${config.port} -sTCP:LISTEN)`);
+  process.exit(1);
+});
+
 server.listen(config.port, '127.0.0.1', () => {
-  console.log(`open(space)  http://localhost:${config.port}`);
+  console.log(`Openspace  http://localhost:${config.port}`);
   console.log(`рабочая папка: ${config.workdir}`);
   console.log(`участники: ${Object.keys(config.agents).map((n) => '@' + n).join(', ')}, @${config.user}`);
   // Перезапуск не должен глотать обращение, на которое не успели ответить.

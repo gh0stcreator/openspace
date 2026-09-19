@@ -9,7 +9,8 @@
   },
   "scripts": {
     "start": "node server.js",
-    "dev": "node bin/dev"
+    "dev": "node bin/dev",
+    "test": "node --test \"test/*.test.mjs\""
   },
   "engines": {
     "node": ">=20"

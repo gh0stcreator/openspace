@@ -174,8 +174,6 @@
   --chroma-white: 0.12;
   --tone-black: 265;
   --chroma-black: 0.25;
-  --tone-creator: 300;
-  --chroma-creator: 1;
 }
 
 /* Ступени одной шкалы: меняется светлота, тон остаётся тем же.
@@ -184,13 +182,23 @@
   /* Подсветка при наведении — тоном участника, а не нейтральным кольцом. */
   .tone-hover:hover { box-shadow: 0 0 0 2px oklch(0.55 calc(0.14 * var(--c)) var(--h)); }
   .tone-name { color: oklch(0.74 calc(0.13 * var(--c)) var(--h)); }
-  .tone-face { background: oklch(0.28 calc(0.06 * var(--c)) var(--h)); color: oklch(0.78 calc(0.14 * var(--c)) var(--h)); }
+  /* Поверхность участника: одна и та же под аватаркой и под репликой, поэтому и объявлена
+     один раз. Кружок читается как метка того же говорящего, а не как отдельный элемент. */
+  .tone-face,
+  [data-slot="bubble-content"].tone-bubble {
+    background: oklch(0.269 calc(0.05 * var(--c)) var(--h));
+  }
+  /* Знак внутри кружка — акцент. */
+  .tone-face { color: oklch(0.78 calc(0.15 * var(--c)) var(--h)); }
   /* Вариант Bubble красит фон через селектор на родителе, поэтому здесь нужна
      та же специфичность — иначе тон участника не переживёт вариант компонента. */
+  /* Пузырь — фон: тон тот же, но светлота у всех одна, иначе жёлтый участник кричит,
+     а синий тонет. Чуть светлее страницы, чтобы реплика отделялась от пустоты. */
   [data-slot="bubble-content"].tone-bubble {
-    background: oklch(0.245 calc(0.045 * var(--c)) var(--h));
     color: oklch(0.90 calc(0.012 * var(--c)) var(--h));
   }
+  /* white — единственный тон, задуманный как светлый бабл; его светлота
+     намеренно не выровнена с остальными. */
   [data-slot="bubble-content"].tone-bubble-pale {
     background: oklch(0.86 calc(0.02 * var(--c)) var(--h));
     color: oklch(0.22 calc(0.02 * var(--c)) var(--h));

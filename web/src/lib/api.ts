@@ -3,7 +3,10 @@ export type Msg = {
   id: string
   room: string
   from: string
-  kind: "message" | "system" | "error"
+  kind: "message" | "system" | "error" | "edit"
+  /** Событие правки: какую реплику и на что. Сама реплика после правки несёт `edited`. */
+  target?: number
+  edited?: number
   text: string
   ts: number
   mentions: string[]
@@ -34,7 +37,6 @@ export type Agent = {
 
 export type Config = {
   user: string
-  userColor: string
   workdir: string
   maxAutoTurns: number
   defaultRoom: string
@@ -56,6 +58,8 @@ export type Settings = Omit<Config, "defaultResponders"> & {
 
 export type Mode = {
   name: string
+  /** Встроенный «Открытый»: его нельзя удалить, а выбрать его — значит закончить режим. */
+  builtin: boolean
   slug: string
   short: string
   shortEn: string
@@ -65,6 +69,11 @@ export type Mode = {
   briefEn: string
   for: string
   forEn: string
+  /** Рубрика: к какой работе режим относится. */
+  rubric: string
+  rubricEn: string
+  /** Кто говорит в режиме. Пустой массив — говорят все. */
+  who: string[]
   needs: string[]
   missing: string[]
   icon: string
@@ -104,6 +113,13 @@ export const api = {
     fetch(`/api/messages?room=${encodeURIComponent(room)}&since=${since}`).then(
       json<{ messages: Msg[]; state: RoomState }>
     ),
+
+  edit: (room: string, seq: number, text: string) =>
+    fetch(`/api/messages/edit?room=${encodeURIComponent(room)}`, {
+      method: "POST",
+      headers: { "content-type": "application/json" },
+      body: JSON.stringify({ seq, text }),
+    }).then(json<{ edit: Msg }>),
 
   send: (room: string, text: string, files: FileRef[] = [], replyTo?: number) =>
     fetch(`/api/messages?room=${encodeURIComponent(room)}`, {
