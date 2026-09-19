@@ -341,8 +341,11 @@ export function ChatFeed({ messages, human, agents, thinking, onReply }: Props) 
                             >
                               <Reply />
                             </Button>
+                            {/* Время и расход — служебная строка: размер системный, тон тише имени. */}
                             {i === group.length - 1 && (
-                              <MessageFooter className="text-sm">{foot.join(" · ")}</MessageFooter>
+                              <MessageFooter className="text-muted-foreground/70 font-normal">
+                                {foot.join(" · ")}
+                              </MessageFooter>
                             )}
                           </MessageContent>
                         </Message>
