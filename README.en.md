@@ -22,7 +22,7 @@ how exactly they should work together, and the conversation leaves behind more t
 ```text
 open(product_strategy)
 research(market)
-redteam(pricing)
+roast(pricing)
 brainstorm(naming)
 premortem(launch)
 ```
