@@ -56,7 +56,7 @@ export type Config = {
 export type Settings = Omit<Config, "defaultResponders" | "off" | "rooms"> & {
   catchUp: number
   freeTalk: boolean
-  goal: string
+  laws: string
   roles: { name: string; title: string; titleEn: string; brief: string; icon: string }[]
   engines: string[]
   trustLevels: string[]

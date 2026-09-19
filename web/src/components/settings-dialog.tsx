@@ -158,7 +158,7 @@ export function SettingsDialog({
           // удаление оставляет прежнего участника на сервере.
           replaceTeam: true,
           maxAutoTurns: next.maxAutoTurns,
-          goal: next.goal,
+          laws: next.laws,
           catchUp: next.catchUp,
           freeTalk: next.freeTalk,
         })
@@ -490,15 +490,15 @@ export function SettingsDialog({
             <h2 className="mb-6 text-xl font-semibold">{t("settings.space")}</h2>
             <FieldGroup className="max-w-2xl gap-5">
               <Field>
-                <FieldLabel htmlFor="goal">{t("space.goal")}</FieldLabel>
+                <FieldLabel htmlFor="laws">{t("space.laws")}</FieldLabel>
                 <Textarea
-                  id="goal"
+                  id="laws"
                   rows={2}
-                  value={s.goal ?? ""}
-                  placeholder={t("space.goalHint")}
-                  onChange={(e) => patch({ goal: e.target.value })}
+                  value={s.laws ?? ""}
+                  placeholder={t("space.lawsHint")}
+                  onChange={(e) => patch({ laws: e.target.value })}
                 />
-                <FieldDescription>{t("space.goalSeen")}</FieldDescription>
+                <FieldDescription>{t("space.lawsSeen")}</FieldDescription>
               </Field>
 
               <Field orientation="horizontal">

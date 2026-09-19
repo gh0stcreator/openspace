@@ -202,7 +202,7 @@ const server = http.createServer(async (req, res) => {
         workdir: config.workdir,
         maxAutoTurns: config.maxAutoTurns,
         catchUp: config.catchUp,
-        goal: config.goal ?? '',
+        laws: config.laws ?? '',
         freeTalk: config.freeTalk !== false,
         agents: Object.fromEntries(
           Object.entries(orch.roster).map(([name, a]) => [name, describe(name, a)]),
@@ -238,7 +238,7 @@ const server = http.createServer(async (req, res) => {
       if (typeof body.userColor === 'string') patch.userColor = body.userColor.trim();
       if (typeof body.userIcon === 'string') patch.userIcon = body.userIcon;
       if ('freeTalk' in body) patch.freeTalk = !!body.freeTalk;
-      if ('goal' in body) patch.goal = String(body.goal ?? '').slice(0, 2000);
+      if ('laws' in body) patch.laws = String(body.laws ?? '').slice(0, 2000);
 
       if (body.agents) {
         // Запрос может нести часть состава: остальных сохраняем, иначе один неполный
