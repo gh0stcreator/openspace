@@ -3,6 +3,7 @@ import { Copy, MoreHorizontal, Plus, Settings2, Trash2 } from "lucide-react"
 
 import { Badge } from "@/components/ui/badge"
 import { Button } from "@/components/ui/button"
+import { Collapsible, CollapsibleContent } from "@/components/ui/collapsible"
 import { Checkbox } from "@/components/ui/checkbox"
 import {
   DropdownMenu,
@@ -115,10 +116,11 @@ export function ModeCard({
     patch({ steps: mode.steps.map((s, j) => (i === j ? { ...s, ...p } : s)) })
 
   return (
-    <div
-      aria-current={current || undefined}
-      className={cn("rounded-lg border transition-colors", !open && "hover:bg-accent/40")}
-    >
+    <Collapsible open={open} onOpenChange={setOpen} asChild>
+      <div
+        aria-current={current || undefined}
+        className={cn("rounded-lg border transition-colors", !open && "hover:bg-accent/40")}
+      >
       <div className="flex items-center gap-3 p-3">
         <span className="bg-muted text-muted-foreground flex size-10 shrink-0 items-center justify-center rounded-full">
           <Icon name={mode.icon} className="size-5" />
@@ -158,7 +160,8 @@ export function ModeCard({
         </DropdownMenu>
       </div>
 
-      {open && (
+      {/* Раскрытие анимируем компонентом системы: карточка не прыгает. */}
+      <CollapsibleContent className="data-[state=closed]:animate-collapsible-up data-[state=open]:animate-collapsible-down overflow-hidden">
         <div className="grid gap-5 border-t p-4">
           <div className="grid gap-3 sm:grid-cols-[1fr_1.4fr]">
             <Field>
@@ -302,9 +305,10 @@ export function ModeCard({
               <Plus /> Добавить шаг
             </Button>
           </div>
-        </div>
-      )}
-    </div>
+          </div>
+        </CollapsibleContent>
+      </div>
+    </Collapsible>
   )
 }
 

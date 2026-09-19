@@ -143,7 +143,7 @@ export default function App() {
       <div className="bg-background flex h-dvh flex-col">
         <header className="flex h-14 shrink-0 items-center gap-3 border-b px-4">
           <Skeleton className="h-5 w-32 shrink-0" />
-          <div className="flex min-w-0 flex-1 items-center justify-center gap-2.5">
+          <div className="hidden min-w-0 flex-1 items-center justify-center gap-2.5 sm:flex">
             {Array.from({ length: 5 }).map((_, i) => (
               <Skeleton key={i} className="hidden h-9 w-28 rounded-full lg:block" />
             ))}
@@ -192,7 +192,7 @@ export default function App() {
           </a>
 
           {/* Кто в пространстве — аватарками: имена не нужны, чтобы это понять. */}
-          <div className="flex min-w-0 flex-1 items-center justify-center gap-2.5">
+          <div className="hidden min-w-0 flex-1 items-center justify-center gap-2.5 sm:flex">
             {Object.entries(cfg.agents).map(([n, a]) => (
               <button
                 key={n}
@@ -212,10 +212,10 @@ export default function App() {
             <DropdownMenuTrigger asChild>
               <Button
                 variant="ghost"
-                className="hover:bg-accent/50 data-[state=open]:bg-accent/50 h-10 shrink-0 gap-2 pr-2 pl-1 font-normal"
+                className="hover:bg-accent/50 data-[state=open]:bg-accent/50 ml-auto h-10 shrink-0 gap-2 pr-2 pl-1 font-normal"
               >
                 <Face name={cfg.humanName} icon="user" size="md" muted />
-                {cfg.humanName}
+                <span className="hidden sm:inline">{cfg.humanName}</span>
                 <ChevronDown className="text-muted-foreground size-3.5" />
               </Button>
             </DropdownMenuTrigger>

@@ -2,6 +2,7 @@ import * as React from "react"
 import { Copy, MoreHorizontal, Settings2, Trash2 } from "lucide-react"
 
 import { Button } from "@/components/ui/button"
+import { Collapsible, CollapsibleContent } from "@/components/ui/collapsible"
 import { cn } from "@/lib/utils"
 import {
   DropdownMenu,
@@ -9,7 +10,7 @@ import {
   DropdownMenuItem,
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu"
-import { Field, FieldDescription, FieldLabel } from "@/components/ui/field"
+import { Field, FieldLabel } from "@/components/ui/field"
 import { Input } from "@/components/ui/input"
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover"
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
@@ -25,18 +26,19 @@ const ICONS = [
   "git-branch", "database", "globe", "heart", "flame", "music", "coffee", "crown", "gem",
 ]
 
-/** Модели, которые понимают движки. Пусто — движок берёт свою по умолчанию. */
-const MODELS: Record<string, { value: string; label: string }[]> = {
+/** Модели, которые понимают движки. Пустое значение — движок берёт свою по умолчанию. */
+const MODELS: Record<string, { value: string; label: string; hint?: string }[]> = {
   claude: [
-    { value: "", label: "по умолчанию" },
-    { value: "opus", label: "Opus — думает дольше и глубже" },
-    { value: "sonnet", label: "Sonnet — быстрее и дешевле" },
-    { value: "haiku", label: "Haiku — совсем быстрый, для простого" },
+    { value: "", label: "По умолчанию", hint: "Какую выберет движок" },
+    { value: "opus", label: "Opus 5", hint: "Самая сильная, думает дольше" },
+    { value: "fable", label: "Fable 5.1", hint: "То же поколение, другой характер" },
+    { value: "sonnet", label: "Sonnet 5", hint: "Быстрее и дешевле" },
+    { value: "haiku", label: "Haiku 4.5", hint: "Самая быстрая, для простого" },
   ],
   codex: [
-    { value: "", label: "по умолчанию" },
-    { value: "gpt-5.4", label: "gpt-5.4" },
-    { value: "gpt-6-astra", label: "gpt-6-astra" },
+    { value: "", label: "По умолчанию", hint: "Какую выберет движок" },
+    { value: "gpt-5.4", label: "GPT-5.4" },
+    { value: "gpt-6-astra", label: "GPT-6 Astra" },
   ],
 }
 
@@ -50,12 +52,23 @@ type Props = {
   onFire: () => void
 }
 
+const models = (agent: Agent) => MODELS[agent.engine] ?? MODELS.claude
+
+/** Чем участник думает: движок и, если выбрана, конкретная модель. */
+const brain = (agent: Agent) => {
+  const engine = agent.engine.charAt(0).toUpperCase() + agent.engine.slice(1)
+  if (!agent.model) return engine
+  const m = models(agent).find((x) => x.value === agent.model)
+  return `${engine} ${m?.label ?? agent.model}`
+}
+
 export function AgentCard({ name, agent, settings, onChange, onRename, onCopy, onFire }: Props) {
   const [open, setOpen] = React.useState(false)
   const [nick, setNick] = React.useState(name)
 
   return (
-    <div className={cn("rounded-lg border transition-colors", !open && "hover:bg-accent/40")}>
+    <Collapsible open={open} onOpenChange={setOpen} asChild>
+      <div className={cn("rounded-lg border transition-colors", !open && "hover:bg-accent/40")}>
       <div className="flex items-center gap-3 p-3">
         <Popover>
           <PopoverTrigger asChild>
@@ -102,11 +115,12 @@ export function AgentCard({ name, agent, settings, onChange, onRename, onCopy, o
         </Popover>
 
         <button className="min-w-0 flex-1 text-left" onClick={() => setOpen((v) => !v)}>
-          <div className="font-medium capitalize">{name}</div>
-          <div className="text-muted-foreground truncate text-sm">
-            {agent.brief} · {agent.engine}
-            {agent.model ? ` · ${agent.model}` : ""}
+          <div className="flex items-baseline gap-2">
+            <span className="font-medium capitalize">{name}</span>
+            {/* Движок и модель — техническая пометка, поэтому моноширинной и тише имени. */}
+            <span className="text-muted-foreground/70 truncate font-mono text-xs">{brain(agent)}</span>
           </div>
+          <div className="text-muted-foreground truncate text-sm">{agent.brief}</div>
         </button>
 
         <DropdownMenu>
@@ -132,7 +146,8 @@ export function AgentCard({ name, agent, settings, onChange, onRename, onCopy, o
         </DropdownMenu>
       </div>
 
-      {open && (
+      {/* Раскрытие анимируем компонентом системы: карточка не прыгает. */}
+      <CollapsibleContent className="data-[state=closed]:animate-collapsible-up data-[state=open]:animate-collapsible-down overflow-hidden">
         <div className="grid gap-5 border-t p-4">
           {/* Сначала кто это и что делает, техническое — ниже. */}
           <div className="grid gap-3 sm:grid-cols-[1fr_1.4fr]">
@@ -189,9 +204,6 @@ export function AgentCard({ name, agent, settings, onChange, onRename, onCopy, o
               className="font-mono text-xs leading-relaxed"
               onChange={(e) => onChange({ promptCustom: e.target.value })}
             />
-            <FieldDescription>
-              {agent.promptCustom ? "Переписано под этого участника" : "Взято у роли — можно переписать"}
-            </FieldDescription>
           </Field>
 
           <Field>
@@ -222,12 +234,12 @@ export function AgentCard({ name, agent, settings, onChange, onRename, onCopy, o
             <Field>
               <FieldLabel>Движок</FieldLabel>
               <Select value={agent.engine} onValueChange={(v) => onChange({ engine: v, model: null })}>
-                <SelectTrigger>
+                <SelectTrigger className="capitalize">
                   <SelectValue />
                 </SelectTrigger>
                 <SelectContent>
                   {settings.engines.map((e) => (
-                    <SelectItem key={e} value={e}>
+                    <SelectItem key={e} value={e} className="capitalize">
                       {e}
                     </SelectItem>
                   ))}
@@ -241,20 +253,25 @@ export function AgentCard({ name, agent, settings, onChange, onRename, onCopy, o
                 onValueChange={(v) => onChange({ model: v === "default" ? null : v })}
               >
                 <SelectTrigger>
-                  <SelectValue />
+                  {/* В строке — только название: пояснение живёт в списке. */}
+                  <SelectValue>{models(agent).find((m) => (m.value || "default") === (agent.model ?? "default"))?.label}</SelectValue>
                 </SelectTrigger>
                 <SelectContent>
-                  {(MODELS[agent.engine] ?? MODELS.claude).map((m) => (
+                  {models(agent).map((m) => (
                     <SelectItem key={m.value || "default"} value={m.value || "default"}>
-                      {m.label}
+                      <span className="grid gap-0.5">
+                        {m.label}
+                        {m.hint && <span className="text-muted-foreground text-xs">{m.hint}</span>}
+                      </span>
                     </SelectItem>
                   ))}
                 </SelectContent>
               </Select>
             </Field>
           </div>
-        </div>
-      )}
-    </div>
+          </div>
+        </CollapsibleContent>
+      </div>
+    </Collapsible>
   )
 }

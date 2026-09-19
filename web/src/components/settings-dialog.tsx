@@ -242,12 +242,12 @@ export function SettingsDialog({
               <Field className="w-32">
                 <FieldLabel>Движок</FieldLabel>
                 <Select value={hireEngine} onValueChange={setHireEngine}>
-                  <SelectTrigger>
+                  <SelectTrigger className="capitalize">
                     <SelectValue />
                   </SelectTrigger>
                   <SelectContent>
                     {s.engines.map((e) => (
-                      <SelectItem key={e} value={e}>
+                      <SelectItem key={e} value={e} className="capitalize">
                         {e}
                       </SelectItem>
                     ))}
