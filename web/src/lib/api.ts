@@ -37,6 +37,9 @@ export type Agent = {
 
 export type Config = {
   user: string
+  /** Аватарка человека: цвет из палитры участников и знак. Пустой цвет — нейтральная. */
+  userColor: string
+  userIcon: string
   workdir: string
   maxAutoTurns: number
   defaultRoom: string

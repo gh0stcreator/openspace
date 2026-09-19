@@ -8,12 +8,13 @@ import {
   DialogHeader,
   DialogTitle,
 } from "@/components/ui/dialog"
-import { Field, FieldLabel } from "@/components/ui/field"
+import { Field, FieldDescription, FieldGroup, FieldLabel, FieldSeparator } from "@/components/ui/field"
 import { Input } from "@/components/ui/input"
 import { Item, ItemActions, ItemContent, ItemDescription, ItemTitle } from "@/components/ui/item"
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
 import { Textarea } from "@/components/ui/textarea"
 import { AgentCard } from "@/components/agent-card"
+import { FacePicker } from "@/components/face-picker"
 import { ModeCard } from "@/components/mode-card"
 import { Label } from "@/components/ui/label"
 import {
@@ -26,6 +27,12 @@ import {
 import { Switch } from "@/components/ui/switch"
 import { useLang, pick } from "@/lib/i18n"
 import { api, type Agent, type FullMode, type Settings } from "@/lib/api"
+
+/** Ссылки автора: репозиторий и канал. Пустая строка — ссылка не показывается. */
+const AUTHOR = {
+  repo: "https://github.com/gh0stcreator/openspace",
+  channel: "",
+}
 
 type Props = {
   open: boolean
@@ -53,7 +60,7 @@ export function SettingsDialog({
   user,
   currentMode,
 }: Props) {
-  const { lang, t } = useLang()
+  const { lang, setLang, t } = useLang()
   const [s, setS] = React.useState<Settings | null>(null)
   const [modes, setModes] = React.useState<FullMode[]>([])
   const [busy, setBusy] = React.useState(false)
@@ -91,6 +98,9 @@ export function SettingsDialog({
     const send = async () => {
       try {
         const applied = await api.saveSettings({
+          user: next.user,
+          userColor: next.userColor,
+          userIcon: next.userIcon,
           agents: next.agents,
           // Настройки всегда несут состав целиком: иначе переименование или
           // удаление оставляет прежнего участника на сервере.
@@ -164,19 +174,78 @@ export function SettingsDialog({
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
       <DialogContent
-        className="flex max-h-[85vh] flex-col gap-4 sm:max-w-3xl"
-        /* vh в шкале нет: диалог не должен вылезать за окно */
+        /* Высота постоянная: иначе диалог прыгает на каждой вкладке. Таких величин
+           в шкале нет — 36rem это «примерно полтора списка участников». */
+        className="flex h-[min(36rem,85vh)] flex-col gap-4 sm:max-w-3xl"
       >
         <DialogHeader>
           <DialogTitle>{t("settings.title")}</DialogTitle>
         </DialogHeader>
 
-        <Tabs defaultValue="people" className="min-h-0 flex-1">
+        <Tabs defaultValue="general" className="min-h-0 flex-1">
           <TabsList>
+            <TabsTrigger value="general">{t("settings.general")}</TabsTrigger>
             <TabsTrigger value="people">{t("settings.people")}</TabsTrigger>
             <TabsTrigger value="modes">{t("settings.modes")}</TabsTrigger>
             <TabsTrigger value="space">{t("settings.space")}</TabsTrigger>
           </TabsList>
+
+          {/* Я. Как меня зовут, как я выгляжу и на каком языке говорит оболочка. */}
+          <TabsContent value="general" className="-mx-1 min-h-0 flex-1 overflow-y-auto px-1 py-2">
+            <FieldGroup>
+              <Field>
+                <FieldLabel htmlFor="me">{t("general.name")}</FieldLabel>
+                <div className="flex items-center gap-3">
+                  <FacePicker
+                    name={s.user}
+                    icon={s.userIcon}
+                    color={s.userColor || null}
+                    size="md"
+                    onChange={(p) => patch({ userIcon: p.icon ?? s.userIcon, userColor: p.color ?? s.userColor })}
+                  />
+                  <Input
+                    id="me"
+                    className="flex-1"
+                    value={s.user}
+                    onChange={(e) => patch({ user: e.target.value })}
+                  />
+                </div>
+                <FieldDescription>{t("general.nameHint")}</FieldDescription>
+              </Field>
+
+              <Field>
+                <FieldLabel htmlFor="lang">{t("profile.lang")}</FieldLabel>
+                <Select value={lang} onValueChange={(v) => setLang(v as "ru" | "en")}>
+                  <SelectTrigger id="lang">
+                    <SelectValue />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="ru">Русский</SelectItem>
+                    <SelectItem value="en">English</SelectItem>
+                  </SelectContent>
+                </Select>
+              </Field>
+
+              <FieldSeparator />
+
+              {/* Подпись автора: строка со ссылками, а не карточка — это не настройка. */}
+              <div className="text-muted-foreground flex flex-wrap items-center gap-x-1.5 gap-y-1 text-sm">
+                <span>{t("general.by")}</span>
+                <span>·</span>
+                <a className="hover:text-foreground underline underline-offset-4" href={AUTHOR.repo} target="_blank" rel="noopener">
+                  {t("general.source")}
+                </a>
+                {AUTHOR.channel && (
+                  <>
+                    <span>·</span>
+                    <a className="hover:text-foreground underline underline-offset-4" href={AUTHOR.channel} target="_blank" rel="noopener">
+                      {t("general.channel")}
+                    </a>
+                  </>
+                )}
+              </div>
+            </FieldGroup>
+          </TabsContent>
 
           {/* КТО. Состав команды и что каждый умеет. */}
           <TabsContent value="people" className="-mx-1 min-h-0 flex-1 overflow-y-auto px-1 py-2">

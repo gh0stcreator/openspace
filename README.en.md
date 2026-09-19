@@ -135,7 +135,7 @@ at random.
 Roman
 In a week we roll the mega-menu out to all traffic.
 
-premortem(megamenu) · 1/4 · The funeral · blind
+premortem(megamenu) · 1/3 · The funeral · blind
 Scholar, Sceptic and Engineer answer without seeing each other
 
 Sceptic
@@ -146,7 +146,7 @@ Engineer
 We failed differently: the category tree is assembled on the client,
 on slow phones the first screen waits 900 ms…
 
-premortem(megamenu) · 2/4 · The autopsy
+premortem(megamenu) · 2/3 · The autopsy
 Roman
 The second one matters more. What does it cost to check?
 ```

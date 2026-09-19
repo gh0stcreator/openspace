@@ -3,7 +3,6 @@ import {
   AtSign,
   Check,
   ChevronDown,
-  Languages,
   Settings2,
   TriangleAlert,
   Users,
@@ -16,11 +15,6 @@ import {
   DropdownMenuContent,
   DropdownMenuItem,
   DropdownMenuLabel,
-  DropdownMenuRadioGroup,
-  DropdownMenuRadioItem,
-  DropdownMenuSub,
-  DropdownMenuSubContent,
-  DropdownMenuSubTrigger,
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu"
 import { Badge } from "@/components/ui/badge"
@@ -32,13 +26,13 @@ import { Composer } from "@/components/composer"
 import { Logo } from "@/components/logo"
 import { SettingsDialog } from "@/components/settings-dialog"
 import { cn } from "@/lib/utils"
-import { useLang, people, pick } from "@/lib/i18n"
+import { useLang, pick } from "@/lib/i18n"
 import { typo } from "@/lib/typo"
 import { subjectOf } from "@/lib/latin"
 import { api, listen, type Config, type Msg, type RoomState } from "@/lib/api"
 
 export default function App() {
-  const { lang, setLang, t } = useLang()
+  const { lang, t } = useLang()
   const [cfg, setCfg] = React.useState<Config | null>(null)
   const [room, setRoom] = React.useState("")
   const [messages, setMessages] = React.useState<Msg[]>([])
@@ -234,7 +228,7 @@ export default function App() {
                 variant="ghost"
                 className="hover:bg-accent/50 data-[state=open]:bg-accent/50 ml-auto h-10 shrink-0 gap-2 pr-2 pl-1 font-normal"
               >
-                <Face name={cfg.user} icon="user" size="md" muted />
+                <Face name={cfg.user} icon={cfg.userIcon} color={cfg.userColor || null} size="md" muted={!cfg.userColor} />
                 <span className="hidden sm:inline">{cfg.user}</span>
                 <ChevronDown className="text-muted-foreground size-3.5" />
               </Button>
@@ -244,18 +238,6 @@ export default function App() {
                 <Settings2 />
                 {t("profile.settings")}
               </DropdownMenuItem>
-              <DropdownMenuSub>
-                <DropdownMenuSubTrigger>
-                  <Languages />
-                  {t("profile.lang")}
-                </DropdownMenuSubTrigger>
-                <DropdownMenuSubContent>
-                  <DropdownMenuRadioGroup value={lang} onValueChange={(v) => setLang(v as "ru" | "en")}>
-                    <DropdownMenuRadioItem value="ru">Русский</DropdownMenuRadioItem>
-                    <DropdownMenuRadioItem value="en">English</DropdownMenuRadioItem>
-                  </DropdownMenuRadioGroup>
-                </DropdownMenuSubContent>
-              </DropdownMenuSub>
             </DropdownMenuContent>
           </DropdownMenu>
         </header>
@@ -294,13 +276,10 @@ export default function App() {
                       <span className="text-muted-foreground text-sm">
                         {typo(pick(lang, m.for || m.brief, m.forEn || m.briefEn))}
                       </span>
-                      <span className="text-muted-foreground/70 text-sm">
-                        {[
-                          pick(lang, m.rubric, m.rubricEn),
-                          people(lang, m.who?.length ?? 0),
-                        ]
-                          .filter(Boolean)
-                          .join(" · ")}
+                      <span className="mt-1 flex flex-wrap items-center gap-1.5">
+                        {m.who?.map((n) => (
+                          <Face key={n} name={n} icon={cfg.agents[n]?.icon} color={cfg.agents[n]?.color} size="sm" />
+                        ))}
                       </span>
                       {m.missing.length > 0 && (
                         <span className="text-destructive/90 text-sm">

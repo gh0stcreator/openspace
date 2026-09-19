@@ -144,6 +144,8 @@ const server = http.createServer(async (req, res) => {
       );
       return json(res, 200, {
         user: config.user,
+        userColor: config.userColor ?? '',
+        userIcon: config.userIcon ?? 'user',
         workdir: config.workdir,
         maxAutoTurns: config.maxAutoTurns,
         defaultRoom: config.defaultRoom ?? 'general',
@@ -191,6 +193,8 @@ const server = http.createServer(async (req, res) => {
     if (url.pathname === '/api/settings' && req.method === 'GET') {
       return json(res, 200, {
         user: config.user,
+        userColor: config.userColor ?? '',
+        userIcon: config.userIcon ?? 'user',
         workdir: config.workdir,
         maxAutoTurns: config.maxAutoTurns,
         catchUp: config.catchUp,
@@ -218,6 +222,17 @@ const server = http.createServer(async (req, res) => {
       for (const key of ['maxAutoTurns', 'catchUp']) {
         if (body[key] !== undefined) patch[key] = body[key];
       }
+      // Имя человека: те же буквы, что и у ников участников, и не занятое кем-то из них.
+      if (typeof body.user === 'string') {
+        const name = body.user.trim();
+        if (!/^[a-zA-Z0-9_\-Ѐ-ӿ ]{1,40}$/.test(name)) return json(res, 400, { error: 'имя: буквы, цифры, дефис' });
+        if (orch.names.some((n) => n.toLowerCase() === name.toLowerCase())) {
+          return json(res, 400, { error: `@${name} — это уже участник` });
+        }
+        patch.user = name;
+      }
+      if (typeof body.userColor === 'string') patch.userColor = body.userColor.trim();
+      if (typeof body.userIcon === 'string') patch.userIcon = body.userIcon;
       if ('freeTalk' in body) patch.freeTalk = !!body.freeTalk;
       if ('goal' in body) patch.goal = String(body.goal ?? '').slice(0, 2000);
 
@@ -259,6 +274,9 @@ const server = http.createServer(async (req, res) => {
         agents: Object.fromEntries(
           Object.entries(orch.roster).map(([name, a]) => [name, describe(name, a)]),
         ),
+        user: applied.user,
+        userColor: applied.userColor ?? '',
+        userIcon: applied.userIcon ?? 'user',
         maxAutoTurns: applied.maxAutoTurns,
         catchUp: applied.catchUp,
         freeTalk: applied.freeTalk !== false,

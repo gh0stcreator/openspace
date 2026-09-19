@@ -12,20 +12,11 @@ import {
 } from "@/components/ui/dropdown-menu"
 import { Field, FieldLabel } from "@/components/ui/field"
 import { Input } from "@/components/ui/input"
-import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover"
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
 import { Textarea } from "@/components/ui/textarea"
-import { COLOR_ORDER, Face, Icon, toneVars } from "@/components/chat-feed"
+import { FacePicker } from "@/components/face-picker"
 import { useLang, pick, type Key } from "@/lib/i18n"
 import type { Agent, Settings } from "@/lib/api"
-
-/** Иконки для аватарки — то, чем обычно помечают роль. */
-const ICONS = [
-  "book-open", "sparkles", "eye", "palette", "settings", "users", "brain", "compass",
-  "microscope", "flask-conical", "ruler", "pen-tool", "type", "megaphone", "scale",
-  "target", "flag", "rocket", "lightbulb", "shield", "bug", "code", "terminal",
-  "git-branch", "database", "globe", "heart", "flame", "music", "coffee", "crown", "gem",
-]
 
 /** Модели, которые понимают движки. Пустое значение — движок берёт свою по умолчанию. */
 const MODELS: Record<string, { value: string; label: string; hint?: Key }[]> = {
@@ -72,49 +63,12 @@ export function AgentCard({ name, agent, settings, onChange, onRename, onCopy, o
     <Collapsible open={open} onOpenChange={setOpen} asChild>
       <div className={cn("rounded-lg border transition-colors", !open && "hover:bg-accent/40")}>
       <div className="flex items-center gap-3 p-3">
-        <Popover>
-          <PopoverTrigger asChild>
-            <button
-              className="tone-hover shrink-0 rounded-full transition-shadow"
-              style={toneVars(agent.color)}
-              title={t("card.face")}
-            >
-              <Face name={name} icon={agent.icon} color={agent.color} size="lg" />
-            </button>
-          </PopoverTrigger>
-          <PopoverContent className="w-80 p-2">
-            <div className="text-muted-foreground mb-1.5 text-xs">{t("card.color")}</div>
-            <div className="mb-3 flex flex-wrap gap-1.5 border-b pb-3">
-              {COLOR_ORDER.map((c) => (
-                <button
-                  key={c}
-                  title={c}
-                  onClick={() => onChange({ color: c })}
-                  className={cn(
-                    "tone-dot size-6 rounded-full transition-transform hover:scale-110",
-                    agent.color === c && "ring-ring ring-offset-popover ring-2 ring-offset-2"
-                  )}
-                  style={toneVars(c)}
-                />
-              ))}
-            </div>
-
-            <div className="text-muted-foreground mb-1.5 text-xs">{t("card.icon")}</div>
-            <div className="grid max-h-56 grid-cols-8 gap-1 overflow-y-auto">
-              {ICONS.map((ic) => (
-                <Button
-                  key={ic}
-                  variant={ic === agent.icon ? "secondary" : "ghost"}
-                  size="icon"
-                  title={ic}
-                  onClick={() => onChange({ icon: ic, iconCustom: ic })}
-                >
-                  <Icon name={ic} />
-                </Button>
-              ))}
-            </div>
-          </PopoverContent>
-        </Popover>
+        <FacePicker
+          name={name}
+          icon={agent.icon}
+          color={agent.color}
+          onChange={(p) => onChange(p.icon ? { icon: p.icon, iconCustom: p.icon } : p)}
+        />
 
         <button className="min-w-0 flex-1 text-left" onClick={() => setOpen((v) => !v)}>
           <div className="flex items-baseline gap-2">

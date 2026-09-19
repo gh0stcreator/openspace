@@ -51,6 +51,7 @@ const RU = {
   "composer.editFailed": "Правка не сохранилась — {error}",
 
   "settings.title": "Настройки",
+  "settings.general": "Общие",
   "settings.people": "Участники",
   "settings.modes": "Режимы",
   "settings.space": "Пространство",
@@ -63,6 +64,12 @@ const RU = {
   "hire.badNick": "Ник: буквы, цифры, дефис",
   "hire.taken": "@{name} уже в чате",
   "hire.lastOne": "Последнего убрать нельзя",
+
+  "general.name": "Как вас зовут",
+  "general.nameHint": "Так к вам обращаются участники",
+  "general.channel": "Канал автора",
+  "general.by": "Роман Попов, 2026",
+  "general.source": "Исходники",
 
   "space.goal": "Цель — её видят все участники",
   "space.goalHint": "Собрать к пятнице спецификацию мегаменю, по которой можно писать код",
@@ -172,6 +179,7 @@ const EN: Record<keyof typeof RU, string> = {
   "composer.editFailed": "The edit wasn't saved — {error}",
 
   "settings.title": "Settings",
+  "settings.general": "General",
   "settings.people": "Participants",
   "settings.modes": "Modes",
   "settings.space": "Space",
@@ -184,6 +192,12 @@ const EN: Record<keyof typeof RU, string> = {
   "hire.badNick": "Nickname: letters, digits, hyphen",
   "hire.taken": "@{name} is already here",
   "hire.lastOne": "The last one can't be removed",
+
+  "general.name": "Your name",
+  "general.nameHint": "This is how participants address you",
+  "general.channel": "Author's channel",
+  "general.by": "Roman Popov, 2026",
+  "general.source": "Source",
 
   "space.goal": "The goal — everyone here sees it",
   "space.goalHint": "Have the mega-menu spec ready by Friday, detailed enough to write code from",
@@ -312,17 +326,6 @@ export const useLang = () => React.useContext(LangCtx)
  * в том же файле. Нет перевода — показываем как есть, полупустой список хуже.
  */
 export const pick = (lang: Lang, ru?: string, en?: string) => (lang === "en" && en ? en : (ru ?? ""))
-
-/**
- * Сколько человек: «трое», а не «участников: 3». Счётчик рядом с рубрикой читается
- * как подпись, а не как таблица, и не спорит со строкой «Участники» под лентой,
- * где речь про состав комнаты.
- */
-const CROWD = ["", "один", "двое", "трое", "четверо", "пятеро", "шестеро", "семеро", "восьмеро"]
-export function people(lang: Lang, n: number) {
-  if (lang === "en") return n === 1 ? "one person" : `${n} people`
-  return CROWD[n] ?? `${n} участников`
-}
 
 /** Русское число: 1 шаг, 2 шага, 5 шагов. В английском хватает одной формы. */
 export function plural(lang: Lang, n: number, forms: [string, string, string]) {
