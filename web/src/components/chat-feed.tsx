@@ -120,7 +120,7 @@ function Rich({
   const { t } = useLang()
   const parts = React.useMemo(() => {
     const out: React.ReactNode[] = []
-    const re = /```(\w*)\n?([\s\S]*?)```|`([^`\n]+)`|\*\*([^*\n]+)\*\*|(^|[\s(,:;«"'[])@([a-z0-9_-]+)/gi
+    const re = /```(\w*)\n?([\s\S]*?)```|`([^`\n]+)`|\*\*([^*\n]+)\*\*|(^|[\s(,:;«"'[])@([a-z0-9_\-Ѐ-ӿ]+)/gi
     let last = 0
     let m: RegExpExecArray | null
     let i = 0
@@ -366,15 +366,23 @@ export function ChatFeed({ messages, user, agents, thinking, onReply }: Props) {
                   </MessageAvatar>
                   <MessageContent>
                     <Bubble variant="secondary" align="start">
-                      <BubbleContent>
-                        <span className="text-muted-foreground flex items-center gap-1.5 text-sm">
+                      {/* Пузырь сразу в цвете участника: ждать его реплику
+                          и получить её — одно и то же место, а не два разных. */}
+                      <BubbleContent
+                        className={cn(
+                          "text-sm",
+                          isPale(agents[thinking[0]]?.color) ? "tone-bubble-pale" : "tone-bubble"
+                        )}
+                        style={toneVars(agents[thinking[0]]?.color)}
+                      >
+                        <span className="flex items-center gap-1.5 opacity-70">
                           {thinking.map((n) => `@${n}`).join(` ${t("feed.and")} `)}{" "}
                           {t(thinking.length > 1 ? "feed.thinkingMany" : "feed.thinkingOne")}
                           <span className="flex gap-1">
                             {[0, 1, 2].map((d) => (
                               <span
                                 key={d}
-                                className="bg-muted-foreground size-1 animate-pulse rounded-full"
+                                className="size-1 animate-pulse rounded-full bg-current"
                                 style={{ animationDelay: `${d * 0.2}s` }}
                               />
                             ))}

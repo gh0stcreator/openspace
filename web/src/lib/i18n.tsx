@@ -48,8 +48,8 @@ const RU = {
 
   "feed.reply": "Ответить",
   "feed.replyTip": "Ответить — или двойной клик по реплике",
-  "feed.thinkingOne": "думает",
-  "feed.thinkingMany": "думают",
+  "feed.thinkingOne": "печатает",
+  "feed.thinkingMany": "печатают",
   "feed.and": "и",
 
   "settings.title": "Настройки",
@@ -171,8 +171,8 @@ const EN: Record<keyof typeof RU, string> = {
 
   "feed.reply": "Reply",
   "feed.replyTip": "Reply — or double-click the message",
-  "feed.thinkingOne": "is thinking",
-  "feed.thinkingMany": "are thinking",
+  "feed.thinkingOne": "is typing",
+  "feed.thinkingMany": "are typing",
   "feed.and": "and",
 
   "settings.title": "Settings",

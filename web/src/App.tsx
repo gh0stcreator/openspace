@@ -249,39 +249,6 @@ export default function App() {
           </DropdownMenu>
         </header>
 
-        {state.modeState && (
-          <div className="bg-muted/40 flex items-center gap-3 border-b px-4 py-1.5 text-xs">
-            <span className="font-medium">
-              {pick(lang, state.modeState.title, state.modeState.titleEn)}
-            </span>
-            <span className="text-muted-foreground">
-              {state.modeState.step}/{state.modeState.steps} · {state.modeState.stepName}
-              {/* Шаг вслепую меняет смысл происходящего — это стоит видеть. */}
-              {!state.modeState.hear && ` · ${t("mode.blind")}`}
-            </span>
-            <div className="bg-border h-1 min-w-0 flex-1 overflow-hidden rounded-full">
-              <div
-                className="bg-foreground h-full transition-all"
-                style={{ width: `${(state.modeState.step / state.modeState.steps) * 100}%` }}
-              />
-            </div>
-            {state.modeState.waitingUser && (
-              <span className="text-muted-foreground">{t("mode.waiting")}</span>
-            )}
-            <Button
-              variant="ghost"
-              size="icon-xs"
-              aria-label={t("mode.finish")}
-              onClick={async () => {
-                const r = await api.setMode(room, null)
-                setState((st) => ({ ...st, modeState: r.mode }))
-              }}
-            >
-              <Square />
-            </Button>
-          </div>
-        )}
-
         {messages.length === 0 ? (
           <Empty className="flex-1">
             <EmptyHeader>
