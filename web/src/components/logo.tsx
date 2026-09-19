@@ -135,20 +135,15 @@ export function Logo({
     timers.current = []
   }
 
-  /** Показать пару: сначала режим, через паузу — тема. */
+  /**
+   * Показать пару: сначала левая половина, через паузу — правая. Единственный способ
+   * сменить знак, и дорога назад тоже идёт по нему: если возвращать обе половины разом,
+   * возврат выглядит рывком после двух спокойных ходов туда.
+   */
   const show = React.useCallback(
     (pair: Pair) => {
       roll("mode", pair.mode, color)
-      timers.current.push(window.setTimeout(() => roll("subject", pair.subject), 150))
-    },
-    [roll, color]
-  )
-
-  /** Обе половины разом: знак возвращается к настоящему состоянию одним движением. */
-  const snap = React.useCallback(
-    (pair: Pair) => {
-      roll("mode", pair.mode, color)
-      roll("subject", pair.subject)
+      timers.current.push(window.setTimeout(() => roll("subject", pair.subject), EVERY))
     },
     [roll, color]
   )
@@ -180,7 +175,7 @@ export function Logo({
       timers.current.push(
         window.setTimeout(() => {
           playing.current = false
-          snap(idle.current)
+          show(idle.current)
         }, EVERY + STAY)
       )
     }
@@ -189,7 +184,7 @@ export function Logo({
       hovering.current = false
       playing.current = false
       drop()
-      snap(idle.current)
+      show(idle.current)
     }
 
     const el = wrap.current
@@ -201,7 +196,7 @@ export function Logo({
       playing.current = false
       drop()
     }
-  }, [colors, roll, snap])
+  }, [colors, roll, show])
 
   // Настоящее состояние сменилось: вне наведения показываем его той же сменой,
   // под курсором — покажем, когда курсор уйдёт.
