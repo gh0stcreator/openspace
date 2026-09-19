@@ -16,7 +16,7 @@ const { Store } = await import('../lib/store.js');
 const sleep = (ms) => new Promise((r) => setTimeout(r, ms));
 const ROOM = 'r';
 
-function setup(names, { delays = {}, fail = {}, dir = null, stateDir = null } = {}) {
+function setup(names, { delays = {}, fail = {}, dir = null, stateDir = null, roles = {} } = {}) {
   dir = dir ?? fs.mkdtempSync(path.join(os.tmpdir(), 'openspace-test-'));
   const calls = [];
   const built = [];
@@ -34,7 +34,7 @@ function setup(names, { delays = {}, fail = {}, dir = null, stateDir = null } = 
   };
   const config = {
     user: 'Roman',
-    agents: Object.fromEntries(names.map((n) => [n, { kind: 'claude', role: 'peer', color: 'blue' }])),
+    agents: Object.fromEntries(names.map((n) => [n, { kind: 'claude', role: roles[n] ?? 'peer', color: 'blue' }])),
     maxAutoTurns: 50,
     catchUp: 50,
     freeTalk: false,
@@ -279,4 +279,20 @@ test('режим приводит свой состав, а без режима 
 
   orch.stopMode(ROOM);
   assert.deepEqual(orch.here(ROOM), ['первый', 'второй'], 'разговор без режима идёт всей командой');
+});
+
+test('тема из зоны интереса будит участника сверх дежурных', async () => {
+  const { orch, calls } = setup(['первый', 'второй'], { roles: { первый: 'эстет' } });
+
+  // Дежурный в тестовом «Открытом» — только @второй. Эстета зовёт сама тема.
+  orch.post(ROOM, { from: 'Roman', text: 'посмотри, как выглядит вёрстка на этом экране' });
+  await sleep(200);
+  assert.ok(calls.some((c) => c.who === 'второй'), 'дежурный не ответил');
+  assert.ok(calls.some((c) => c.who === 'первый'), 'тема не разбудила того, чья это зона');
+
+  // Чужая тема его не трогает: слово из `off` держит вернее, чем совпадение из `on`.
+  calls.length = 0;
+  orch.post(ROOM, { from: 'Roman', text: 'база данных выглядит живой?' });
+  await sleep(200);
+  assert.ok(!calls.some((c) => c.who === 'первый'), 'вступил туда, где ему нечего сказать');
 });
