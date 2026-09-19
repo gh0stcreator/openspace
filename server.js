@@ -17,7 +17,7 @@ function parseArgs(argv) {
     const a = argv[i];
     if (a === '--port') out.port = Number(argv[++i]);
     else if (a === '--workdir') out.workdir = argv[++i];
-    else if (a === '--human') out.human = argv[++i];
+    else if (a === '--user') out.user = argv[++i];
   }
   return out;
 }
@@ -123,9 +123,8 @@ const server = http.createServer(async (req, res) => {
         Object.entries(orch.roster).map(([name, a]) => [name, describe(name, a)]),
       );
       return json(res, 200, {
-        human: config.human,
-        humanName: config.humanName ?? config.human,
-        humanColor: config.humanColor ?? 'green',
+        user: config.user,
+        userColor: config.userColor ?? 'green',
         workdir: config.workdir,
         maxAutoTurns: config.maxAutoTurns,
         defaultRoom: config.defaultRoom ?? 'general',
@@ -172,9 +171,8 @@ const server = http.createServer(async (req, res) => {
 
     if (url.pathname === '/api/settings' && req.method === 'GET') {
       return json(res, 200, {
-        human: config.human,
-        humanName: config.humanName ?? config.human,
-        humanColor: config.humanColor ?? 'green',
+        user: config.user,
+        userColor: config.userColor ?? 'green',
         workdir: config.workdir,
         maxAutoTurns: config.maxAutoTurns,
         catchUp: config.catchUp,
@@ -210,7 +208,7 @@ const server = http.createServer(async (req, res) => {
         // запрос выносит всю команду.
         const agents = body.replaceTeam ? {} : { ...orch.roster };
         for (const [name, a] of Object.entries(body.agents)) {
-          if (!/^[a-zA-Z0-9_\-Ѐ-ӿ]+$/.test(name) || name === config.human) continue;
+          if (!/^[a-zA-Z0-9_\-Ѐ-ӿ]+$/.test(name) || name === config.user) continue;
           const prev = orch.roster[name] ?? {};
           agents[name] = {
             ...prev,
@@ -262,7 +260,7 @@ const server = http.createServer(async (req, res) => {
       if (!body.text?.trim() && !body.files?.length) return json(res, 400, { error: 'пустое сообщение' });
       body.text = body.text ?? '';
       const msg = orch.post(room, {
-        from: body.from || config.human,
+        from: body.from || config.user,
         text: body.text.trim(),
         files: Array.isArray(body.files) ? body.files.slice(0, 10) : undefined,
         replyTo: Number.isFinite(body.replyTo) ? body.replyTo : undefined,
@@ -355,7 +353,7 @@ const server = http.createServer(async (req, res) => {
 server.listen(config.port, '127.0.0.1', () => {
   console.log(`open(space)  http://localhost:${config.port}`);
   console.log(`рабочая папка: ${config.workdir}`);
-  console.log(`участники: ${Object.keys(config.agents).map((n) => '@' + n).join(', ')}, @${config.human}`);
+  console.log(`участники: ${Object.keys(config.agents).map((n) => '@' + n).join(', ')}, @${config.user}`);
   // Перезапуск не должен глотать обращение, на которое не успели ответить.
   for (const room of store.listRooms()) orch.resume(room);
 });

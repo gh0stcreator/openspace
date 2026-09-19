@@ -226,7 +226,7 @@ http://localhost:4477
 Порт, рабочую папку и ник можно переопределить:
 
 ```bash
-node server.js --port 4477 --workdir ../my-project --human roman
+node server.js --port 4477 --workdir ../my-project --user roman
 ```
 
 Клиент собирается отдельно; сборка в `public/` не коммитится:

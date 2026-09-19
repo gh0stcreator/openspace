@@ -28,7 +28,7 @@ type Pending = FileRef & { uploading?: boolean }
 type Props = {
   room: string
   agents: Record<string, Agent>
-  human: string
+  user: string
   onError: (text: string) => void
   /** Отданное сервером сообщение: показываем его сразу, не дожидаясь SSE. */
   onSent: (m: Msg) => void
@@ -38,7 +38,7 @@ type Props = {
   insert?: { name: string; nonce: number }
 }
 
-export function Composer({ room, agents, human, onError, onSent, replyTo, onCancelReply, insert }: Props) {
+export function Composer({ room, agents, user, onError, onSent, replyTo, onCancelReply, insert }: Props) {
   const { lang, t } = useLang()
   const [text, setText] = React.useState("")
   const [files, setFiles] = React.useState<Pending[]>([])
@@ -48,9 +48,9 @@ export function Composer({ room, agents, human, onError, onSent, replyTo, onCanc
   const ref = React.useRef<HTMLTextAreaElement>(null)
   const picker = React.useRef<HTMLInputElement>(null)
 
-  const names = React.useMemo(() => [...Object.keys(agents), human], [agents, human])
+  const names = React.useMemo(() => [...Object.keys(agents), user], [agents, user])
   const replyColor = replyTo
-    ? replyTo.from === human
+    ? replyTo.from === user
       ? "creator"
       : (agents[replyTo.from]?.color ?? null)
     : null
@@ -189,7 +189,7 @@ export function Composer({ room, agents, human, onError, onSent, replyTo, onCanc
               >
                 @{n}
                 <span className="text-muted-foreground ml-auto text-xs">
-                  {n === human ? t("composer.you") : label(lang, agents[n]?.role, agents[n]?.roleEn)}
+                  {n === user ? t("composer.you") : label(lang, agents[n]?.role, agents[n]?.roleEn)}
                 </span>
               </button>
             ))}
@@ -203,7 +203,7 @@ export function Composer({ room, agents, human, onError, onSent, replyTo, onCanc
               style={toneVars(replyColor)}
             >
               <div className="text-sm font-medium capitalize">
-                {replyTo.from === human ? t("composer.mine") : replyTo.from}
+                {replyTo.from === user ? t("composer.mine") : replyTo.from}
               </div>
               <div className="text-muted-foreground truncate text-sm">
                 {typo(replyTo.text) || t("composer.file")}

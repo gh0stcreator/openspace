@@ -110,12 +110,12 @@ function Rich({
   text,
   known,
   agents,
-  human,
+  user,
 }: {
   text: string
   known: string[]
   agents: Record<string, Agent>
-  human: string
+  user: string
 }) {
   const { t } = useLang()
   const parts = React.useMemo(() => {
@@ -150,9 +150,9 @@ function Rich({
             <b
               key={i++}
               className="tone-name capitalize"
-              style={toneVars(hit === human ? "creator" : agents[hit]?.color)}
+              style={toneVars(hit === user ? "creator" : agents[hit]?.color)}
             >
-              {hit === human ? t("composer.mine") : hit}
+              {hit === user ? t("composer.mine") : hit}
             </b>
           ) : (
             `@${name}`
@@ -163,7 +163,7 @@ function Rich({
     }
     if (last < text.length) out.push(typo(text.slice(last)))
     return out
-  }, [text, known, agents, human, t])
+  }, [text, known, agents, user, t])
 
   return <span className="whitespace-pre-wrap">{parts}</span>
 }
@@ -200,7 +200,7 @@ function Files({ files }: { files?: Msg["files"] }) {
 
 type Props = {
   messages: Msg[]
-  human: string
+  user: string
   agents: Record<string, Agent>
   thinking: string[]
   onReply: (m: Msg) => void
@@ -210,11 +210,11 @@ type Props = {
 function Quote({
   to,
   agents,
-  human,
+  user,
 }: {
   to?: Msg
   agents: Record<string, Agent>
-  human: string
+  user: string
 }) {
   const { t } = useLang()
   if (!to) return null
@@ -224,11 +224,11 @@ function Quote({
     <div
       className="tone-name mb-1.5 overflow-hidden rounded-md border-l-2 border-current px-2 py-1 text-sm"
       style={{
-        ...toneVars(to.from === human ? "creator" : agents[to.from]?.color),
+        ...toneVars(to.from === user ? "creator" : agents[to.from]?.color),
         background: "color-mix(in oklab, currentColor 7%, transparent)",
       }}
     >
-      <div className="font-medium capitalize">{to.from === human ? t("composer.mine") : to.from}</div>
+      <div className="font-medium capitalize">{to.from === user ? t("composer.mine") : to.from}</div>
       <div className="truncate opacity-70">{typo(to.text) || t("composer.file")}</div>
     </div>
   )
@@ -249,9 +249,9 @@ function groups(messages: Msg[]) {
   return out
 }
 
-export function ChatFeed({ messages, human, agents, thinking, onReply }: Props) {
+export function ChatFeed({ messages, user, agents, thinking, onReply }: Props) {
   const { lang, t } = useLang()
-  const known = React.useMemo(() => [...Object.keys(agents), human], [agents, human])
+  const known = React.useMemo(() => [...Object.keys(agents), user], [agents, user])
   const bySeq = React.useMemo(() => new Map(messages.map((m) => [m.seq, m])), [messages])
 
   return (
@@ -278,13 +278,13 @@ export function ChatFeed({ messages, human, agents, thinking, onReply }: Props) 
                 )
               }
 
-              const mine = first.from === human
+              const mine = first.from === user
               const agent = agents[first.from]
 
               return (
                 <MessageGroup key={first.id}>
                   {group.map((m, i) => {
-                    const tagged = m.mentions?.includes(human)
+                    const tagged = m.mentions?.includes(user)
                     const foot = [
                       new Date(m.ts).toLocaleTimeString("ru", { hour: "2-digit", minute: "2-digit" }),
                       m.meta?.elapsedMs ? `${Math.round(m.meta.elapsedMs / 1000)}с` : "",
@@ -328,8 +328,8 @@ export function ChatFeed({ messages, human, agents, thinking, onReply }: Props) 
                                 )}
                                 style={mine ? undefined : toneVars(agent?.color)}
                               >
-                                <Quote to={m.replyTo ? bySeq.get(m.replyTo) : undefined} agents={agents} human={human} />
-                                {m.text && <Rich text={m.text} known={known} agents={agents} human={human} />}
+                                <Quote to={m.replyTo ? bySeq.get(m.replyTo) : undefined} agents={agents} user={user} />
+                                {m.text && <Rich text={m.text} known={known} agents={agents} user={user} />}
                                 <Files files={m.files} />
                               </BubbleContent>
                             </Bubble>

@@ -34,7 +34,7 @@ type Props = {
   onModes: (modes: FullMode[]) => void
   onCleared: () => void
   room: string
-  human: string
+  user: string
   currentMode?: string
 }
 
@@ -50,7 +50,7 @@ export function SettingsDialog({
   onModes,
   onCleared,
   room,
-  human,
+  user,
   currentMode,
 }: Props) {
   const { lang, t } = useLang()
@@ -144,7 +144,7 @@ export function SettingsDialog({
   function hire() {
     const name = hireName.trim()
     if (!/^[a-zA-Z0-9_\-Ѐ-ӿ]+$/.test(name)) return setError(t("hire.badNick"))
-    if (s!.agents[name] || name === human) return setError(t("hire.taken", { name }))
+    if (s!.agents[name] || name === user) return setError(t("hire.taken", { name }))
     setHireName("")
     setError("")
     void apply(

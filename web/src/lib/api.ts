@@ -33,9 +33,8 @@ export type Agent = {
 }
 
 export type Config = {
-  human: string
-  humanName: string
-  humanColor: string
+  user: string
+  userColor: string
   workdir: string
   maxAutoTurns: number
   defaultRoom: string
@@ -86,7 +85,8 @@ export type ModeState = {
   step: number
   steps: number
   stepName: string
-  waitingHuman: boolean
+  hear: boolean
+  waitingUser: boolean
 } | null
 
 export type RoomState = { autoTurns: number; paused: boolean; modeState?: ModeState }

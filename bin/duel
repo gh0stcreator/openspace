@@ -46,7 +46,7 @@ if (role.name !== roleName) {
 const cfg = JSON.parse(fs.readFileSync(path.join(root, 'openspace.config.json'), 'utf8'));
 const workdir = path.resolve(root, cfg.workdir ?? '..');
 
-const delta = [{ from: cfg.human, text: question, kind: 'message' }];
+const delta = [{ from: cfg.user, text: question, kind: 'message' }];
 
 async function ask(engine) {
   const agentCfg = {
@@ -67,7 +67,7 @@ async function ask(engine) {
     ctx: {
       me: engine,
       roster: { [engine]: agentCfg },
-      human: cfg.human,
+      user: cfg.user,
       workdir,
     },
   });

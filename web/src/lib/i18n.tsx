@@ -17,6 +17,7 @@ const RU = {
   "profile.lang": "Язык",
 
   "mode.waiting": "Ждём вас",
+  "mode.blind": "вслепую",
   "mode.finish": "Закончить режим",
   "mode.label": "Режим обсуждения",
   "mode.open": "Открытый",
@@ -139,6 +140,7 @@ const EN: Record<keyof typeof RU, string> = {
   "profile.lang": "Language",
 
   "mode.waiting": "Waiting for you",
+  "mode.blind": "blind",
   "mode.finish": "End the mode",
   "mode.label": "Conversation mode",
   "mode.open": "Open",

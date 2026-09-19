@@ -7,7 +7,6 @@ import {
   Play,
   Languages,
   Settings2,
-  Square,
   TriangleAlert,
   Users,
 } from "lucide-react"
@@ -96,7 +95,7 @@ export default function App() {
    */
   const [readUpto, setReadUpto] = React.useState(() => Number(localStorage.getItem("read-upto") ?? 0))
   const mentions = React.useMemo(
-    () => (cfg ? messages.filter((m) => m.from !== cfg.human && m.mentions?.includes(cfg.human)) : []),
+    () => (cfg ? messages.filter((m) => m.from !== cfg.user && m.mentions?.includes(cfg.user)) : []),
     [messages, cfg]
   )
   const unread = mentions.filter((m) => m.seq > readUpto)
@@ -224,8 +223,8 @@ export default function App() {
                 variant="ghost"
                 className="hover:bg-accent/50 data-[state=open]:bg-accent/50 ml-auto h-10 shrink-0 gap-2 pr-2 pl-1 font-normal"
               >
-                <Face name={cfg.humanName} icon="user" size="md" muted />
-                <span className="hidden sm:inline">{cfg.humanName}</span>
+                <Face name={cfg.user} icon="user" size="md" muted />
+                <span className="hidden sm:inline">{cfg.user}</span>
                 <ChevronDown className="text-muted-foreground size-3.5" />
               </Button>
             </DropdownMenuTrigger>
@@ -257,6 +256,8 @@ export default function App() {
             </span>
             <span className="text-muted-foreground">
               {state.modeState.step}/{state.modeState.steps} · {state.modeState.stepName}
+              {/* Шаг вслепую меняет смысл происходящего — это стоит видеть. */}
+              {!state.modeState.hear && ` · ${t("mode.blind")}`}
             </span>
             <div className="bg-border h-1 min-w-0 flex-1 overflow-hidden rounded-full">
               <div
@@ -264,7 +265,7 @@ export default function App() {
                 style={{ width: `${(state.modeState.step / state.modeState.steps) * 100}%` }}
               />
             </div>
-            {state.modeState.waitingHuman && (
+            {state.modeState.waitingUser && (
               <span className="text-muted-foreground">{t("mode.waiting")}</span>
             )}
             <Button
@@ -294,7 +295,7 @@ export default function App() {
         ) : (
           <ChatFeed
             messages={messages}
-            human={cfg.human}
+            user={cfg.user}
             agents={cfg.agents}
             thinking={thinking}
             onReply={setReplyTo}
@@ -325,7 +326,7 @@ export default function App() {
         <Composer
           room={room}
           agents={cfg.agents}
-          human={cfg.human}
+          user={cfg.user}
           onError={local}
           onSent={(m) => setMessages((prev) => (prev.some((x) => x.seq === m.seq) ? prev : [...prev, m]))}
           replyTo={replyTo}
@@ -423,7 +424,7 @@ export default function App() {
           open={settingsOpen}
           onOpenChange={setSettingsOpen}
           room={room}
-          human={cfg.human}
+          user={cfg.user}
           currentMode={state.modeState?.name}
           onApplied={(s) => setCfg({ ...cfg, ...s } as Config)}
           onModes={(modes) => setCfg({ ...cfg, modes })}

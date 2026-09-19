@@ -1,6 +1,6 @@
 {
-  "human": "Создатель",
-  "humanColor": "creator",
+  "user": "Roman",
+  "userColor": "creator",
   "port": 4477,
   "workdir": ".",
   "defaultRoom": "общая",
@@ -70,7 +70,6 @@
     }
   },
   "goal": "",
-  "humanName": "Roman Popov",
   "defaultResponders": [
     "инженер",
     "скептик",

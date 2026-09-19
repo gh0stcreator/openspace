@@ -45,7 +45,7 @@ function showTeam() {
     const model = a.model ? ` · ${a.model}` : '';
     console.log(`  ${r.icon}  @${name.padEnd(12)} ${r.title.padEnd(14)} на ${a.kind ?? name}${model}`);
   }
-  console.log(`\n  🧑  @${cfg.human.padEnd(12)} человек\n`);
+  console.log(`\n  🧑  @${cfg.user.padEnd(12)} человек\n`);
   console.log('Свободные роли:', listRoles().map((r) => r.name).join(', '));
   console.log('Движки:', ENGINES.join(', '));
 }
@@ -81,7 +81,7 @@ if (!/^[a-zA-Z0-9_\-Ѐ-ӿ]+$/.test(name)) {
   console.error(`ник «${name}» не годится: буквы, цифры, дефис`);
   process.exit(1);
 }
-if (name === cfg.human) {
+if (name === cfg.user) {
   console.error(`@${name} — это ты`);
   process.exit(1);
 }
