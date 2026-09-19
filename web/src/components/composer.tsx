@@ -271,24 +271,21 @@ export function Composer({
           </AttachmentGroup>
         )}
 
-        <InputGroup className="rounded-2xl">
-          {/* Кому отвечаем — внутри поля, над строкой ввода: ответ и есть часть того,
-              что вы сейчас пишете, а не отдельная карточка над ним. */}
-          {(editing || replyTo) && (
-            <InputGroupAddon align="block-start" className="pt-2 pb-1">
-              <Quote to={editing ?? replyTo} agents={agents}>
-                <Button
-                  variant="ghost"
-                  size="icon-sm"
-                  aria-label={t(editing ? "composer.cancelEdit" : "composer.cancelReply")}
-                  onClick={editing ? cancelEdit : onCancelReply}
-                >
-                  <X />
-                </Button>
-              </Quote>
-            </InputGroupAddon>
-          )}
+        {/* Кому отвечаем — строкой прямо над полем. Блочной вставкой внутрь поля это
+            не делается: от неё InputGroup переходит в колонку, и скрепка с отправкой
+            уезжают из строки ввода отдельными рядами. */}
+        <Quote to={editing ?? replyTo} agents={agents} className="mb-1.5 px-1">
+          <Button
+            variant="ghost"
+            size="icon-sm"
+            aria-label={t(editing ? "composer.cancelEdit" : "composer.cancelReply")}
+            onClick={editing ? cancelEdit : onCancelReply}
+          >
+            <X />
+          </Button>
+        </Quote>
 
+        <InputGroup className="rounded-2xl">
           <InputGroupAddon align="inline-start" className="self-end pb-1.5 pl-1.5 has-[>button]:ml-0">
             <Tooltip>
               <TooltipTrigger asChild>
