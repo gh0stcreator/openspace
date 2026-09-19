@@ -246,3 +246,22 @@ test('режим заканчивает участник репликой, а н
   assert.equal(last.from, 'первый', 'итог подводит не тот, кто вёл режим');
   assert.equal(calls.at(-1).step, 'итог');
 });
+
+test('выключенный в комнате молчит, включённый снова отвечает', async () => {
+  const { orch, calls } = setup(['первый', 'второй']);
+  assert.deepEqual(orch.here(ROOM), ['первый', 'второй']);
+
+  orch.toggle(ROOM, 'второй', false);
+  assert.deepEqual(orch.here(ROOM), ['первый']);
+
+  orch.post(ROOM, { from: 'Roman', text: '@второй отзовись' });
+  await sleep(150);
+  orch.post(ROOM, { from: 'Roman', text: 'и просто вопрос' });
+  await sleep(150);
+  assert.ok(!calls.some((c) => c.who === 'второй'), 'выключенный всё-таки ответил');
+
+  orch.toggle(ROOM, 'второй', true);
+  orch.post(ROOM, { from: 'Roman', text: '@второй теперь ты' });
+  await sleep(150);
+  assert.ok(calls.some((c) => c.who === 'второй'), 'включённый обратно молчит');
+});

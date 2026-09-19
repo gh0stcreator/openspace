@@ -18,6 +18,9 @@ import {
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu"
 import { Badge } from "@/components/ui/badge"
+import { Label } from "@/components/ui/label"
+import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover"
+import { Switch } from "@/components/ui/switch"
 import { Skeleton } from "@/components/ui/skeleton"
 import { Toaster } from "@/components/ui/sonner"
 import { TooltipProvider } from "@/components/ui/tooltip"
@@ -58,6 +61,14 @@ export default function App() {
   )
   const shown = (list: Msg[]) => list.filter((m) => m.kind !== "edit")
   const [insert, setInsert] = React.useState<{ name: string; nonce: number }>()
+
+  /** Выключенные в этой комнате: состав общий, присутствие — своё у каждой. */
+  const off = cfg?.off ?? []
+  const here = (n: string) => !off.includes(n)
+  const toggle = async (name: string, on: boolean) => {
+    const { here: names } = await api.presence(room, name, on)
+    setCfg((c) => (c ? { ...c, off: Object.keys(c.agents).filter((n) => !names.includes(n)) } : c))
+  }
 
   const local = React.useCallback((text: string) => toast.error(text), [])
   React.useEffect(() => {
@@ -349,18 +360,33 @@ export default function App() {
 
         {/* Управление под полем: слева состав и стоп, справа — режим работы. */}
         <div className="text-muted-foreground mx-auto mt-2 mb-3 flex w-full max-w-3xl items-center gap-1 px-4 text-sm">
-          <Button
-            variant="ghost"
-            size="sm"
-            className="gap-2 font-normal"
-            title={`${Object.keys(cfg.agents).join(", ")}${
-              spent ? ` · ${t("bar.tokens", { n: Math.round(spent / 1000) })}` : ""
-            }`}
-            onClick={() => setSettingsOpen(true)}
-          >
-            <Users />
-            {t("bar.people", { n: Object.keys(cfg.agents).length })}
-          </Button>
+          {/* Кто сейчас в комнате. Состав заводят в настройках, здесь только включают
+              и выключают: чаще нужно убрать двоих, а не менять команду. */}
+          <Popover>
+            <PopoverTrigger asChild>
+              <Button
+                variant="ghost"
+                size="sm"
+                className="gap-2 font-normal"
+                title={spent ? t("bar.tokens", { n: Math.round(spent / 1000) }) : undefined}
+              >
+                <Users />
+                {t("bar.people", { n: Object.keys(cfg.agents).filter(here).length })}
+              </Button>
+            </PopoverTrigger>
+            <PopoverContent align="start" className="w-64 p-2">
+              {Object.entries(cfg.agents).map(([n, a]) => (
+                <Label
+                  key={n}
+                  className="hover:bg-accent/50 flex items-center gap-2 rounded-md p-2 font-normal"
+                >
+                  <Face name={n} icon={a.icon} color={a.color} size="sm" />
+                  <span className="flex-1 truncate">{n}</span>
+                  <Switch checked={here(n)} onCheckedChange={(v) => void toggle(n, v)} />
+                </Label>
+              ))}
+            </PopoverContent>
+          </Popover>
 
           <DropdownMenu>
             <DropdownMenuTrigger asChild>

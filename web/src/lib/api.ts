@@ -45,11 +45,13 @@ export type Config = {
   defaultRoom: string
   // Дежурные: их считает сервер из режима «Открытый», отдельной настройки нет.
   defaultResponders: string[]
+  /** Кого выключили в этой комнате. Состав общий, присутствие — своё у каждой комнаты. */
+  off: string[]
   modes: Mode[]
   agents: Record<string, Agent>
 }
 
-export type Settings = Omit<Config, "defaultResponders"> & {
+export type Settings = Omit<Config, "defaultResponders" | "off"> & {
   catchUp: number
   freeTalk: boolean
   goal: string
@@ -130,6 +132,13 @@ export const api = {
       headers: { "content-type": "application/json" },
       body: JSON.stringify({ text, files, replyTo }),
     }).then(json<{ message: Msg }>),
+
+  presence: (room: string, name: string, on: boolean) =>
+    fetch(`/api/presence?room=${encodeURIComponent(room)}`, {
+      method: "POST",
+      headers: { "content-type": "application/json" },
+      body: JSON.stringify({ name, on }),
+    }).then(json<{ here: string[] }>),
 
   pause: (room: string, on: boolean) =>
     fetch(`/api/pause?room=${encodeURIComponent(room)}`, {

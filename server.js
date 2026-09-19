@@ -35,10 +35,13 @@ function saveConfig(cfg) {
 }
 
 /** Полное описание режима — для редактора: со всеми шагами и текстами. */
-const full = (m) => ({ ...short(m), steps: m.steps });
+const full = (m, room) => ({ ...short(m, room), steps: m.steps });
 
-const short = (m) => {
-  const present = Object.keys(config.agents).map((n) => n.toLowerCase());
+const short = (m, room) => {
+  // Всё, что карточка говорит про людей, считается по тем, кто сейчас в комнате:
+  // выключенного участника режим не позовёт, значит и обещать его нельзя.
+  const here = orch.here(room);
+  const present = here.map((n) => n.toLowerCase());
   return {
     name: m.name,
     // Клиенту незачем знать русское имя файла встроенного режима.
@@ -55,8 +58,12 @@ const short = (m) => {
     shortEn: m.shortEn,
     rubric: m.rubric,
     rubricEn: m.rubricEn,
-    // Кто говорит в режиме: объединение по всем шагам. Сколько их — видно в карточке.
-    who: [...new Set(m.steps.flatMap((st) => stepTargets(st, Object.keys(orch.roster), orch.roster)))],
+    // Кто говорит в режиме. У режима со сценарием это объединение по шагам: остальные
+    // молчат, пока их не позовут. У «Открытого» сценария нет — там говорят все, кто
+    // в комнате, а шаг перечисляет лишь дежурных, кто отвечает без тега.
+    who: m.name === BUILTIN
+      ? here
+      : [...new Set(m.steps.flatMap((st) => stepTargets(st, here, orch.roster)))],
     needs: m.needs,
     // Кого режим просит, а в команде нет: выбирая режим, это стоит знать сразу.
     missing: m.needs.filter((n) => !present.includes(n.toLowerCase())),
@@ -150,10 +157,12 @@ const server = http.createServer(async (req, res) => {
         maxAutoTurns: config.maxAutoTurns,
         defaultRoom: config.defaultRoom ?? 'general',
         // Дежурные не хранятся отдельно: это «кто говорит» на шаге режима «Открытый».
-        defaultResponders: orch.duty(),
+        defaultResponders: orch.duty(room),
+        // Кого выключили в этой комнате: состав общий, присутствие — своё у каждой.
+        off: orch.state(room).off,
         agents,
         rooms: store.listRooms().length ? store.listRooms() : ['general'],
-        modes: listModes().map(short),
+        modes: listModes().map((m) => short(m, room)),
         roomTitles: config.roomTitles || {},
       });
     }
@@ -321,7 +330,7 @@ const server = http.createServer(async (req, res) => {
     }
 
     if (url.pathname === '/api/modes' && req.method === 'GET') {
-      return json(res, 200, { modes: listModes().map(full) });
+      return json(res, 200, { modes: listModes().map((m) => full(m, room)) });
     }
 
     if (url.pathname === '/api/modes' && req.method === 'POST') {
@@ -347,7 +356,16 @@ const server = http.createServer(async (req, res) => {
     }
 
     if (url.pathname === '/api/mode' && req.method === 'GET') {
-      return json(res, 200, { mode: orch.modeState(room), modes: listModes().map(short) });
+      return json(res, 200, { mode: orch.modeState(room), modes: listModes().map((m) => short(m, room)) });
+    }
+
+    if (url.pathname === '/api/presence' && req.method === 'POST') {
+      const body = await readBody(req);
+      try {
+        return json(res, 200, { here: orch.toggle(room, String(body.name ?? ''), body.on !== false) });
+      } catch (e) {
+        return json(res, 400, { error: e.message });
+      }
     }
 
     if (url.pathname === '/api/pause' && req.method === 'POST') {
