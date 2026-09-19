@@ -209,19 +209,24 @@ export default function App() {
     <TooltipProvider>
       <div className="bg-background flex h-dvh flex-col">
         <header className="flex h-14 shrink-0 items-center gap-3 border-b px-4">
-          <a href="/" className="shrink-0">
-            <Logo
-              subject={subjectOf(room)}
-              mode={state.modeState?.slug ?? "open"}
-              className={`transition-colors ${
-                live ? "hover:text-muted-foreground" : "text-destructive"
-              }`}
-            />
-          </a>
+          {/* Знак и профиль забирают по половине свободного места. Иначе ряд аватарок
+              стоит по центру того, что осталось, и уезжает, когда имя комнаты
+              меняет длину знака. */}
+          <div className="flex min-w-0 flex-1 basis-0 justify-start">
+            <a href="/" className="min-w-0">
+              <Logo
+                subject={subjectOf(room)}
+                mode={state.modeState?.slug ?? "open"}
+                className={`transition-colors ${
+                  live ? "hover:text-muted-foreground" : "text-destructive"
+                }`}
+              />
+            </a>
+          </div>
 
           {/* Кто в пространстве — аватарками: имена не нужны, чтобы это понять. */}
-          <div className="hidden min-w-0 flex-1 items-center justify-center gap-2.5 sm:flex">
-            {Object.entries(cfg.agents).map(([n, a]) => (
+          <div className="hidden shrink-0 items-center gap-2.5 sm:flex">
+            {Object.entries(cfg.agents).filter(([n]) => here(n)).map(([n, a]) => (
               <FaceButton
                 key={n}
                 name={n}
@@ -233,11 +238,12 @@ export default function App() {
           </div>
 
           {/* Профиль: кто вы здесь. Под ним — то, что меняет пространство целиком. */}
+          <div className="flex min-w-0 flex-1 basis-0 justify-end">
           <DropdownMenu>
             <DropdownMenuTrigger asChild>
               <Button
                 variant="ghost"
-                className="hover:bg-accent/50 data-[state=open]:bg-accent/50 ml-auto h-10 shrink-0 gap-2 pr-2 pl-1 font-normal"
+                className="hover:bg-accent/50 data-[state=open]:bg-accent/50 h-10 shrink-0 gap-2 pr-2 pl-1 font-normal"
               >
                 <Face name={cfg.user} icon={cfg.userIcon} color={cfg.userColor || null} size="md" muted={!cfg.userColor} />
                 <span className="hidden sm:inline">{cfg.user}</span>
@@ -251,6 +257,7 @@ export default function App() {
               </DropdownMenuItem>
             </DropdownMenuContent>
           </DropdownMenu>
+          </div>
         </header>
 
         {/* Комната считается пустой, пока в ней нет ни одной реплики: служебные
