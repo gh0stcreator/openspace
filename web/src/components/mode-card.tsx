@@ -1,6 +1,7 @@
 import * as React from "react"
 import { Copy, MoreHorizontal, Plus, Settings2, Trash2 } from "lucide-react"
 
+import { Badge } from "@/components/ui/badge"
 import { Button } from "@/components/ui/button"
 import { Checkbox } from "@/components/ui/checkbox"
 import {
@@ -21,9 +22,12 @@ import { typo } from "@/lib/typo"
 import type { FullMode, Step } from "@/lib/api"
 
 /**
- * Режим — правила поведения над участниками: кто говорит на шаге, слышат ли
- * они друг друга и чем шаг закрывается. Участники отвечают на вопрос «кто»,
- * режим — на вопрос «как мы сейчас работаем».
+ * Режим — правила поведения над участниками: кто говорит на шаге, слышат ли они
+ * друг друга и чем шаг закрывается. Участники отвечают на вопрос «кто», режим —
+ * на вопрос «как мы сейчас работаем».
+ *
+ * Шаблон один на все режимы, включая встроенный «Открытый»: разница между ними —
+ * в содержании шагов, а не в устройстве карточки.
  */
 
 const ALL = /^(все|all)?$/i
@@ -90,8 +94,8 @@ type Props = {
   onChange: (next: FullMode) => void
   onCopy: () => void
   onRemove: () => void
-  /** Для встроенного режима шагов нет — вместо них правила свободного разговора. */
-  rules?: React.ReactNode
+  /** Встроенный режим можно править и дублировать, но не удалять. */
+  fixed?: boolean
   current?: boolean
 }
 
@@ -102,7 +106,7 @@ export function ModeCard({
   onChange,
   onCopy,
   onRemove,
-  rules,
+  fixed,
   current,
 }: Props) {
   const [open, setOpen] = React.useState(false)
@@ -111,22 +115,23 @@ export function ModeCard({
     patch({ steps: mode.steps.map((s, j) => (i === j ? { ...s, ...p } : s)) })
 
   return (
-    <div className={cn("rounded-lg border transition-colors", !open && "hover:bg-accent/40")}>
+    <div
+      aria-current={current || undefined}
+      className={cn("rounded-lg border transition-colors", !open && "hover:bg-accent/40")}
+    >
       <div className="flex items-center gap-3 p-3">
         <span className="bg-muted text-muted-foreground flex size-10 shrink-0 items-center justify-center rounded-full">
           <Icon name={mode.icon} className="size-5" />
         </span>
 
         <button className="min-w-0 flex-1 text-left" onClick={() => setOpen((v) => !v)}>
-          <div className="flex items-center gap-2 font-medium">
-            {mode.title}
-            {current && <span className="text-muted-foreground text-sm font-normal">— сейчас</span>}
-          </div>
+          <div className="font-medium">{mode.title}</div>
           <div className="text-muted-foreground truncate text-sm">
-            {typo(mode.for || mode.brief)}
-            {rules ? "" : ` · ${mode.steps.length} ${plural(mode.steps.length)}`}
+            {typo(mode.for || mode.brief)} · {mode.steps.length} {plural(mode.steps.length)}
           </div>
         </button>
+
+        {current && <Badge variant="secondary">Текущий</Badge>}
 
         <DropdownMenu>
           <DropdownMenuTrigger asChild>
@@ -134,22 +139,18 @@ export function ModeCard({
               <MoreHorizontal />
             </Button>
           </DropdownMenuTrigger>
-          <DropdownMenuContent align="end" className="w-44 p-1.5">
-            <DropdownMenuItem className="gap-2 rounded-md px-2 py-2" onClick={() => setOpen((v) => !v)}>
-              <Settings2 className="size-4" />
+          <DropdownMenuContent align="end">
+            <DropdownMenuItem onClick={() => setOpen((v) => !v)}>
+              <Settings2 />
               Настройки
             </DropdownMenuItem>
-            <DropdownMenuItem className="gap-2 rounded-md px-2 py-2" onClick={onCopy}>
-              <Copy className="size-4" />
+            <DropdownMenuItem onClick={onCopy}>
+              <Copy />
               Дублировать
             </DropdownMenuItem>
-            {!rules && (
-              <DropdownMenuItem
-                variant="destructive"
-                className="gap-2 rounded-md px-2 py-2"
-                onClick={onRemove}
-              >
-                <Trash2 className="size-4" />
+            {!fixed && (
+              <DropdownMenuItem variant="destructive" onClick={onRemove}>
+                <Trash2 />
                 Удалить
               </DropdownMenuItem>
             )}
@@ -167,7 +168,6 @@ export function ModeCard({
                 value={mode.title}
                 onChange={(e) => patch({ title: e.target.value })}
               />
-              <FieldDescription>Так режим выбирают в меню</FieldDescription>
             </Field>
             <Field>
               <FieldLabel htmlFor={`for-${mode.name}`}>Для чего</FieldLabel>
@@ -177,146 +177,131 @@ export function ModeCard({
                 placeholder="Проверить решение до того, как его проверит жизнь"
                 onChange={(e) => patch({ for: e.target.value })}
               />
-              <FieldDescription>Задача, ради которой его включают</FieldDescription>
             </Field>
           </div>
 
-          {rules ?? (
-            <>
-              <Field>
-                <FieldLabel>Без кого не работает</FieldLabel>
-                <div className="flex flex-wrap gap-2">
-                  {roles.map((r) => {
-                    const on = mode.needs.some((n) => n.toLowerCase() === r.name.toLowerCase())
-                    return (
-                      <Label
-                        key={r.name}
-                        className="flex items-center gap-2 rounded-full border px-3 py-1.5 text-sm font-normal"
-                      >
-                        <Checkbox
-                          checked={on}
-                          onCheckedChange={(v) =>
-                            patch({
-                              needs: v
-                                ? [...mode.needs, r.name]
-                                : mode.needs.filter((n) => n.toLowerCase() !== r.name.toLowerCase()),
-                            })
-                          }
-                        />
-                        {r.title}
-                      </Label>
-                    )
-                  })}
+          <Field>
+            <FieldLabel>Без кого не работает</FieldLabel>
+            <div className="flex flex-wrap gap-2">
+              {roles.map((r) => {
+                const on = mode.needs.some((n) => n.toLowerCase() === r.name.toLowerCase())
+                return (
+                  <Label
+                    key={r.name}
+                    className="flex items-center gap-2 rounded-full border px-3 py-1.5 text-sm font-normal"
+                  >
+                    <Checkbox
+                      checked={on}
+                      onCheckedChange={(v) =>
+                        patch({
+                          needs: v
+                            ? [...mode.needs, r.name]
+                            : mode.needs.filter((n) => n.toLowerCase() !== r.name.toLowerCase()),
+                        })
+                      }
+                    />
+                    {r.title}
+                  </Label>
+                )
+              })}
+            </div>
+          </Field>
+
+          <div className="grid gap-3">
+            <FieldLabel>Шаги</FieldLabel>
+            {mode.steps.map((st, i) => (
+              <div key={i} className="grid gap-4 rounded-lg border p-3">
+                <div className="flex items-center gap-2">
+                  <span className="text-muted-foreground w-6 shrink-0 font-mono text-sm">
+                    {String(i + 1).padStart(2, "0")}
+                  </span>
+                  <Input
+                    value={st.name}
+                    placeholder="название шага"
+                    onChange={(e) => patchStep(i, { name: e.target.value })}
+                  />
+                  <Button
+                    variant="ghost"
+                    size="icon"
+                    className="text-muted-foreground shrink-0"
+                    aria-label="Убрать шаг"
+                    onClick={() => patch({ steps: mode.steps.filter((_, j) => j !== i) })}
+                  >
+                    <Trash2 />
+                  </Button>
                 </div>
-                <FieldDescription>
-                  Если такой роли нет в команде, при выборе режима это видно заранее
-                </FieldDescription>
-              </Field>
 
-              <div className="grid gap-3">
-                <FieldLabel>Шаги</FieldLabel>
-                {mode.steps.map((st, i) => (
-                  <div key={i} className="grid gap-4 rounded-lg border p-3">
-                    <div className="flex items-center gap-2">
-                      <span className="text-muted-foreground w-6 shrink-0 font-mono text-sm">
-                        {String(i + 1).padStart(2, "0")}
-                      </span>
-                      <Input
-                        value={st.name}
-                        placeholder="название шага"
-                        onChange={(e) => patchStep(i, { name: e.target.value })}
-                      />
-                      <Button
-                        variant="ghost"
-                        size="icon"
-                        className="text-muted-foreground shrink-0"
-                        aria-label="Убрать шаг"
-                        onClick={() => patch({ steps: mode.steps.filter((_, j) => j !== i) })}
+                <div className="grid gap-4 pl-8 sm:grid-cols-2">
+                  <Field>
+                    <FieldLabel>Кто говорит</FieldLabel>
+                    <Who step={st} participants={participants} onChange={(who) => patchStep(i, { who })} />
+                  </Field>
+
+                  <div className="grid content-start gap-4">
+                    <Field>
+                      <FieldLabel>Чем шаг закрывается</FieldLabel>
+                      <Select
+                        value={/человек/i.test(st.until) ? "человек" : "все ответят"}
+                        onValueChange={(v) => patchStep(i, { until: v })}
                       >
-                        <Trash2 />
-                      </Button>
-                    </div>
+                        <SelectTrigger>
+                          <SelectValue />
+                        </SelectTrigger>
+                        <SelectContent>
+                          <SelectItem value="все ответят">Когда все ответили</SelectItem>
+                          <SelectItem value="человек">Когда ответили вы</SelectItem>
+                        </SelectContent>
+                      </Select>
+                    </Field>
 
-                    <div className="grid gap-4 pl-8 sm:grid-cols-2">
-                      <Field>
-                        <FieldLabel>Кто говорит</FieldLabel>
-                        <Who
-                          step={st}
-                          participants={participants}
-                          onChange={(who) => patchStep(i, { who })}
-                        />
-                      </Field>
-
-                      <div className="grid content-start gap-4">
-                        <Field>
-                          <FieldLabel>Чем шаг закрывается</FieldLabel>
-                          <Select
-                            value={/человек/i.test(st.until) ? "человек" : "все ответят"}
-                            onValueChange={(v) => patchStep(i, { until: v })}
-                          >
-                            <SelectTrigger>
-                              <SelectValue />
-                            </SelectTrigger>
-                            <SelectContent>
-                              <SelectItem value="все ответят">Когда все ответили</SelectItem>
-                              <SelectItem value="человек">Когда ответили вы</SelectItem>
-                            </SelectContent>
-                          </Select>
-                        </Field>
-
-                        <Label className="flex items-start justify-between gap-3 font-normal">
-                          <span className="grid gap-0.5">
-                            Слышат друг друга
-                            <span className="text-muted-foreground text-sm">
-                              {typo(
-                                st.hear
-                                  ? "Отвечают по очереди, каждый видит предыдущих"
-                                  : "Отвечают вслепую — первый ответ не задаёт остальным рамку"
-                              )}
-                            </span>
-                          </span>
-                          <Switch
-                            checked={st.hear}
-                            onCheckedChange={(v) => patchStep(i, { hear: v })}
-                          />
-                        </Label>
-                      </div>
-                    </div>
-
-                    <div className="pl-8">
-                      <Field>
-                        <FieldLabel>Что они делают на этом шаге</FieldLabel>
-                        <Textarea
-                          rows={3}
-                          value={st.prompt}
-                          placeholder="Назови три способа, которыми это сломается в первый месяц"
-                          className="font-mono text-xs leading-relaxed"
-                          onChange={(e) => patchStep(i, { prompt: e.target.value })}
-                        />
-                        <FieldDescription>Это добавляется к их роли на время шага</FieldDescription>
-                      </Field>
-                    </div>
+                    <Label className="flex items-start justify-between gap-3 font-normal">
+                      <span className="grid gap-0.5">
+                        Слышат друг друга
+                        <span className="text-muted-foreground text-sm">
+                          {typo(
+                            st.hear
+                              ? "Отвечают по очереди, каждый видит предыдущих"
+                              : "Отвечают вслепую — первый ответ не задаёт остальным рамку"
+                          )}
+                        </span>
+                      </span>
+                      <Switch checked={st.hear} onCheckedChange={(v) => patchStep(i, { hear: v })} />
+                    </Label>
                   </div>
-                ))}
+                </div>
 
-                <Button
-                  variant="ghost"
-                  size="sm"
-                  className="justify-self-start"
-                  onClick={() =>
-                    patch({
-                      steps: [
-                        ...mode.steps,
-                        { name: "шаг", who: "все", hear: true, until: "все ответят", prompt: "" },
-                      ],
-                    })
-                  }
-                >
-                  <Plus /> Добавить шаг
-                </Button>
+                <div className="pl-8">
+                  <Field>
+                    <FieldLabel>Что они делают на этом шаге</FieldLabel>
+                    <Textarea
+                      rows={3}
+                      value={st.prompt}
+                      placeholder="Назови три способа, которыми это сломается в первый месяц"
+                      className="font-mono text-xs leading-relaxed"
+                      onChange={(e) => patchStep(i, { prompt: e.target.value })}
+                    />
+                    <FieldDescription>Добавляется к их роли на время шага</FieldDescription>
+                  </Field>
+                </div>
               </div>
-            </>
-          )}
+            ))}
+
+            <Button
+              variant="ghost"
+              size="sm"
+              className="justify-self-start"
+              onClick={() =>
+                patch({
+                  steps: [
+                    ...mode.steps,
+                    { name: "шаг", who: "все", hear: true, until: "все ответят", prompt: "" },
+                  ],
+                })
+              }
+            >
+              <Plus /> Добавить шаг
+            </Button>
+          </div>
         </div>
       )}
     </div>
@@ -324,4 +309,8 @@ export function ModeCard({
 }
 
 const plural = (n: number) =>
-  n % 10 === 1 && n % 100 !== 11 ? "шаг" : n % 10 >= 2 && n % 10 <= 4 && (n % 100 < 10 || n % 100 >= 20) ? "шага" : "шагов"
+  n % 10 === 1 && n % 100 !== 11
+    ? "шаг"
+    : n % 10 >= 2 && n % 10 <= 4 && (n % 100 < 10 || n % 100 >= 20)
+      ? "шага"
+      : "шагов"

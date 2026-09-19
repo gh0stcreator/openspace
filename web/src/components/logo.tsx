@@ -1,85 +1,171 @@
 import * as React from "react"
 
 /**
- * Знак-вызов: слева режим работы, в скобках — тема разговора.
- * По умолчанию `open(space)`: открытое обсуждение любой темы, в работе — `premortem(megamenu)`.
+ * Знак-вызов: слева — как сейчас думаем, в скобках — о чём. Idle показывает
+ * настоящее состояние пространства, наведение — только демонстрацию: что обе
+ * половины независимы и меняются по отдельности.
  *
- * Знак живёт в кодовой эстетике, поэтому обе части латиницей. При наведении он
- * перебирает примеры — настоящие режимы и типовые темы: так видно, чем управляют
- * обе половины, без подписи «mode» и «topic».
+ * Демонстрация ничего не меняет в приложении. Ширину в вёрстке держит невидимый
+ * якорь с настоящим состоянием, видимая часть лежит поверх и растёт вправо —
+ * поэтому шапка не дёргается.
  */
-const TRANSLIT: Record<string, string> = {
-  а: "a", б: "b", в: "v", г: "g", д: "d", е: "e", ё: "e", ж: "zh", з: "z", и: "i",
-  й: "y", к: "k", л: "l", м: "m", н: "n", о: "o", п: "p", р: "r", с: "s", т: "t",
-  у: "u", ф: "f", х: "h", ц: "c", ч: "ch", ш: "sh", щ: "sch", ъ: "", ы: "y", ь: "",
-  э: "e", ю: "yu", я: "ya", " ": "", "-": "", _: "",
-}
+export type Pair = { mode: string; topic: string }
 
-const latin = (s: string) =>
-  [...s.toLowerCase()].map((ch) => TRANSLIT[ch] ?? ch).join("")
+const DEMO: Pair[] = [
+  { mode: "redteam", topic: "product_strategy" },
+  { mode: "design", topic: "brand" },
+  { mode: "brainstorm", topic: "new_idea" },
+  { mode: "consult", topic: "career" },
+  { mode: "review", topic: "product" },
+  { mode: "research", topic: "market" },
+  { mode: "edit", topic: "book" },
+]
 
-/** Темы для примеров: короткие, чтобы знак не растягивался на пол-шапки. */
-const TOPICS = ["megamenu", "pricing", "launch", "naming", "kids"]
-
-/** Запасные режимы — на случай, если конфиг ещё не доехал. */
-const FALLBACK = ["sixhats", "redteam", "premortem", "duel"]
+const ROLL = 180 // сколько текст уезжает вверх, прежде чем смениться
+const STAGGER = 260 // пауза между сменой левой и правой половины
+const EVERY = 1600 // шаг демонстрации
 
 export function Logo({
-  room,
   mode,
-  modes,
+  topic,
+  demoPairs = DEMO,
   className,
 }: {
-  room?: string
-  mode?: string
-  modes?: { slug: string }[]
+  mode: string
+  topic: string
+  demoPairs?: Pair[]
   className?: string
 }) {
-  const topic = !room || room === "общая" || room === "general" ? "space" : latin(room)
-  const call = mode || "open"
+  const wrap = React.useRef<HTMLSpanElement>(null)
+  const box = [React.useRef<HTMLSpanElement>(null), React.useRef<HTMLSpanElement>(null)]
+  const line = [React.useRef<HTMLSpanElement>(null), React.useRef<HTMLSpanElement>(null)]
 
-  const pairs = React.useMemo(() => {
-    const slugs = (modes ?? [])
-      .map((m) => m.slug)
-      .filter((s) => s && s !== "open" && s !== call && s.length <= 9)
-    const list = (slugs.length ? slugs : FALLBACK).slice(0, TOPICS.length)
-    return list.map((s, i) => [s, TOPICS[i]] as const)
-  }, [modes, call])
+  // Настоящее состояние держим в ссылке: оно может смениться прямо во время
+  // демонстрации, и тогда по уходу курсора вернуть надо новое, а не старое.
+  const idle = React.useRef<Pair>({ mode, topic })
+  idle.current = { mode, topic }
 
-  const [hover, setHover] = React.useState(false)
-  const [i, setI] = React.useState(0)
+  const timers = React.useRef<number[]>([])
+  const cycle = React.useRef(0)
+  const at = React.useRef(0)
+  const hovering = React.useRef(false)
 
-  React.useEffect(() => {
-    if (!hover || pairs.length < 2) return
-    const t = setInterval(() => setI((n) => n + 1), 1100)
-    return () => clearInterval(t)
-  }, [hover, pairs.length])
+  /** Ширину считаем пробником внутри знака: он наследует шрифт, кегль и трекинг. */
+  const measure = React.useCallback((s: string) => {
+    if (!wrap.current) return 0
+    const probe = document.createElement("span")
+    probe.style.cssText = "position:absolute;visibility:hidden;white-space:nowrap;top:0;left:0"
+    probe.textContent = s
+    wrap.current.append(probe)
+    const w = Math.ceil(probe.getBoundingClientRect().width)
+    probe.remove()
+    return w
+  }, [])
 
-  React.useEffect(() => {
-    if (!hover) setI(0)
-  }, [hover])
-
-  const [left, right] = hover && pairs.length ? pairs[i % pairs.length] : [call, topic]
-
-  // Ширину держим по самому длинному примеру: иначе на каждом переборе
-  // дёргается вся шапка.
-  const widest = [`${call}(${topic})`, ...pairs.map(([m, t]) => `${m}(${t})`)].reduce((a, b) =>
-    b.length > a.length ? b : a
+  const put = React.useCallback(
+    (i: number, s: string) => {
+      if (line[i].current) line[i].current!.textContent = s
+      if (box[i].current) box[i].current!.style.width = `${measure(s)}px`
+    },
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+    [measure]
   )
+
+  React.useEffect(() => {
+    /** Одна половина: текст уезжает вверх, подменяется и приходит снизу. */
+    const roll = (i: number, s: string) => {
+      const b = box[i].current
+      if (!b || !line[i].current) return
+      if (line[i].current!.textContent === s) return // то же слово — не дёргаем
+      b.classList.remove("is-out", "is-in")
+      void b.offsetWidth
+      b.classList.add("is-out")
+      timers.current.push(
+        window.setTimeout(() => {
+          put(i, s)
+          b.classList.remove("is-out")
+          b.classList.add("is-in")
+          void b.offsetWidth
+          requestAnimationFrame(() => b.classList.remove("is-in"))
+        }, ROLL)
+      )
+    }
+
+    const drop = () => {
+      timers.current.forEach(clearTimeout)
+      timers.current = []
+    }
+
+    // Сначала меняется только режим, через паузу — только тема: видно, что это
+    // две независимые половины, а не одна строка.
+    const step = () => {
+      const next = demoPairs[at.current % demoPairs.length]
+      at.current++
+      roll(0, next.mode)
+      timers.current.push(window.setTimeout(() => roll(1, next.topic), STAGGER))
+    }
+
+    const start = () => {
+      if (cycle.current) return
+      hovering.current = true
+      step()
+      cycle.current = window.setInterval(step, EVERY)
+    }
+
+    const stop = () => {
+      hovering.current = false
+      clearInterval(cycle.current)
+      cycle.current = 0
+      drop()
+      at.current = 0
+      box.forEach((b) => b.current?.classList.remove("is-out", "is-in"))
+      put(0, idle.current.mode)
+      put(1, idle.current.topic)
+    }
+
+    stop()
+    const el = wrap.current
+    el?.addEventListener("mouseenter", start)
+    el?.addEventListener("mouseleave", stop)
+    return () => {
+      el?.removeEventListener("mouseenter", start)
+      el?.removeEventListener("mouseleave", stop)
+      clearInterval(cycle.current)
+      cycle.current = 0
+      drop()
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [demoPairs, put])
+
+  // Настоящее состояние сменилось: вне наведения показываем его сразу,
+  // под курсором — покажем, когда курсор уйдёт.
+  React.useEffect(() => {
+    if (hovering.current) return
+    put(0, mode)
+    put(1, topic)
+  }, [mode, topic, put])
 
   return (
     <span
-      className={`grid font-mono text-xl tracking-tight whitespace-nowrap ${className ?? ""}`}
-      onMouseEnter={() => setHover(true)}
-      onMouseLeave={() => setHover(false)}
+      ref={wrap}
+      className={`relative inline-block cursor-pointer font-mono text-xl tracking-tight whitespace-nowrap select-none ${
+        className ?? ""
+      }`}
     >
-      <span aria-hidden className="invisible col-start-1 row-start-1">
-        {widest}
+      {/* Якорь задаёт ширину в вёрстке — видимая часть живёт вне потока. */}
+      <span className="invisible" aria-hidden>
+        {mode}({topic})
       </span>
-      <span key={`${left}(${right})`} className="animate-in fade-in col-start-1 row-start-1 duration-300">
-        {left}
+
+      {/* Без правой границы: видимая часть шире якоря и растёт вправо. */}
+      <span className="absolute top-0 left-0 flex h-full whitespace-nowrap">
+        <span ref={box[0]} className="logo-seg">
+          <span ref={line[0]}>{mode}</span>
+        </span>
         <span className="text-muted-foreground">(</span>
-        {right}
+        <span ref={box[1]} className="logo-seg">
+          <span ref={line[1]}>{topic}</span>
+        </span>
         <span className="text-muted-foreground">)</span>
       </span>
     </span>

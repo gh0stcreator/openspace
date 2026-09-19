@@ -32,16 +32,18 @@ export type Agent = {
 
 export type Config = {
   human: string
+  humanName: string
   humanColor: string
   workdir: string
   maxAutoTurns: number
   defaultRoom: string
+  // Дежурные: их считает сервер из режима «Открытый», отдельной настройки нет.
   defaultResponders: string[]
   modes: Mode[]
   agents: Record<string, Agent>
 }
 
-export type Settings = Config & {
+export type Settings = Omit<Config, "defaultResponders"> & {
   catchUp: number
   freeTalk: boolean
   goal: string

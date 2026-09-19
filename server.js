@@ -118,11 +118,13 @@ const server = http.createServer(async (req, res) => {
       );
       return json(res, 200, {
         human: config.human,
+        humanName: config.humanName ?? config.human,
         humanColor: config.humanColor ?? 'green',
         workdir: config.workdir,
         maxAutoTurns: config.maxAutoTurns,
         defaultRoom: config.defaultRoom ?? 'general',
-        defaultResponders: (config.defaultResponders?.length ? config.defaultResponders : [Object.keys(config.agents)[0]]),
+        // Дежурные не хранятся отдельно: это «кто говорит» на шаге режима «Открытый».
+        defaultResponders: orch.duty(),
         agents,
         rooms: store.listRooms().length ? store.listRooms() : ['general'],
         modes: listModes().map(short),
@@ -165,12 +167,12 @@ const server = http.createServer(async (req, res) => {
     if (url.pathname === '/api/settings' && req.method === 'GET') {
       return json(res, 200, {
         human: config.human,
+        humanName: config.humanName ?? config.human,
         humanColor: config.humanColor ?? 'green',
         workdir: config.workdir,
         maxAutoTurns: config.maxAutoTurns,
         catchUp: config.catchUp,
         goal: config.goal ?? '',
-        defaultResponders: config.defaultResponders ?? [],
         freeTalk: config.freeTalk !== false,
         agents: Object.fromEntries(
           Object.entries(orch.roster).map(([name, a]) => [name, describe(name, a)]),
@@ -188,7 +190,6 @@ const server = http.createServer(async (req, res) => {
       for (const key of ['maxAutoTurns', 'catchUp']) {
         if (body[key] !== undefined) patch[key] = body[key];
       }
-      if ('defaultResponders' in body) patch.defaultResponders = body.defaultResponders;
       if ('freeTalk' in body) patch.freeTalk = !!body.freeTalk;
       if ('goal' in body) patch.goal = String(body.goal ?? '').slice(0, 2000);
 
@@ -232,7 +233,6 @@ const server = http.createServer(async (req, res) => {
         ),
         maxAutoTurns: applied.maxAutoTurns,
         catchUp: applied.catchUp,
-        defaultResponders: applied.defaultResponders ?? [],
         freeTalk: applied.freeTalk !== false,
       });
     }
@@ -341,7 +341,7 @@ const server = http.createServer(async (req, res) => {
 });
 
 server.listen(config.port, '127.0.0.1', () => {
-  console.log(`nii  http://localhost:${config.port}`);
+  console.log(`open(space)  http://localhost:${config.port}`);
   console.log(`рабочая папка: ${config.workdir}`);
   console.log(`участники: ${Object.keys(config.agents).map((n) => '@' + n).join(', ')}, @${config.human}`);
   // Перезапуск не должен глотать обращение, на которое не успели ответить.

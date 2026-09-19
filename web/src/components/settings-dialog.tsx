@@ -2,15 +2,13 @@ import * as React from "react"
 import { Plus, RotateCcw, Trash2, TriangleAlert } from "lucide-react"
 
 import { Button } from "@/components/ui/button"
-import { Checkbox } from "@/components/ui/checkbox"
 import {
   Dialog,
   DialogContent,
-  DialogDescription,
   DialogHeader,
   DialogTitle,
 } from "@/components/ui/dialog"
-import { Field, FieldDescription, FieldLabel } from "@/components/ui/field"
+import { Field, FieldLabel } from "@/components/ui/field"
 import { Input } from "@/components/ui/input"
 import { Item, ItemActions, ItemContent, ItemDescription, ItemTitle } from "@/components/ui/item"
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
@@ -59,7 +57,7 @@ export function SettingsDialog({
   const [busy, setBusy] = React.useState(false)
   const [armed, setArmed] = React.useState(false)
   const [hireName, setHireName] = React.useState("")
-  const [hireRole, setHireRole] = React.useState("peer")
+  const [hireRole, setHireRole] = React.useState("")
   const [hireEngine, setHireEngine] = React.useState("claude")
   const [error, setError] = React.useState("")
 
@@ -67,7 +65,11 @@ export function SettingsDialog({
     if (!open) return
     setArmed(false)
     setError("")
-    api.settings().then(setS)
+    api.settings().then((v) => {
+      setS(v)
+      // Роль по умолчанию — первая из существующих: пустой select выглядит поломанным.
+      setHireRole((r) => (v.roles.some((x) => x.name === r) ? r : (v.roles[0]?.name ?? "")))
+    })
     api.modes().then((r) => setModes(r.modes))
   }, [open])
 
@@ -88,10 +90,12 @@ export function SettingsDialog({
       try {
         const applied = await api.saveSettings({
           agents: next.agents,
+          // Настройки всегда несут состав целиком: иначе переименование или
+          // удаление оставляет прежнего участника на сервере.
+          replaceTeam: true,
           maxAutoTurns: next.maxAutoTurns,
           goal: next.goal,
           catchUp: next.catchUp,
-          defaultResponders: next.defaultResponders,
           freeTalk: next.freeTalk,
         })
         onApplied(applied)
@@ -153,8 +157,6 @@ export function SettingsDialog({
     )
   }
 
-  const free = modes.find((m) => m.name === "свободный")
-  const rest = modes.filter((m) => m.name !== "свободный")
   const people = Object.keys(s.agents)
 
   return (
@@ -165,11 +167,10 @@ export function SettingsDialog({
       >
         <DialogHeader>
           <DialogTitle>Настройки</DialogTitle>
-          <DialogDescription>Применяется сразу — сохранять не нужно</DialogDescription>
         </DialogHeader>
 
         <Tabs defaultValue="people" className="min-h-0 flex-1">
-          <TabsList variant="line">
+          <TabsList>
             <TabsTrigger value="people">Участники</TabsTrigger>
             <TabsTrigger value="modes">Режимы</TabsTrigger>
             <TabsTrigger value="space">Пространство</TabsTrigger>
@@ -262,82 +263,14 @@ export function SettingsDialog({
           {/* КАК. Правила поведения поверх участников. */}
           <TabsContent value="modes" className="-mx-1 min-h-0 flex-1 overflow-y-auto px-1 py-2">
             <div className="flex flex-col gap-2">
-              {free && (
-                <ModeCard
-                  mode={free}
-                  participants={people}
-                  roles={s.roles}
-                  current={(currentMode ?? "свободный") === "свободный"}
-                  onChange={saveMode}
-                  onCopy={() => void copyMode(free)}
-                  onRemove={() => {}}
-                  rules={
-                    <div className="grid gap-5">
-                      <Field>
-                        <FieldLabel>Кто отвечает, когда вы пишете без тега</FieldLabel>
-                        <div className="flex flex-wrap gap-2">
-                          {people.map((n) => (
-                            <Label
-                              key={n}
-                              className="flex items-center gap-2 rounded-full border px-3 py-1.5 text-sm font-normal"
-                            >
-                              <Checkbox
-                                checked={s.defaultResponders.includes(n)}
-                                onCheckedChange={(v) =>
-                                  patch({
-                                    defaultResponders: v
-                                      ? [...s.defaultResponders, n]
-                                      : s.defaultResponders.filter((x) => x !== n),
-                                  })
-                                }
-                              />
-                              @{n}
-                            </Label>
-                          ))}
-                        </div>
-                        <FieldDescription>
-                          Отвечают по очереди, каждый видит предыдущих. Остальные молчат, пока их не
-                          позовут
-                        </FieldDescription>
-                      </Field>
-
-                      <Label className="flex items-start justify-between gap-3 font-normal">
-                        <span className="grid gap-0.5">
-                          Могут продолжать разговор между собой
-                          <span className="text-muted-foreground text-sm">
-                            Без этого после ответа команда замолкает и ждёт вас
-                          </span>
-                        </span>
-                        <Switch
-                          checked={s.freeTalk}
-                          onCheckedChange={(v) => patch({ freeTalk: v })}
-                        />
-                      </Label>
-
-                      <Field className="max-w-48">
-                        <FieldLabel htmlFor="turns">Ходов подряд без вас</FieldLabel>
-                        <Input
-                          id="turns"
-                          type="number"
-                          min={1}
-                          max={100}
-                          value={s.maxAutoTurns}
-                          onChange={(e) => patch({ maxAutoTurns: Number(e.target.value) })}
-                        />
-                        <FieldDescription>Потом разговор сам встанет на паузу</FieldDescription>
-                      </Field>
-                    </div>
-                  }
-                />
-              )}
-
-              {rest.map((m) => (
+              {modes.map((m) => (
                 <ModeCard
                   key={m.name}
                   mode={m}
                   participants={people}
                   roles={s.roles}
-                  current={currentMode === m.name}
+                  current={(currentMode ?? "свободный") === m.name}
+                  fixed={m.name === "свободный"}
                   onChange={saveMode}
                   onCopy={() => void copyMode(m)}
                   onRemove={() => void dropMode(m)}
@@ -372,7 +305,7 @@ export function SettingsDialog({
           <TabsContent value="space" className="-mx-1 min-h-0 flex-1 overflow-y-auto px-1 py-2">
             <div className="grid gap-5">
               <Field>
-                <FieldLabel htmlFor="goal">Зачем мы здесь</FieldLabel>
+                <FieldLabel htmlFor="goal">Зачем мы здесь — общая цель, её видят все</FieldLabel>
                 <Textarea
                   id="goal"
                   rows={2}
@@ -380,21 +313,40 @@ export function SettingsDialog({
                   placeholder="Собрать к пятнице спецификацию мегаменю, по которой можно писать код"
                   onChange={(e) => patch({ goal: e.target.value })}
                 />
-                <FieldDescription>Общая цель, её видят все участники</FieldDescription>
               </Field>
 
-              <Field className="max-w-48">
-                <FieldLabel htmlFor="catch">История для нового участника</FieldLabel>
+              <Label className="flex items-start justify-between gap-3 font-normal">
+                <span className="grid gap-0.5">
+                  Могут продолжать разговор между собой
+                  <span className="text-muted-foreground text-sm">Иначе после ответа ждут вас</span>
+                </span>
+                <Switch checked={s.freeTalk} onCheckedChange={(v) => patch({ freeTalk: v })} />
+              </Label>
+
+              <div className="grid gap-4 sm:grid-cols-2">
+                <Field>
+                  <FieldLabel htmlFor="turns">Ходов подряд без вас, потом пауза</FieldLabel>
+                  <Input
+                    id="turns"
+                    type="number"
+                    min={1}
+                    max={100}
+                    value={s.maxAutoTurns}
+                    onChange={(e) => patch({ maxAutoTurns: Number(e.target.value) })}
+                  />
+                </Field>
+                <Field>
+                  <FieldLabel htmlFor="catch">Сколько реплик читает новый участник</FieldLabel>
                 <Input
                   id="catch"
                   type="number"
                   min={1}
                   max={500}
                   value={s.catchUp}
-                  onChange={(e) => patch({ catchUp: Number(e.target.value) })}
-                />
-                <FieldDescription>Сколько последних реплик он прочитает, когда придёт</FieldDescription>
-              </Field>
+                    onChange={(e) => patch({ catchUp: Number(e.target.value) })}
+                  />
+                </Field>
+              </div>
 
               <Item variant="outline" size="sm">
                 <ItemContent>

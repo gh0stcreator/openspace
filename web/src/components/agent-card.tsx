@@ -115,17 +115,17 @@ export function AgentCard({ name, agent, settings, onChange, onRename, onCopy, o
               <MoreHorizontal />
             </Button>
           </DropdownMenuTrigger>
-          <DropdownMenuContent align="end" className="w-44 p-1.5">
-            <DropdownMenuItem className="gap-2 rounded-md px-2 py-2" onClick={() => setOpen((v) => !v)}>
-              <Settings2 className="size-4" />
+          <DropdownMenuContent align="end">
+            <DropdownMenuItem onClick={() => setOpen((v) => !v)}>
+              <Settings2 />
               Настройки
             </DropdownMenuItem>
-            <DropdownMenuItem className="gap-2 rounded-md px-2 py-2" onClick={onCopy}>
-              <Copy className="size-4" />
+            <DropdownMenuItem onClick={onCopy}>
+              <Copy />
               Дублировать
             </DropdownMenuItem>
-            <DropdownMenuItem variant="destructive" className="gap-2 rounded-md px-2 py-2" onClick={onFire}>
-              <Trash2 className="size-4" />
+            <DropdownMenuItem variant="destructive" onClick={onFire}>
+              <Trash2 />
               Удалить
             </DropdownMenuItem>
           </DropdownMenuContent>
@@ -145,7 +145,6 @@ export function AgentCard({ name, agent, settings, onChange, onRename, onCopy, o
                 onBlur={() => nick !== name && onRename(nick.trim())}
                 onKeyDown={(e) => e.key === "Enter" && onRename(nick.trim())}
               />
-              <FieldDescription>Это имя вы пишете после собачки</FieldDescription>
             </Field>
 
             <Field>
@@ -165,7 +164,6 @@ export function AgentCard({ name, agent, settings, onChange, onRename, onCopy, o
                   ))}
                 </SelectContent>
               </Select>
-              <FieldDescription>Готовый набор правил поведения</FieldDescription>
             </Field>
           </div>
 
@@ -205,7 +203,7 @@ export function AgentCard({ name, agent, settings, onChange, onRename, onCopy, o
               placeholder="Коротко и сухо. Не смягчает формулировки. Любит точные числа."
               onChange={(e) => onChange({ manner: e.target.value })}
             />
-            <FieldDescription>Характер и манера речи поверх роли</FieldDescription>
+            
           </Field>
 
           <div className="grid gap-3 border-t pt-4 sm:grid-cols-3">

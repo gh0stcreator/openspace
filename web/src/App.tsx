@@ -30,6 +30,7 @@ import { Logo } from "@/components/logo"
 import { SettingsDialog } from "@/components/settings-dialog"
 import { cn } from "@/lib/utils"
 import { typo } from "@/lib/typo"
+import { topicOf } from "@/lib/latin"
 import { api, listen, type Config, type Msg, type RoomState } from "@/lib/api"
 
 export default function App() {
@@ -182,9 +183,8 @@ export default function App() {
         <header className="flex h-14 shrink-0 items-center gap-3 border-b px-4">
           <a href="/" className="shrink-0">
             <Logo
-              room={room}
-              mode={state.modeState?.slug}
-              modes={cfg.modes}
+              topic={topicOf(room)}
+              mode={state.modeState?.slug ?? "open"}
               className={`transition-colors ${
                 live ? "hover:text-muted-foreground" : "text-destructive"
               }`}
@@ -210,18 +210,18 @@ export default function App() {
           {/* Профиль: кто вы здесь. Под ним — то, что меняет пространство целиком. */}
           <DropdownMenu>
             <DropdownMenuTrigger asChild>
-              <Button variant="ghost" size="sm" className="shrink-0 gap-2 pl-1.5 font-normal">
-                <Face name={cfg.human} icon="user" color={cfg.humanColor} size="md" />
-                <span className="capitalize">{cfg.human}</span>
+              <Button
+                variant="ghost"
+                className="hover:bg-accent/50 data-[state=open]:bg-accent/50 h-10 shrink-0 gap-2 pr-2 pl-1 font-normal"
+              >
+                <Face name={cfg.humanName} icon="user" color={cfg.humanColor} size="md" />
+                {cfg.humanName}
                 <ChevronDown className="text-muted-foreground size-3.5" />
               </Button>
             </DropdownMenuTrigger>
-            <DropdownMenuContent align="end" className="w-56 p-1.5">
-              <DropdownMenuLabel className="text-muted-foreground px-2 py-1.5 text-xs font-normal">
-                Вас зовут @{cfg.human}
-              </DropdownMenuLabel>
-              <DropdownMenuItem className="gap-2 rounded-md px-2 py-2" onClick={() => setSettingsOpen(true)}>
-                <Settings2 className="size-4" />
+            <DropdownMenuContent align="end">
+              <DropdownMenuItem onClick={() => setSettingsOpen(true)}>
+                <Settings2 />
                 Настройки
               </DropdownMenuItem>
             </DropdownMenuContent>
@@ -355,19 +355,15 @@ export default function App() {
                 <ChevronDown className="size-3.5" />
               </Button>
             </DropdownMenuTrigger>
-            <DropdownMenuContent align="end" className="w-80 p-1.5">
-              <DropdownMenuLabel className="text-muted-foreground px-2 py-1.5 text-xs font-normal">
-                Режим обсуждения
-              </DropdownMenuLabel>
+            {/* Ширина по триггеру здесь мала: у пунктов две строки. */}
+            <DropdownMenuContent align="end" className="w-80">
+              <DropdownMenuLabel>Режим обсуждения</DropdownMenuLabel>
               {cfg.modes?.map((m) => {
                 const current = (state.modeState?.name ?? "свободный") === m.name
                 return (
                   <DropdownMenuItem
                     key={m.name}
-                    className={cn(
-                      "items-start gap-3 rounded-md px-2 py-2.5",
-                      current && "bg-accent/60"
-                    )}
+                    className={cn("items-start gap-3 py-2", current && "bg-accent/60")}
                     onClick={async () => {
                       const r = await api.setMode(room, m.name === "свободный" ? null : m.name)
                       setState((st) => ({ ...st, modeState: r.mode }))
