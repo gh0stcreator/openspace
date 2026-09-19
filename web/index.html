@@ -2,8 +2,12 @@
 <html lang="ru">
   <head>
     <meta charset="UTF-8" />
-    <link rel="icon" href="/logo.svg" />
+    <link rel="icon" href="/favicon.svg" type="image/svg+xml" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <style>
+      :root { color-scheme: dark; background: oklch(0.145 0 0) }
+      :root:not(.dark) { color-scheme: light; background: #fff }
+    </style>
     <!-- До первого рендера React: без этого при загрузке на миг мелькнёт светлая
          тема, пока ThemeProvider не применит класс из localStorage. -->
     <script>
