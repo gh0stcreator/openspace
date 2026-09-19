@@ -13,29 +13,42 @@ import { toneVars } from "@/components/chat-feed"
  */
 export type Pair = { mode: string; subject: string }
 
-/** Запасные пары: настоящие режимы приезжают из конфига, это на случай пустого списка. */
-const DEMO: Pair[] = [
-  { mode: "roast", subject: "space" },
-  { mode: "brainstorm", subject: "space" },
-  { mode: "premortem", subject: "space" },
-]
+/**
+ * Что знак показывает под курсором. Слева — настоящие слаги режимов, справа — темы
+ * разговора: правая половина в демонстрации не комната, а пример того, о чём говорят.
+ *
+ * Списки независимы: половины берутся из них по отдельности, поэтому сочетание каждый
+ * раз новое — знак показывает грамматику, а не готовый набор фраз.
+ */
+const MODES = ["open", "defense", "brainstorm", "roast", "review", "sixhats"]
+const SUBJECTS = ["space", "pitch", "product", "design", "code", "idea"]
 
-// Значения из макета знака: режим уходит коротко, тема — мягче и дольше.
-const HOLD = { mode: 115, subject: 155 }
-const EVERY = 690
+/** Слово из списка, но не то, что уже на экране: подмена на себя же выглядит заминкой. */
+const other = (list: string[], now: string) => {
+  const pool = list.filter((w) => w !== now)
+  return pool[Math.floor(Math.random() * pool.length)] ?? now
+}
+
+// Слово уезжает, через HOLD подменяется и приходит обратно. Одно значение на обе
+// половины: движение у них общее. EVERY — пауза между левой и правой, STAY — сколько
+// собранная пара стоит на экране, прежде чем знак разом вернётся к настоящему.
+const HOLD = { mode: 110, subject: 110 }
+const EVERY = 260
+const STAY = 900
 
 export function Logo({
   mode,
   subject,
   color,
-  demoPairs = DEMO,
+  colors,
   className,
 }: {
   mode: string
   subject: string
-  /** Цвет режима: им красится левая половина знака — та, что и есть режим. */
+  /** Цвет нынешнего режима: им красится левая половина — та, что и есть режим. */
   color?: string | null
-  demoPairs?: Pair[]
+  /** Цвет по слагу: в перебор каждый режим приходит со своим. */
+  colors?: Record<string, string>
   className?: string
 }) {
   const wrap = React.useRef<HTMLSpanElement>(null)
@@ -49,10 +62,8 @@ export function Logo({
   // roll() видит «слово на месте», не играет смену и оставляет ширину прежнего слова.
   const first = React.useRef<Pair>({ mode, subject })
   const timers = React.useRef<number[]>([])
-  const cycle = React.useRef(0)
   const hovering = React.useRef(false)
-  const at = React.useRef(0)
-  const half = React.useRef(0)
+  const playing = React.useRef(false)
 
   /** Пробник внутри знака наследует шрифт, кегль и трекинг. */
   const measure = React.useCallback((s: string) => {
@@ -76,8 +87,22 @@ export function Logo({
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [measure])
 
+  /**
+   * Цвет левой половины. Ведём его тем же императивом, что и текст: цвет приходит
+   * вместе со словом, в тот же кадр, иначе режим уже сменился, а краска ещё прежняя.
+   */
+  const paint = React.useCallback((tone?: string | null) => {
+    const box = part.mode.current
+    if (!box) return
+    box.classList.toggle("tone-name", !!tone)
+    const vars = toneVars(tone) as Record<string, string>
+    box.style.setProperty("--h", vars["--h"])
+    box.style.setProperty("--c", vars["--c"])
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [])
+
   /** Одна половина: слово уезжает вверх, подменяется и приходит снизу. */
-  const roll = React.useCallback((key: keyof Pair, next: string) => {
+  const roll = React.useCallback((key: keyof Pair, next: string, tone?: string | null) => {
     const box = part[key].current
     const node = word[key].current
     if (!box || !node) return
@@ -85,6 +110,7 @@ export function Logo({
       // Слово уже на месте, но половина могла застрять уехавшей: курсор ушёл
       // ровно между «уехал» и «подменился». Возвращаем её на место.
       box.classList.remove("is-out", "is-in")
+      if (key === "mode") paint(tone)
       return
     }
     box.classList.remove("is-out", "is-in")
@@ -93,6 +119,7 @@ export function Logo({
     timers.current.push(
       window.setTimeout(() => {
         node.textContent = next
+        if (key === "mode") paint(tone)
         box.style.width = `${measure(next)}px`
         box.classList.remove("is-out")
         box.classList.add("is-in")
@@ -101,7 +128,7 @@ export function Logo({
       }, HOLD[key])
     )
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [measure])
+  }, [measure, paint])
 
   const drop = () => {
     timers.current.forEach(clearTimeout)
@@ -111,10 +138,19 @@ export function Logo({
   /** Показать пару: сначала режим, через паузу — тема. */
   const show = React.useCallback(
     (pair: Pair) => {
-      roll("mode", pair.mode)
-      timers.current.push(window.setTimeout(() => roll("subject", pair.subject), 210))
+      roll("mode", pair.mode, color)
+      timers.current.push(window.setTimeout(() => roll("subject", pair.subject), 150))
     },
-    [roll]
+    [roll, color]
+  )
+
+  /** Обе половины разом: знак возвращается к настоящему состоянию одним движением. */
+  const snap = React.useCallback(
+    (pair: Pair) => {
+      roll("mode", pair.mode, color)
+      roll("subject", pair.subject)
+    },
+    [roll, color]
   )
 
   // Шрифт догружается позже разметки: после этого знак надо промерить заново.
@@ -123,45 +159,37 @@ export function Logo({
     document.fonts?.ready.then(fit)
   }, [fit])
 
-  // Комната бывает одна: тогда вторую половину менять не на что, и тик, который
-  // её «меняет», оказался бы пустой паузой в полторы секунды.
-  const twoSided = React.useMemo(
-    () => new Set(demoPairs.map((p) => p.subject)).size > 1,
-    [demoPairs]
-  )
+  // Первая покраска и смена цвета вместе с настоящим режимом. Под курсором цветом
+  // распоряжается перебор, туда не лезем.
+  React.useEffect(() => {
+    if (!hovering.current) paint(color)
+  }, [color, paint])
 
   React.useEffect(() => {
-    // Каждый тик меняет ровно одну половину: mode, subject, mode, subject…
-    const tick = () => {
-      const pair = demoPairs[at.current % demoPairs.length]
-      if (!twoSided) {
-        roll("mode", pair.mode)
-        at.current++
-        return
-      }
-      if (half.current % 2 === 0) roll("mode", pair.mode)
-      else {
-        roll("subject", pair.subject)
-        at.current++
-      }
-      half.current++
-    }
-
+    // Одно наведение — один показ: левая половина, следом правая, пауза, и знак разом
+    // возвращается к настоящему состоянию. Карусель под курсором мигала бы сбоку
+    // от текста, и выключить её можно было бы только уведя мышь.
     const enter = () => {
-      if (cycle.current) return
+      if (playing.current) return
       hovering.current = true
-      at.current = 0
-      half.current = 0
-      tick()
-      cycle.current = window.setInterval(tick, EVERY)
+      playing.current = true
+      const mode = other(MODES, idle.current.mode)
+      const subject = other(SUBJECTS, idle.current.subject)
+      roll("mode", mode, colors?.[mode])
+      timers.current.push(window.setTimeout(() => roll("subject", subject), EVERY))
+      timers.current.push(
+        window.setTimeout(() => {
+          playing.current = false
+          snap(idle.current)
+        }, EVERY + STAY)
+      )
     }
 
     const leave = () => {
       hovering.current = false
-      clearInterval(cycle.current)
-      cycle.current = 0
+      playing.current = false
       drop()
-      show(idle.current)
+      snap(idle.current)
     }
 
     const el = wrap.current
@@ -170,11 +198,10 @@ export function Logo({
     return () => {
       el?.removeEventListener("mouseenter", enter)
       el?.removeEventListener("mouseleave", leave)
-      clearInterval(cycle.current)
-      cycle.current = 0
+      playing.current = false
       drop()
     }
-  }, [demoPairs, twoSided, roll, show])
+  }, [colors, roll, snap])
 
   // Настоящее состояние сменилось: вне наведения показываем его той же сменой,
   // под курсором — покажем, когда курсор уйдёт.
@@ -198,11 +225,7 @@ export function Logo({
       </span>
 
       <span className="absolute top-0 left-0 flex items-baseline whitespace-nowrap">
-        <span
-          ref={part.mode}
-          className={`logo-part logo-mode${color ? " tone-name" : ""}`}
-          style={color ? toneVars(color) : undefined}
-        >
+        <span ref={part.mode} className="logo-part logo-mode">
           <span ref={word.mode}>{first.current.mode}</span>
         </span>
         <span className="text-muted-foreground">(</span>

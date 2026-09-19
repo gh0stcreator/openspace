@@ -174,6 +174,14 @@ export default function App() {
     return () => removeEventListener("keydown", onEsc)
   }, [room, state.paused, settingsOpen])
 
+  // Цвет по слагу — памяткой: собранный заново на каждый рендер объект менял ссылку,
+  // знак пересоздавал подписку на наведение, и её уборка сносила таймеры прямо
+  // посреди показа. Считаем до раннего возврата: хук не может стоять за условием.
+  const tones = React.useMemo(
+    () => Object.fromEntries((cfg?.modes ?? []).map((m) => [m.slug, m.color])),
+    [cfg?.modes]
+  )
+
   if (!cfg) {
     return (
       <div className="bg-background flex h-dvh flex-col">
@@ -216,13 +224,6 @@ export default function App() {
   const started = messages.some((m) => m.kind === "message")
   // Текущий режим целиком: из него берём и знак, и цвет.
   const now = cfg.modes?.find((m) => (state.modeState ? m.name === state.modeState.name : m.builtin))
-  // Знак под курсором листает настоящие режимы, а не выдуманные слова: левая половина
-  // и есть список того, что здесь можно выбрать. Правая не меняется — это комната,
-  // в которой вы уже находитесь, а не меню. Нынешний режим пропускаем: подставлять
-  // то, что и так на экране, значит показать пустой ход.
-  const demo = cfg.modes
-    ?.filter((m) => m.slug !== now?.slug)
-    .map((m) => ({ mode: m.slug, subject: subjectOf(room) }))
 
   return (
     <TooltipProvider>
@@ -237,7 +238,7 @@ export default function App() {
                 subject={subjectOf(room)}
                 mode={state.modeState?.slug ?? "open"}
                 color={live ? now?.color : null}
-                demoPairs={demo?.length ? demo : undefined}
+                colors={tones}
                 className={`transition-colors ${
                   live ? "hover:text-muted-foreground" : "text-destructive"
                 }`}

@@ -215,30 +215,23 @@
   }
 
 /* Знак-вызов. Половины меняются по очереди: слово уезжает вверх, приходит снизу,
-   ширина едет следом. Режим уходит быстро и коротко, тема — мягче и дольше:
-   так видно, что это две разные половины. Значения из макета знака. */
+   ширина едет следом. Движение у обеих половин одно и то же — это один знак,
+   а не два разных механизма рядом. */
 .logo-part {
   position: relative;
   display: inline-block;
   height: 1em;
   overflow: hidden;
   flex: none;
-  transition: width 360ms cubic-bezier(0.2, 0.8, 0.2, 1);
+  transition: width 240ms cubic-bezier(0.2, 0.8, 0.2, 1);
 }
 .logo-part > span {
   position: absolute;
   inset: 0 auto auto 0;
   white-space: nowrap;
-}
-.logo-mode > span {
   transition:
-    transform 300ms cubic-bezier(0.2, 0.8, 0.2, 1),
-    opacity 130ms ease;
-}
-.logo-topic > span {
-  transition:
-    transform 480ms cubic-bezier(0.16, 1, 0.3, 1),
-    opacity 180ms ease;
+    transform 240ms cubic-bezier(0.2, 0.8, 0.2, 1),
+    opacity 110ms ease;
 }
 .logo-part.is-out > span { transform: translateY(-112%); opacity: 0; }
 .logo-part.is-in > span { transform: translateY(112%); opacity: 0; }
