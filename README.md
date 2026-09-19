@@ -214,8 +214,11 @@ commit
 Нужны установленные и залогиненные `claude` и `codex`.
 
 ```bash
-node server.js
+npm run dev
 ```
+
+Поднимает сервер и следит за `web/`: правка клиента собирается сама. Если клиент трогать
+не собираешься — хватит `node server.js`.
 
 Открыть:
 
@@ -229,12 +232,10 @@ http://localhost:4477
 node server.js --port 4477 --workdir ../my-project --user roman
 ```
 
-Клиент собирается отдельно; сборка в `public/` не коммитится:
+Первый запуск требует установки зависимостей клиента; сборка в `public/` не коммитится:
 
 ```bash
-cd web
-npm install
-npm run build
+cd web && npm install
 ```
 
 ---

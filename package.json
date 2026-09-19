@@ -9,7 +9,7 @@
   },
   "scripts": {
     "start": "node server.js",
-    "probe": "node lib/probe.js"
+    "dev": "node bin/dev"
   },
   "engines": {
     "node": ">=20"

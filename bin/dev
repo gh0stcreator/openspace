@@ -1,0 +1,24 @@
+#!/usr/bin/env node
+/**
+ * Рабочий запуск: сервер плюс пересборка клиента на каждую правку.
+ *
+ * Участники правят файлы, но команд не запускают, — без наблюдателя их правка
+ * в интерфейсе не появляется, и кто-то должен руками собирать за ними. Теперь
+ * не должен: `node bin/dev` держит и то, и другое.
+ */
+import { spawn } from 'node:child_process';
+import path from 'node:path';
+import { fileURLToPath } from 'node:url';
+
+const root = path.join(path.dirname(fileURLToPath(import.meta.url)), '..');
+const args = process.argv.slice(2);
+
+const children = [
+  spawn('npm', ['--prefix', 'web', 'run', 'build', '--', '--watch'], { cwd: root, stdio: 'inherit' }),
+  spawn(process.execPath, ['server.js', ...args], { cwd: root, stdio: 'inherit' }),
+];
+
+const stop = () => children.forEach((c) => c.kill('SIGTERM'));
+process.on('SIGINT', stop);
+process.on('SIGTERM', stop);
+for (const c of children) c.on('exit', (code) => { stop(); process.exit(code ?? 0); });
