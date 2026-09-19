@@ -216,12 +216,13 @@ export default function App() {
   const started = messages.some((m) => m.kind === "message")
   // Текущий режим целиком: из него берём и знак, и цвет.
   const now = cfg.modes?.find((m) => (state.modeState ? m.name === state.modeState.name : m.builtin))
-  // Знак под курсором листает настоящие режимы и комнаты, а не выдуманные слова:
-  // это же и есть список того, что здесь можно выбрать. Нынешний режим пропускаем —
-  // подставлять то, что и так на экране, значит показать пустой ход.
+  // Знак под курсором листает настоящие режимы, а не выдуманные слова: левая половина
+  // и есть список того, что здесь можно выбрать. Правая не меняется — это комната,
+  // в которой вы уже находитесь, а не меню. Нынешний режим пропускаем: подставлять
+  // то, что и так на экране, значит показать пустой ход.
   const demo = cfg.modes
     ?.filter((m) => m.slug !== now?.slug)
-    .map((m, i) => ({ mode: m.slug, subject: subjectOf(cfg.rooms[i % cfg.rooms.length]) }))
+    .map((m) => ({ mode: m.slug, subject: subjectOf(room) }))
 
   return (
     <TooltipProvider>

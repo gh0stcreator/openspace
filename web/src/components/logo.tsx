@@ -15,7 +15,7 @@ export type Pair = { mode: string; subject: string }
 
 /** Запасные пары: настоящие режимы приезжают из конфига, это на случай пустого списка. */
 const DEMO: Pair[] = [
-  { mode: "redteam", subject: "space" },
+  { mode: "roast", subject: "space" },
   { mode: "brainstorm", subject: "space" },
   { mode: "premortem", subject: "space" },
 ]
