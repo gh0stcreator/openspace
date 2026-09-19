@@ -146,6 +146,9 @@ test('человек в режиме: реплика с тегом — разг�
   const { orch, calls } = setup(['первый', 'второй']);
   orch.store.append(ROOM, { from: 'Roman', text: 'тема' });
   orch.startMode(ROOM, 'ожидание');
+  // Режим приводит свой состав, а его шаги зовут только первого. Второго возвращаем
+  // руками: разговор с тем, кого режим не звал, — это как раз то, что проверяем.
+  orch.toggle(ROOM, 'второй', true);
   await sleep(150);
   assert.equal(orch.modeState(ROOM).step, 1);
 
@@ -264,4 +267,16 @@ test('выключенный в комнате молчит, включённы�
   orch.post(ROOM, { from: 'Roman', text: '@второй теперь ты' });
   await sleep(150);
   assert.ok(calls.some((c) => c.who === 'второй'), 'включённый обратно молчит');
+});
+
+test('режим приводит свой состав, а без режима в комнате снова все', async () => {
+  const { orch } = setup(['первый', 'второй']);
+  assert.deepEqual(orch.here(ROOM), ['первый', 'второй']);
+
+  // Шаги «Ожидания» зовут только первого — второму в этом режиме делать нечего.
+  orch.startMode(ROOM, 'ожидание');
+  assert.deepEqual(orch.here(ROOM), ['первый']);
+
+  orch.stopMode(ROOM);
+  assert.deepEqual(orch.here(ROOM), ['первый', 'второй'], 'разговор без режима идёт всей командой');
 });

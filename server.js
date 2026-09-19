@@ -35,13 +35,10 @@ function saveConfig(cfg) {
 }
 
 /** Полное описание режима — для редактора: со всеми шагами и текстами. */
-const full = (m, room) => ({ ...short(m, room), steps: m.steps });
+const full = (m) => ({ ...short(m), steps: m.steps });
 
-const short = (m, room) => {
-  // Всё, что карточка говорит про людей, считается по тем, кто сейчас в комнате:
-  // выключенного участника режим не позовёт, значит и обещать его нельзя.
-  const here = orch.here(room);
-  const present = here.map((n) => n.toLowerCase());
+const short = (m) => {
+  const present = orch.names.map((n) => n.toLowerCase());
   return {
     name: m.name,
     // Клиенту незачем знать русское имя файла встроенного режима.
@@ -58,12 +55,9 @@ const short = (m, room) => {
     shortEn: m.shortEn,
     rubric: m.rubric,
     rubricEn: m.rubricEn,
-    // Кто говорит в режиме. У режима со сценарием это объединение по шагам: остальные
-    // молчат, пока их не позовут. У «Открытого» сценария нет — там говорят все, кто
-    // в комнате, а шаг перечисляет лишь дежурных, кто отвечает без тега.
-    who: m.name === BUILTIN
-      ? here
-      : [...new Set(m.steps.flatMap((st) => stepTargets(st, here, orch.roster)))],
+    // Состав, который режим приведёт в комнату: выбрали режим — остались эти.
+    // У «Открытого» сценария нет, там разговор идёт всей командой.
+    who: m.name === BUILTIN ? orch.names : orch.cast(m),
     needs: m.needs,
     // Кого режим просит, а в команде нет: выбирая режим, это стоит знать сразу.
     missing: m.needs.filter((n) => !present.includes(n.toLowerCase())),
@@ -162,7 +156,7 @@ const server = http.createServer(async (req, res) => {
         off: orch.state(room).off,
         agents,
         rooms: store.listRooms().length ? store.listRooms() : ['general'],
-        modes: listModes().map((m) => short(m, room)),
+        modes: listModes().map(short),
         roomTitles: config.roomTitles || {},
       });
     }
@@ -330,7 +324,7 @@ const server = http.createServer(async (req, res) => {
     }
 
     if (url.pathname === '/api/modes' && req.method === 'GET') {
-      return json(res, 200, { modes: listModes().map((m) => full(m, room)) });
+      return json(res, 200, { modes: listModes().map(full) });
     }
 
     if (url.pathname === '/api/modes' && req.method === 'POST') {
@@ -352,11 +346,12 @@ const server = http.createServer(async (req, res) => {
       const mode = body.mode
         ? orch.startMode(room, body.mode)
         : orch.stopMode(room);
-      return json(res, 200, { mode });
+      // Режим приводит свой состав, поэтому присутствие возвращаем вместе с ним.
+      return json(res, 200, { mode, off: orch.state(room).off });
     }
 
     if (url.pathname === '/api/mode' && req.method === 'GET') {
-      return json(res, 200, { mode: orch.modeState(room), modes: listModes().map((m) => short(m, room)) });
+      return json(res, 200, { mode: orch.modeState(room), modes: listModes().map(short) });
     }
 
     if (url.pathname === '/api/presence' && req.method === 'POST') {

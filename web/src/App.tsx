@@ -70,6 +70,13 @@ export default function App() {
     setCfg((c) => (c ? { ...c, off: Object.keys(c.agents).filter((n) => !names.includes(n)) } : c))
   }
 
+  /** Режим приводит свой состав: вместе с ним меняется и кто в комнате. */
+  const switchMode = async (m: { name: string; builtin: boolean }) => {
+    const r = await api.setMode(room, m.builtin ? null : m.name)
+    setState((st) => ({ ...st, modeState: r.mode }))
+    setCfg((c) => (c ? { ...c, off: r.off } : c))
+  }
+
   const local = React.useCallback((text: string) => toast.error(text), [])
   React.useEffect(() => {
     api.config().then((c) => {
@@ -278,10 +285,7 @@ export default function App() {
                       "flex gap-3 rounded-lg border p-3 text-left transition-colors",
                       current ? "bg-accent/40" : "hover:bg-accent/40"
                     )}
-                    onClick={async () => {
-                      const r = await api.setMode(room, m.builtin ? null : m.name)
-                      setState((st) => ({ ...st, modeState: r.mode }))
-                    }}
+                    onClick={() => void switchMode(m)}
                   >
                     <span className="bg-muted text-muted-foreground flex size-10 shrink-0 items-center justify-center rounded-full">
                       <Icon name={m.icon} className="size-5" />
@@ -418,10 +422,7 @@ export default function App() {
                   <DropdownMenuItem
                     key={m.name}
                     className={cn("items-start gap-3 py-2", current && "bg-accent/60")}
-                    onClick={async () => {
-                      const r = await api.setMode(room, m.builtin ? null : m.name)
-                      setState((st) => ({ ...st, modeState: r.mode }))
-                    }}
+                    onClick={() => void switchMode(m)}
                   >
                     <Icon
                       name={m.icon}

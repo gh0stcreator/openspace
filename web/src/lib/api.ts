@@ -152,7 +152,7 @@ export const api = {
       method: "POST",
       headers: { "content-type": "application/json" },
       body: JSON.stringify({ mode }),
-    }).then(json<{ mode: ModeState }>),
+    }).then(json<{ mode: ModeState; off: string[] }>),
 
   modes: () => fetch("/api/modes").then(json<{ modes: FullMode[] }>),
 
