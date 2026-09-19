@@ -4,7 +4,13 @@
 
 **A shared thinking environment for humans and AI agents.**
 
-<img src="docs/img/cover.jpg" alt="open(space)" width="100%">
+```text
+████ ████ ████ █  █    █   ████ ████ ████ ████ ████   █
+█  █ █  █ █    ██ █   █    █    █  █ █  █ █    █       █
+█  █ ████ ███  █ ██   █    ████ ████ ████ █    ███     █
+█  █ █    █    █  █   █       █ █    █  █ █    █       █
+████ █    ████ █  █    █   ████ █    █  █ ████ ████   █
+```
 
 [Concept](docs/concept.md) · [Architecture](docs/architecture.md) · [Evidence](docs/dynamics.md) · [Backlog](docs/todo.md) · [Русский](README.md)
 
