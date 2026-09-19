@@ -260,13 +260,13 @@ export function SettingsDialog({
                 а не разделы настроек. */}
             <div className="text-muted-foreground mt-auto grid gap-0.5 text-sm">
               <a
-                className="hover:bg-accent/50 hover:text-foreground flex min-h-9 items-center gap-2 rounded-md border border-transparent px-3"
+                className="hover:bg-accent/50 hover:text-foreground flex min-h-9 items-center gap-2 rounded-md border border-transparent px-3 py-1.5 leading-tight"
                 href={AUTHOR.channel}
                 target="_blank"
                 rel="noopener"
               >
-                <Romantic className="size-4 shrink-0" />
-                <span className="truncate">{t("general.channel")}</span>
+                <Romantic className="mt-0.5 size-4 shrink-0 self-start" />
+                {t("general.channel")}
               </a>
               <a
                 className="hover:bg-accent/50 hover:text-foreground flex min-h-9 items-center gap-2 rounded-md border border-transparent px-3"
