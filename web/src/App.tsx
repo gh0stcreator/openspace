@@ -214,7 +214,7 @@ export default function App() {
                 variant="ghost"
                 className="hover:bg-accent/50 data-[state=open]:bg-accent/50 h-10 shrink-0 gap-2 pr-2 pl-1 font-normal"
               >
-                <Face name={cfg.humanName} icon="user" color={cfg.humanColor} size="md" />
+                <Face name={cfg.humanName} icon="user" size="md" muted />
                 {cfg.humanName}
                 <ChevronDown className="text-muted-foreground size-3.5" />
               </Button>

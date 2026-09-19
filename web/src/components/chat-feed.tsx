@@ -62,19 +62,27 @@ export function Face({
   icon,
   color,
   size = "md",
+  muted,
   className,
 }: {
   name: string
   icon?: string
   color?: string | null
   size?: keyof typeof FACE_SIZES
+  /** Аватарка без тона: человек в своём профиле — не собеседник в ленте. */
+  muted?: boolean
   className?: string
 }) {
   const s = FACE_SIZES[size]
   return (
     <span
-      className={cn("tone-face flex shrink-0 items-center justify-center rounded-full", s.box, className)}
-      style={toneVars(color)}
+      className={cn(
+        "flex shrink-0 items-center justify-center rounded-full",
+        muted ? "bg-muted text-muted-foreground" : "tone-face",
+        s.box,
+        className
+      )}
+      style={muted ? undefined : toneVars(color)}
       title={name}
     >
       <Icon name={icon} className={s.icon} />
