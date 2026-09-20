@@ -31,7 +31,6 @@ import { SettingsDialog } from "@/components/settings-dialog"
 import { cn } from "@/lib/utils"
 import { useLang, pick, plural } from "@/lib/i18n"
 import { typo } from "@/lib/typo"
-import { subjectOf } from "@/lib/latin"
 import { api, listen, type Config, type Msg, type RoomState } from "@/lib/api"
 
 export default function App() {
@@ -282,8 +281,11 @@ export default function App() {
               меняет длину знака. */}
           <div className="flex min-w-0 flex-1 basis-0 justify-start">
             <a href="/" className="min-w-0">
+              {/* В скобках — предмет разговора по-английски, а не имя комнаты латиницей:
+                  «проверка» превращалась в proverka, и знак говорил о комнате не больше,
+                  чем её название. Пока предмет не назван — space. */}
               <Logo
-                subject={cfg.topic || subjectOf(room)}
+                subject={cfg.topic || "space"}
                 mode={state.modeState?.slug ?? "open"}
                 color={live ? now?.color : null}
                 colors={tones}

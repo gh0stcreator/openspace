@@ -79,7 +79,6 @@ Tailwind.
 | Выбор цвета и знака | `web/src/components/face-picker.tsx` |
 | Тексты оболочки | `web/src/lib/i18n.tsx` |
 | Русская типографика | `web/src/lib/typo.ts` |
-| Латиница из кириллицы | `web/src/lib/latin.ts` |
 | Обращения к серверу | `web/src/lib/api.ts` |
 | Состояние комнаты на диске | `lib/state.js` |
 | Поведение роли | `roles/<роль>.md` |
