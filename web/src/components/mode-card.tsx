@@ -22,7 +22,7 @@ import {
   AlertDialogTitle,
   AlertDialogTrigger,
 } from "@/components/ui/alert-dialog"
-import { Field, FieldDescription, FieldLabel } from "@/components/ui/field"
+import { Field, FieldLabel } from "@/components/ui/field"
 import { FacePicker } from "@/components/face-picker"
 import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
@@ -289,6 +289,18 @@ export function ModeCard({
                     </Button>
                   </div>
 
+                  {/* Инструкция шага видна всегда: шаги и есть режим, а «кто» и «слух» —
+                      подпись к ним. Прятать текст под раскрытие значило прятать главное. */}
+                  <div className="px-3 pb-3">
+                    <Textarea
+                      rows={3}
+                      value={st.prompt}
+                      placeholder={t("step.promptHint")}
+                      className="text-xs leading-relaxed"
+                      onChange={(e) => patchStep(i, { prompt: e.target.value })}
+                    />
+                  </div>
+
                   {step === i && (
                     <div className="grid gap-4 border-t px-3 py-4">
                       <div className="grid gap-4 sm:grid-cols-2">
@@ -337,17 +349,6 @@ export function ModeCard({
                         />
                       </Field>
 
-                      <Field>
-                        <FieldLabel>{t("step.prompt")}</FieldLabel>
-                        <Textarea
-                          rows={4}
-                          value={st.prompt}
-                          placeholder={t("step.promptHint")}
-                          className="font-mono text-xs leading-relaxed"
-                          onChange={(e) => patchStep(i, { prompt: e.target.value })}
-                        />
-                        <FieldDescription>{t("step.promptNote")}</FieldDescription>
-                      </Field>
                     </div>
                   )}
                 </div>

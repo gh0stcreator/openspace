@@ -19,7 +19,6 @@ import {
   DropdownMenuItem,
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu"
-import { Checkbox } from "@/components/ui/checkbox"
 import { Field, FieldLabel } from "@/components/ui/field"
 import { Label } from "@/components/ui/label"
 import { Input } from "@/components/ui/input"
@@ -32,6 +31,7 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select"
+import { Switch } from "@/components/ui/switch"
 import { Textarea } from "@/components/ui/textarea"
 import { FacePicker } from "@/components/face-picker"
 import { useLang, pick, type Key } from "@/lib/i18n"
@@ -262,24 +262,21 @@ export function AgentCard({ name, agent, settings, autoOpen, onChange, onRename,
               <FieldLabel>{t("card.skills")}</FieldLabel>
               {/* Умения выдают поштучно: выдача и есть разрешение. Прежний «уровень
                   доступа» отвечал сразу на два вопроса — что умеет и что позволено. */}
-              <div className="flex flex-wrap gap-2">
-                {settings.skillList.map((k) => {
-                  const on = agent.skills.includes(k)
-                  return (
-                    <Label
-                      key={k}
-                      className="flex items-center gap-2 rounded-full border px-3 py-1.5 text-sm font-normal"
-                    >
-                      <Checkbox
-                        checked={on}
-                        onCheckedChange={(v) =>
-                          onChange({ skills: v ? [...agent.skills, k] : agent.skills.filter((x) => x !== k) })
-                        }
-                      />
-                      {t(`skill.${k}` as never)}
-                    </Label>
-                  )
-                })}
+              <div className="divide-y rounded-lg border">
+                {settings.skillList.map((k) => (
+                  <Label
+                    key={k}
+                    className="flex items-center justify-between gap-3 px-3 py-2.5 text-sm font-normal"
+                  >
+                    {t(`skill.${k}` as never)}
+                    <Switch
+                      checked={agent.skills.includes(k)}
+                      onCheckedChange={(v) =>
+                        onChange({ skills: v ? [...agent.skills, k] : agent.skills.filter((x) => x !== k) })
+                      }
+                    />
+                  </Label>
+                ))}
               </div>
             </Field>
             <Field className="sm:col-span-2">
