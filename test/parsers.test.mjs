@@ -9,6 +9,7 @@ const dir = fs.mkdtempSync(path.join(os.tmpdir(), 'openspace-modes-'));
 process.env.SPACE_MODES_DIR = dir;
 const { parseMentions } = await import('../lib/mentions.js');
 const { loadMode, saveMode, sideOf, stepTargets } = await import('../lib/modes.js');
+const { saysRestart } = await import('../lib/orchestrator.js');
 
 test('обращения: кириллица, регистр, знаки вокруг', () => {
   const known = ['Скептик', 'qa-bot', 'Roman'];
@@ -29,6 +30,15 @@ test('кого зовёт шаг: все, поимённо, по роли', () =
   assert.deepEqual(stepTargets({ who: 'все' }, names, roster), names);
   assert.deepEqual(stepTargets({ who: '@скептик, @никто' }, names, roster), ['Скептик']);
   assert.deepEqual(stepTargets({ who: 'роль: инженер' }, names, roster), ['Инженер']);
+});
+
+test('ведущий начинает заново: маркер ловится и на кириллице', () => {
+  // `\b` в JS знает только латиницу: «Заново — новый предмет» ей не граница слова,
+  // и маркер молча не срабатывал.
+  assert.ok(saysRestart('Заново — новый предмет: кто прав'));
+  assert.ok(saysRestart('заново. спорим о другом'));
+  assert.ok(!saysRestart('Мы на шаге «Тезис», до твоего слова дойдём в приговоре'));
+  assert.ok(!saysRestart('Зановоль'));
 });
 
 test('стороны режима: разбор, сторона по роли, круг «сохранили — прочитали»', () => {

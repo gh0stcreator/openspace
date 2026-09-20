@@ -121,7 +121,9 @@ export function AgentCard({ name, agent, settings, autoOpen, onChange, onRename,
               {brain(agent)}
             </span>
           </div>
-          <div className="text-muted-foreground truncate text-sm">
+          {/* Описание переносится, а не обрезается многоточием: строка «Сворачивает ленту
+              в память пространства — решения, допущения, находки, о…» не описывает ничего. */}
+          <div className="text-muted-foreground text-sm text-balance">
             {typo(pick(lang, agent.brief, agent.briefEn))}
           </div>
         </button>

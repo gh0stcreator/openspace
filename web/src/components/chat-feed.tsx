@@ -3,6 +3,7 @@ import * as Icons from "lucide-react"
 import { ArrowRight, Check, Copy, FileText } from "lucide-react"
 
 import { Bubble, BubbleContent } from "@/components/ui/bubble"
+import { Button } from "@/components/ui/button"
 import {
   Message,
   MessageAvatar,
@@ -451,7 +452,8 @@ type Props = {
   onRejectMemory: (m: Msg) => void
 }
 
-const MEMORY_ACTION = { добавить: "+", заменить: "→", отменить: "−" } as const
+/** Знак действия стоит внутри плашки вида: «добавить» — обычный случай, ему знак не нужен. */
+const MEMORY_ACTION = { добавить: "", заменить: "→ ", отменить: "− " } as const
 
 /** Что написать над списком правок — три исхода читаются по-разному, а не одной надписью
  * «принято»: частичное применение и отказ несут разную цену, и её нельзя прятать за одно слово. */
@@ -462,14 +464,13 @@ const MEMORY_STATUS_KEY = {
 } as const
 
 /**
- * Предложение архивариуса — не реплика, а решение: несколько записей с видом и действием,
- * читаются построчно. Заметно ровно настолько, чтобы не проскроллить не глядя, но без
- * своего цвета — нейтральный акцент, как у остальных структурных элементов ленты.
+ * Предложение архивариуса — не реплика, а решение: несколько записей с видом и действием.
+ * Поэтому оно и выглядит как решение — карточкой с двумя кнопками, а не полосой текста
+ * с подписью «нажмите, чтобы принять»: запись в память необратима, и попасть в неё
+ * случайным кликом по ленте нельзя.
  *
- * Два разных действия на одной карточке: клик по всей карточке принимает diff — старое
- * поведение, менять его при появлении второго исхода незачем. «Здесь нечего записывать» —
- * отдельная строка под списком, не кнопка поверх клика по карточке: спутать одно с другим
- * значит подтвердить diff, который человек как раз собирался отклонить.
+ * Вид записи — плашкой в начале строки, а не колонкой: колонка шириной в «ограничение»
+ * отодвигала текст на треть ширины, и список читался как таблица, которую не читают.
  */
 function MemoryProposal({
   msg,
@@ -485,38 +486,36 @@ function MemoryProposal({
   const statusKey =
     msg.status && msg.status !== "ожидает" ? MEMORY_STATUS_KEY[msg.status] : "memory.proposal"
   return (
-    <div
-      onClick={() => {
-        if (pending) onConfirm(msg)
-      }}
-      className={cn("border-border my-3 border-l-2 py-0.5 pl-4", pending && "cursor-pointer")}
-    >
-      <div className="text-muted-foreground mb-2 text-sm">
+    <div className="border-border bg-muted/30 my-3 rounded-xl border p-4">
+      <div className="text-muted-foreground mb-3 text-sm">
         <b className="text-foreground font-medium">{msg.from}</b> {t(statusKey)}
       </div>
-      {/* Вид записи отдельной колонкой: так список читается как список, а не как
-          семь абзацев подряд. Текст не режем — принимают то, что видят целиком. */}
-      <div className="flex flex-col gap-2 text-base">
+      {/* Текст не режем и не прячем под «показать ещё»: принимают то, что видят целиком. */}
+      <div className="flex flex-col gap-2.5 text-base">
         {(msg.diff ?? []).map((d, i) => (
-          <div key={i} className="flex gap-3">
-            <span className="text-muted-foreground/60 w-3 shrink-0 text-center">
-              {MEMORY_ACTION[d.action] ?? "·"}
+          <div key={i} className="leading-relaxed">
+            <span className="bg-background text-muted-foreground mr-2 rounded px-1.5 py-0.5 align-[1px] text-xs whitespace-nowrap">
+              {MEMORY_ACTION[d.action] ?? ""}
+              {d.kind}
             </span>
-            <span className="text-muted-foreground w-24 shrink-0 text-sm leading-relaxed">{d.kind}</span>
-            <span className="min-w-0 flex-1">{typo(d.text)}</span>
+            {typo(d.text)}
           </div>
         ))}
       </div>
       {pending && (
-        <button
-          onClick={(e) => {
-            e.stopPropagation()
-            onReject(msg)
-          }}
-          className="text-muted-foreground/60 hover:text-foreground mt-2 text-sm underline decoration-dotted underline-offset-2 transition-colors"
-        >
-          {t("memory.reject")}
-        </button>
+        <div className="mt-4 flex gap-2">
+          <Button size="sm" variant="outline" onClick={() => onConfirm(msg)}>
+            {t("memory.confirm")}
+          </Button>
+          <Button
+            size="sm"
+            variant="ghost"
+            className="text-muted-foreground"
+            onClick={() => onReject(msg)}
+          >
+            {t("memory.reject")}
+          </Button>
+        </div>
       )}
     </div>
   )
