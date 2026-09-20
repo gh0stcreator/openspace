@@ -12,9 +12,9 @@
 ████ █    ████ █  █    █   ████ █    █  █ ████ ████   █
 ```
 
-[Concept](docs/concept.md) · [Architecture](docs/architecture.md) · [Evidence](docs/dynamics.md) · [Backlog](docs/todo.md) · [Русский](README.md)
+[Concept](docs/concept.md) · [Architecture](docs/architecture.md) · [Evidence](docs/dynamics.md) · [Changelog](CHANGELOG.md) · [Backlog](docs/todo.md) · [Русский](README.md)
 
-`node >=20` · engines: `claude`, `codex` · `npm test` — 17 tests
+`node >=20` · engines: `claude`, `codex` · `npm test` — 35 tests
 
 Not a chat with several models. A space for one task: you invite the minds it needs, you decide
 how exactly they should work together, and the conversation leaves behind more than a transcript.
@@ -227,9 +227,14 @@ premortem(launch)         looking for how this fails
 | --- | --- |
 | The decision is made and expensive to change | Strategy session |
 | There is a plan and a lot of confidence in it | Premortem |
-| The solution is ready; find where it breaks | Red team |
+| The solution is ready; find where it breaks | Roast |
+| Finished work — code, copy, a layout — and something is off | Review |
+| You defend a position tomorrow, and the questions will be sharp | Defense |
 | The obvious answer won't do; you need moves | Brainstorm |
 | A hard question, and the argument goes in circles | Six hats |
+| You want everyone's view, once each | Round |
+| You need one decision fast, without a common argument | Command |
+| The task goes through several pairs of hands in turn | Relay |
 | Just a conversation | Open |
 
 A mode is switched in the bar under the composer or straight from the empty screen. In an empty
@@ -303,7 +308,7 @@ receives only what appeared since its own last turn.
 - In free conversation, after N turns in a row without the human, everything pauses.
 - `Esc` pauses; an answer already in flight is not thrown away.
 
-Engines, access levels, context economy and the API —
+Engines, skills, context economy and the API —
 [`docs/architecture.md`](docs/architecture.md).
 
 ---
@@ -329,13 +334,13 @@ Memory    = learned what
 
 | Entity | Today |
 | --- | --- |
-| **Space** | one machine, rooms via `?room=` |
-| **Agent** | nickname, role, character, engine, model, access, avatar |
-| **Mode** | a set of modes and an editor for them |
-| **Rule** | partly: conversation rules and what a mode requires |
-| **Context** | partly: the shared goal of the conversation |
-| **Memory** | written, not wired yet (`lib/memory.js`) |
-| **Skill** | not yet |
+| **Space** | one machine, rooms via `?room=`; still called `room` in the code |
+| **Agent** | nickname, role, archetype, pole, domain, skills, model, avatar |
+| **Mode** | eleven modes and an editor — one field, as text |
+| **Rule** | the laws of the space reach every prompt; the order of rules is declared |
+| **Context** | partly: the working folder and the space's memory |
+| **Memory** | works: six kinds of records, the archivist proposes, the human confirms |
+| **Skill** | three per participant: files, commands, the web |
 
 The concept and roadmap — [`docs/concept.md`](docs/concept.md).
 
@@ -343,16 +348,20 @@ The concept and roadmap — [`docs/concept.md`](docs/concept.md).
 
 ```text
 0.1 Room       ██████████  done
-0.2 People     ████████░░  almost
-0.3 Modes      ██████░░░░  in progress
-0.4 Memory     ██░░░░░░░░  next
-0.5 Spaces     ░░░░░░░░░░
-0.6 Physics    ░░░░░░░░░░
-0.7 Skills     ░░░░░░░░░░
+0.2 People     ██████████  done
+0.3 Modes      █████████░  almost
+0.4 Memory     ███████░░░  in progress
+0.5 Spaces     ██░░░░░░░░  next
+0.6 Physics    ██████░░░░  in progress
+0.7 Skills     ██████░░░░  in progress
 ```
 
-**The product becomes itself at 0.4:** you leave the room, come back later — and it remembers
-what you worked out there.
+**Memory already works:** the archivist folds the conversation into decisions, findings,
+constraints, assumptions, open questions and lessons, offers them on a card, and you confirm
+with a click. What's missing is provenance — who wrote it down, when, and what superseded it.
+
+**Spaces are next:** rooms live on one machine and are still called `room` in the code.
+A space as a portable thing — with its own team, laws and memory — starts with that rename.
 
 ---
 
@@ -375,6 +384,7 @@ and stays out of the repository: these are your machine's settings.
 | `docs/concept.md` | the product concept and roadmap |
 | `docs/architecture.md` | engines, access, context economy, API |
 | `roles/` | agent roles |
+| `archetypes/` | ready-made voices: one file per archetype |
 | `modes/` | ways of working |
 
 ---
