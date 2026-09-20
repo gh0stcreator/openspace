@@ -342,6 +342,8 @@ export default function App() {
                 mode={state.modeState?.slug ?? (cfg.doing || "open")}
                 color={live ? now?.color : null}
                 colors={tones}
+                // У режима с персонами цвет не один: знак красится их цветами по буквам.
+                letters={live ? now?.sides?.map((x) => x.color).filter(Boolean) as string[] : undefined}
                 className={`transition-colors ${
                   live ? "hover:text-muted-foreground" : "text-destructive"
                 }`}

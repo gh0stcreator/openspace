@@ -34,6 +34,7 @@ export function Logo({
   subject,
   color,
   colors,
+  letters,
   className,
 }: {
   mode: string
@@ -42,6 +43,11 @@ export function Logo({
   color?: string | null
   /** Цвет по слагу: в перебор каждый режим приходит со своим. */
   colors?: Record<string, string>
+  /**
+   * Цвета по буквам левой половины. Нужны режиму, у которого цвет не один: у Смешариков
+   * их семь — по одному на персонажа, — и знак красится ими по кругу.
+   */
+  letters?: string[]
   className?: string
 }) {
   const wrap = React.useRef<HTMLSpanElement>(null)
@@ -98,12 +104,33 @@ export function Logo({
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [])
 
+  /**
+   * Написать слово. Обычно это одна строка текста; но если у половины есть цвета по буквам,
+   * каждая буква едет своим span-ом со своим тоном — иначе у слова один цвет на всех.
+   */
+  const write = React.useCallback((node: HTMLSpanElement, text: string, tones?: string[]) => {
+    if (!tones?.length) {
+      node.textContent = text
+      return
+    }
+    node.textContent = ""
+    for (const [i, ch] of [...text].entries()) {
+      const span = document.createElement("span")
+      span.textContent = ch
+      span.className = "tone-name"
+      const vars = toneVars(tones[i % tones.length]) as Record<string, string>
+      span.style.setProperty("--h", vars["--h"])
+      span.style.setProperty("--c", vars["--c"])
+      node.append(span)
+    }
+  }, [])
+
   /** Одна половина: слово уезжает вверх, подменяется и приходит снизу. */
-  const roll = React.useCallback((key: keyof Pair, next: string, tone?: string | null) => {
+  const roll = React.useCallback((key: keyof Pair, next: string, tone?: string | null, tones?: string[]) => {
     const box = part[key].current
     const node = word[key].current
     if (!box || !node) return
-    if (node.textContent === next) {
+    if (node.textContent === next && !tones?.length) {
       // Слово уже на месте, но половина могла застрять уехавшей: курсор ушёл
       // ровно между «уехал» и «подменился». Возвращаем её на место.
       box.classList.remove("is-out", "is-in")
@@ -115,8 +142,8 @@ export function Logo({
     box.classList.add("is-out")
     timers.current.push(
       window.setTimeout(() => {
-        node.textContent = next
-        if (key === "mode") paint(tone)
+        write(node, next, tones)
+        if (key === "mode") paint(tones?.length ? null : tone)
         box.style.width = `${measure(next)}px`
         box.classList.remove("is-out")
         box.classList.add("is-in")
@@ -125,7 +152,7 @@ export function Logo({
       }, HOLD[key])
     )
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [measure, paint])
+  }, [measure, paint, write])
 
   const drop = (bag = timers) => {
     bag.current.forEach(clearTimeout)
@@ -139,10 +166,10 @@ export function Logo({
    */
   const show = React.useCallback(
     (pair: Pair) => {
-      roll("mode", pair.mode, color)
+      roll("mode", pair.mode, color, letters)
       live.current.push(window.setTimeout(() => roll("subject", pair.subject), EVERY))
     },
-    [roll, color]
+    [roll, color, letters]
   )
 
   // Шрифт догружается позже разметки: после этого знак надо промерить заново.
@@ -154,8 +181,12 @@ export function Logo({
   // Первая покраска и смена цвета вместе с настоящим режимом. Под курсором цветом
   // распоряжается перебор, туда не лезем.
   React.useEffect(() => {
-    if (!hovering.current) paint(color)
-  }, [color, paint])
+    if (hovering.current) return
+    paint(letters?.length ? null : color)
+    // Первая отрисовка приходит из JSX одной строкой — буквы красим здесь же.
+    if (letters?.length && word.mode.current) write(word.mode.current, idle.current.mode, letters)
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [color, letters, paint, write])
 
   React.useEffect(() => {
     // Одно наведение — один показ: знак собирается в open(space), держится и возвращается
