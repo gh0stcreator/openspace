@@ -704,7 +704,13 @@ function Handoff({
 }) {
   // Владельца задачи зовут почти в каждой реплике — это разговор с ним, а не передача
   // работы. Блок остаётся для того, что он и означает: работа ушла к другому участнику.
-  const to = (msg.mentions ?? []).filter((n) => n !== msg.from && n !== user)
+  //
+  // И только если по тексту этого не видно. «Креатор, собери текст» и следом стрелка
+  // с тем же именем — строка, которая повторяет то, что человек уже прочитал.
+  const named = (n: string) =>
+    new RegExp(`(^|[^\\p{L}\\p{N}])@?${n.replace(/[.*+?^${}()|[\]\\]/g, "\\$&")}`, "iu")
+      .test(msg.text ?? "")
+  const to = (msg.mentions ?? []).filter((n) => n !== msg.from && n !== user && !named(n))
   if (!to.length) return null
   return (
     <div className="text-muted-foreground mt-1.5 flex flex-wrap items-center gap-x-1.5 gap-y-1 text-sm">

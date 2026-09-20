@@ -253,6 +253,7 @@
    как «иконки съехали вниз»: два пикселя на глаз видно. Равняем отступы. */
 [data-slot="input-group"] [data-slot="input-group-addon"][data-align^="inline"] {
   padding-bottom: 0.5rem;
+  padding-inline: 0.5rem;
 }
 
 /* Пункт меню и строка списка — с указателем: по ним щёлкают, и курсор обязан это
