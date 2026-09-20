@@ -16,7 +16,7 @@ const { Store } = await import('../lib/store.js');
 const sleep = (ms) => new Promise((r) => setTimeout(r, ms));
 const ROOM = 'r';
 
-function setup(names, { delays = {}, fail = {}, dir = null, stateDir = null, roles = {}, freeTalk = false, reply = null } = {}) {
+function setup(names, { delays = {}, fail = {}, dir = null, stateDir = null, roles = {}, freeTalk = false, reply = null, foldIdleMs = null } = {}) {
   dir = dir ?? fs.mkdtempSync(path.join(os.tmpdir(), 'openspace-test-'));
   const calls = [];
   const built = [];
@@ -39,6 +39,8 @@ function setup(names, { delays = {}, fail = {}, dir = null, stateDir = null, rol
     catchUp: 50,
     freeTalk,
     workdir: dir,
+    // Свёртку запускает тишина: в тестах ждать её штатные десять минут нечестно.
+    ...(foldIdleMs ? { foldIdleMs } : {}),
   };
   const orch = new Orchestrator({
     store: new Store(dir), config, build, log: { error() {} }, stateDir,
@@ -354,22 +356,29 @@ test('цепочка не обрывается молча: ход возвращ
   assert.equal(calls.filter((c) => c.step === 'ход человека').length, 1, 'пошли по кругу');
 });
 
-test('долгий свободный разговор сворачивается в память, когда встал', async () => {
+test('свёртку запускает тишина, а не остановка разговора', async () => {
   // Память живёт рядом с состоянием комнат, поэтому свёртка есть только со stateDir.
   const dir = fs.mkdtempSync(path.join(os.tmpdir(), 'openspace-fold-'));
   const { orch, calls } = setup(['первый', 'архив'], {
-    dir, stateDir: dir, roles: { архив: 'архивариус' }, freeTalk: true,
+    dir, stateDir: dir, roles: { архив: 'архивариус' }, freeTalk: true, foldIdleMs: 150,
   });
 
   // Десяти реплик мало: свёртка — отдельный вызов движка, на каждой паузе она дорога.
   for (let i = 0; i < 10; i += 1) orch.store.append(ROOM, { from: 'Roman', text: `реплика ${i}` });
   orch.post(ROOM, { from: 'первый', text: 'и я так думаю' });
-  await sleep(200);
+  await sleep(300);
   assert.ok(!calls.some((c) => c.step === 'свёртка'), 'свернули слишком рано');
 
-  // Порог перейдён — на следующей остановке разговор ложится в память.
+  // Порог перейдён — но разговор идёт: каждая реплика отодвигает свёртку, и карточка
+  // памяти посреди работы не появляется.
   for (let i = 0; i < 15; i += 1) orch.store.append(ROOM, { from: 'Roman', text: `ещё ${i}` });
   orch.post(ROOM, { from: 'первый', text: 'ну и ладно' });
+  await sleep(80);
+  orch.post(ROOM, { from: 'первый', text: 'хотя нет, вот ещё' });
+  await sleep(80);
+  assert.ok(!calls.some((c) => c.step === 'свёртка'), 'свернули посреди разговора');
+
+  // Замолчали — теперь ложится в память.
   await sleep(300);
   assert.ok(calls.some((c) => c.step === 'свёртка'), 'разговор кончился, а в памяти пусто');
 });
