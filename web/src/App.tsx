@@ -315,15 +315,13 @@ export default function App() {
                     <TooltipTrigger asChild>
                       {/* Состояние показано вокруг аватарки, а не вместо неё: цвет остаётся
                           опознавательным знаком участника и ничего не значит сам по себе. */}
-                      <span className={cn("relative rounded-full transition-opacity", at === "waiting" && "opacity-40")}>
-                        {/* Кольцо — отдельным слоем поверх: анимировать прозрачность самой
-                            аватарки значит мигать участником, а думает он, а не исчезает. */}
-                        {at === "working" && (
-                          <span
-                            aria-hidden
-                            className="ring-ring/60 ring-breathe pointer-events-none absolute -inset-[3px] rounded-full ring-2"
-                          />
+                      <span
+                        className={cn(
+                          "rounded-full transition-opacity",
+                          at === "working" && "breathe",
+                          at === "waiting" && "opacity-40"
                         )}
+                      >
                         <FaceButton
                           name={n}
                           icon={a.icon}
