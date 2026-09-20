@@ -8,7 +8,7 @@ import path from 'node:path';
 const dir = fs.mkdtempSync(path.join(os.tmpdir(), 'openspace-modes-'));
 process.env.SPACE_MODES_DIR = dir;
 const { parseMentions } = await import('../lib/mentions.js');
-const { loadMode, saveMode, stepTargets } = await import('../lib/modes.js');
+const { loadMode, saveMode, sideOf, stepTargets } = await import('../lib/modes.js');
 
 test('обращения: кириллица, регистр, знаки вокруг', () => {
   const known = ['Скептик', 'qa-bot', 'Roman'];
@@ -29,6 +29,24 @@ test('кого зовёт шаг: все, поимённо, по роли', () =
   assert.deepEqual(stepTargets({ who: 'все' }, names, roster), names);
   assert.deepEqual(stepTargets({ who: '@скептик, @никто' }, names, roster), ['Скептик']);
   assert.deepEqual(stepTargets({ who: 'роль: инженер' }, names, roster), ['Инженер']);
+});
+
+test('стороны режима: разбор, сторона по роли, круг «сохранили — прочитали»', () => {
+  const saved = saveMode({
+    name: 'спор', title: 'Спор', slug: 'argue',
+    sides: [
+      { label: 'За', labelEn: 'For', icon: 'thumbs-up', roles: ['креатор', 'инженер'] },
+      { label: 'Против', labelEn: 'Against', icon: '', roles: ['скептик'] },
+    ],
+    steps: [{ name: 'раз', who: 'все', hear: true, until: 'человек', prompt: 'п' }],
+  });
+  assert.deepEqual(saved.sides[0], { label: 'За', labelEn: 'For', icon: 'thumbs-up', roles: ['креатор', 'инженер'] });
+  // Знак необязателен: сторона без него остаётся стороной.
+  assert.deepEqual(saved.sides[1], { label: 'Против', labelEn: 'Against', icon: '', roles: ['скептик'] });
+  assert.equal(sideOf(saved, 'ИНЖЕНЕР').label, 'За');
+  assert.equal(sideOf(saved, 'дизайнер'), null);
+  // Режим без сторон — не ошибка: их нет у большинства.
+  assert.deepEqual(loadMode('x').sides, []);
 });
 
 test('режим переживает круг «сохранили — прочитали»', () => {

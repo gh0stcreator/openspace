@@ -25,7 +25,7 @@ import type { Agent, Msg } from "@/lib/api"
 import { eventType } from "@/lib/events"
 import { cn } from "@/lib/utils"
 import { typo } from "@/lib/typo"
-import { useLang } from "@/lib/i18n"
+import { pick, useLang } from "@/lib/i18n"
 
 /**
  * Палитра участников живёт в теме (index.css): там тон и насыщенность каждого цвета,
@@ -653,14 +653,24 @@ function Head({
   agent?: Agent
   onMention: (name: string) => void
 }) {
-  const { t } = useLang()
+  const { t, lang } = useLang()
   const sec = msg.meta?.elapsedMs ? Math.round(msg.meta.elapsedMs / 1000) : 0
   const tok = msg.meta?.usage?.input_tokens ?? 0
   const at = new Date(msg.ts).toLocaleTimeString("ru", { hour: "2-digit", minute: "2-digit" })
   const brief = [sec ? `${sec}с` : "", tok ? `${Math.round(tok / 1000)}k` : ""].filter(Boolean)
 
+  // Ник и сторона рядом: в споре важно и кто сказал, и за что он вышел. Ник — цветом
+  // участника, сторона — нейтральной плашкой: цвет опознаёт человека, а не лагерь,
+  // иначе две стороны сливаются в два цвета и участники перестают различаться.
   const name = (
-    <Name name={msg.from} color={agent?.color} onPick={onMention} className="font-semibold" />
+    <>
+      <Name name={msg.from} color={agent?.color} onPick={onMention} className="font-semibold" />
+      {msg.side && (
+        <span className="bg-muted text-muted-foreground rounded-full px-2 py-0.5 text-xs font-medium">
+          {pick(lang, msg.side.label, msg.side.labelEn)}
+        </span>
+      )}
+    </>
   )
 
   if (!brief.length) {
@@ -930,7 +940,14 @@ export function ChatFeed({ messages, user, agents, thinking, since, onReply, onM
                         className="group/msg cursor-pointer py-1.5"
                       >
                         <MessageAvatar className="-mt-1 self-start bg-transparent">
-                          <FaceButton name={m.from} icon={agent?.icon} color={agent?.color} onPick={onMention} />
+                          {/* Знак стороны сильнее знака роли: в споре видно «за» и «против»,
+                              а кто это — держит цвет, он у участника не меняется. */}
+                          <FaceButton
+                            name={m.from}
+                            icon={m.side?.icon || agent?.icon}
+                            color={agent?.color}
+                            onPick={onMention}
+                          />
                         </MessageAvatar>
                         <MessageContent className="gap-1">
                           <MessageHeader className="block px-0 text-sm">

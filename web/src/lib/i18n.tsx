@@ -124,12 +124,6 @@ const RU = {
   "space.resetBody":
     "У каждого своя память о разговоре, и она копится. Сброс её стирает: дальше они читают только хвост ленты. Сообщения в чате остаются",
   "space.reset": "Сбросить",
-  "space.cost": "Во что обходится вопрос",
-  "space.costMode": "Режим",
-  "space.costTimes": "вопросов",
-  "space.costTurns": "ходов",
-  "space.costTokens": "токенов",
-  "space.costNote": "В среднем от вашей реплики до возврата хода вам. Сравнивать режимы имеет смысл только по этим числам.",
   "space.clearTitle": "Очистить чат",
   "space.clearBody":
     "Сообщения уйдут из ленты, участники забудут разговор. Файл истории сохранится в rooms/ с отметкой времени",
@@ -315,12 +309,6 @@ const EN: Record<keyof typeof RU, string> = {
   "space.resetBody":
     "Each of them keeps their own memory of the conversation, and it piles up. A reset wipes it: after that they read only the tail of the feed. The messages stay",
   "space.reset": "Reset",
-  "space.cost": "What a question costs",
-  "space.costMode": "Mode",
-  "space.costTimes": "questions",
-  "space.costTurns": "turns",
-  "space.costTokens": "tokens",
-  "space.costNote": "On average, from your message until the turn comes back to you. Comparing modes makes sense only by these numbers.",
   "space.clearTitle": "Clear the feed",
   "space.clearBody":
     "Messages leave the feed and participants forget the conversation. The history file stays in rooms/ with a timestamp",

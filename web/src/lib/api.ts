@@ -12,6 +12,8 @@ export type Msg = {
   mentions: string[]
   /** Знак режима: лежит в самой отметке о его включении. */
   icon?: string
+  /** Сторона в режиме: кем участник был в этом споре. Остаётся в реплике навсегда. */
+  side?: Side
   files?: FileRef[]
   replyTo?: number
   meta?: { elapsedMs?: number; usage?: { input_tokens?: number } }
@@ -28,6 +30,12 @@ export type MemoryChange = {
 }
 
 export type FileRef = { name: string; size: number; url: string; path: string }
+
+/**
+ * Сторона в режиме: кто в нём за что. Роль говорит, что участник делает вообще,
+ * сторона — кем он вышел в этот разговор: Скептик в дебатах спорит как «против».
+ */
+export type Side = { label: string; labelEn: string; icon: string; roles?: string[] }
 
 export type Agent = {
   label: string
@@ -122,6 +130,8 @@ export type Mode = {
   icon: string
   /** Цвет режима из палитры участников. Пусто — без цвета. */
   color: string
+  /** Стороны режима: подпись, знак и роли, которые её занимают. */
+  sides: Side[]
   steps: { name: string; who: string; hear: boolean }[]
 }
 
@@ -129,10 +139,6 @@ export type Mode = {
 export type Step = { name: string; who: string; hear: boolean; until: string; prompt: string }
 /** Шаги текстом — то, что человек правит одним полем. Сервер разбирает его обратно. */
 export type FullMode = Omit<Mode, "steps"> & { steps: Step[]; source: string }
-
-/** Во что обошёлся вопрос: от реплики человека до возврата хода ему же. */
-export type Round = { room: string; mode: string; turns: number; tokens: number; ms: number; why: string; at: string }
-export type Rounds = { rounds: Round[]; byMode: { mode: string; n: number; turns: number; tokens: number; ms: number }[] }
 
 export type ModeState = {
   name: string
@@ -225,9 +231,6 @@ export const api = {
     }).then(json<{ mode: ModeState; off: string[] }>),
 
   modes: () => fetch("/api/modes").then(json<{ modes: FullMode[] }>),
-
-  rounds: (room: string) =>
-    fetch(`/api/rounds?room=${encodeURIComponent(room)}`).then(json<Rounds>),
 
   saveMode: (mode: Partial<FullMode> & { name: string }) =>
     fetch("/api/modes", {

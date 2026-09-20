@@ -16,7 +16,7 @@ lib/
   prompt.js        сборка системного промпта участника
   mentions.js      разбор @обращений и ответов на реплику
   memory.js        память пространства: решения, уроки, находки
-  rounds.js        во что обошёлся вопрос — ходы, токены, минуты
+  rounds.js        счётчик вопроса: ходы и токены до возврата хода человеку
   store.js         лента комнаты: rooms/<комната>.jsonl
   config.js        DEFAULTS и openspace.config.json
 ```
@@ -207,7 +207,6 @@ prompt: что участники делают на этом шаге
 | `POST` | `/api/clear?room=` | Очистить ленту (файл истории сохраняется) |
 | `POST` | `/api/upload?room=&name=` | Вложение |
 | `POST` | `/api/presence?room=` | `{ name, on }` — кто в этой комнате |
-| `GET` | `/api/rounds?room=` | Журнал вопросов: ходы, токены, минуты и среднее по режимам |
 | `POST` | `/api/memory/confirm?room=` | `{ seq }` — принять предложение архивариуса |
 | `POST` | `/api/memory/reject?room=` | `{ seq }` — отклонить |
 

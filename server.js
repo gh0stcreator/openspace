@@ -9,7 +9,6 @@ import { loadConfig } from './lib/config.js';
 import { roleOf, listRoles } from './lib/roles.js';
 import { loadArchetype, listArchetypes } from './lib/archetypes.js';
 import { SKILLS, skillsOf } from './lib/skills.js';
-import { read as readRounds } from './lib/rounds.js';
 import { BUILTIN, listModes, loadMode, removeMode, saveMode, stepTargets, bodyOf, stepsFrom } from './lib/modes.js';
 
 const root = path.dirname(fileURLToPath(import.meta.url));
@@ -73,6 +72,8 @@ const short = (m) => {
     needs: m.needs,
     // Кого режим просит, а в команде нет: выбирая режим, это стоит знать сразу.
     missing: m.needs.filter((n) => !present.includes(n.toLowerCase())),
+    // Кто в режиме за что: лента подписывает этим реплики, а карточка — состав.
+    sides: m.sides ?? [],
     steps: m.steps.map((st) => ({ name: st.name, who: st.who, hear: st.hear })),
   };
 };
@@ -254,11 +255,6 @@ const server = http.createServer(async (req, res) => {
     }
 
     // Журнал вопросов: во что обошёлся каждый и сколько в среднем стоит режим.
-    if (url.pathname === '/api/rounds' && req.method === 'GET') {
-      const room = url.searchParams.get('room') || config.defaultRoom;
-      return json(res, 200, readRounds(orch.stateDir, room));
-    }
-
     if (url.pathname === '/api/settings' && req.method === 'POST') {
       const body = await readBody(req);
       const patch = {};
