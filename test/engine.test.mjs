@@ -504,3 +504,16 @@ test('прораб заходит сам, когда накопилось, а н
   await sleep(250);
   assert.ok(calls.some((c) => c.step === 'хвосты'), 'накопилось, а хвосты никто не посмотрел');
 });
+
+test('пока ход у человека, прораб за хвостами не ходит', async () => {
+  const { orch, calls } = setup(['первый', 'сборщик'], {
+    roles: { сборщик: 'продюсер' }, freeTalk: true,
+  });
+
+  for (let i = 0; i < 14; i += 1) orch.store.append(ROOM, { from: 'первый', text: `кусок ${i}` });
+  // Он уже спросил человека и ответа не дождался: «хвост» тут только один — ход человека.
+  orch.store.append(ROOM, { from: 'сборщик', text: 'Roman, за тобой решение', mentions: ['Roman'] });
+  orch.post(ROOM, { from: 'первый', text: 'и ещё', mentions: [] });
+  await sleep(250);
+  assert.ok(!calls.some((c) => c.step === 'хвосты'), 'напомнил о том же, пока ход у человека');
+});
