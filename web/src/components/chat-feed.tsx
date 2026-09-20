@@ -224,8 +224,14 @@ function Rich({
         const name = m[6]
         out.push(m[5])
         const hit = known.find((k) => k.toLowerCase() === name.toLowerCase())
+        // Обращение — цветом того, кого позвали: имя в ленте и имя в тексте должны
+        // опознаваться одинаково, иначе цвет перестаёт быть признаком участника.
         out.push(
-          hit ? <Name key={i++} name={hit} onPick={onMention} /> : `@${name}`
+          hit ? (
+            <Name key={i++} name={hit} color={getAgent(agents, hit)?.color} onPick={onMention} />
+          ) : (
+            `@${name}`
+          )
         )
       }
       last = re.lastIndex
