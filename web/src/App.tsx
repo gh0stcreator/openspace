@@ -534,7 +534,7 @@ export default function App() {
                         {current && <Check className="size-3.5 shrink-0" />}
                       </span>
                       <span className="text-muted-foreground/80 text-sm leading-snug">
-                        {pick(lang, m.for || m.brief, m.forEn || m.briefEn)}
+                        {typo(pick(lang, m.for || m.brief, m.forEn || m.briefEn))}
                       </span>
                       {m.missing.length > 0 && (
                         <span className="text-destructive/90 mt-0.5 flex items-center gap-1 text-sm">

@@ -15,6 +15,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { Textarea } from "@/components/ui/textarea"
 import { FacePicker } from "@/components/face-picker"
 import { useLang, pick, type Key } from "@/lib/i18n"
+import { typo } from "@/lib/typo"
 import type { Agent, Settings } from "@/lib/api"
 
 /** Модели, которые понимают движки. Пустое значение — движок берёт свою по умолчанию. */
@@ -74,7 +75,7 @@ export function AgentCard({ name, agent, settings, autoOpen, onChange, onRename,
         <button className="min-w-0 flex-1 text-left" onClick={() => setOpen((v) => !v)}>
           <div className="text-sm font-medium capitalize">{name}</div>
           <div className="text-muted-foreground truncate text-sm">
-            {pick(lang, agent.brief, agent.briefEn)}
+            {typo(pick(lang, agent.brief, agent.briefEn))}
           </div>
         </button>
 
