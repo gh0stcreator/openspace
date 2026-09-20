@@ -281,7 +281,10 @@ export function SettingsDialog({
             </DialogHeader>
             {/* Пункт — кнопка в 36 пикселей с текстом по центру, подпись поля — строка сверху.
                 Чтобы их текст лёг на одну линию, список поднят на половину этой разницы. */}
-            <TabsList className="mt-4 w-full gap-0.5 bg-transparent p-0">
+            {/* Отступ подобран так, чтобы первый пункт стоял на одной строке с первым полем
+                раздела: колонка и содержимое читаются как один ряд, а не как два списка,
+                начатых на разной высоте. */}
+            <TabsList className="mt-7 w-full gap-0.5 bg-transparent p-0">
               <TabsTrigger value="general" className={NAV}>
                 <Gear /> {t("settings.general")}
               </TabsTrigger>
@@ -299,7 +302,7 @@ export function SettingsDialog({
           </div>
 
           {/* Я. Как меня зовут, как я выгляжу и на каком языке говорит оболочка. */}
-          <TabsContent value="general" className="pane-fade min-w-0 flex-1 overflow-y-auto p-6">
+          <TabsContent value="general" className="pane-fade flex min-w-0 flex-1 flex-col overflow-y-auto p-6">
             <div className="pane-head">
               <h2 className="text-xl font-semibold">{t("settings.general")}</h2>
             </div>
@@ -350,29 +353,31 @@ export function SettingsDialog({
                 </Select>
               </Field>
 
-              {/* Чей это продукт. Внизу своего раздела, а не под навигацией: в колонке
-                  разделов ссылка наружу читается как ещё один раздел настроек. */}
-              <div className="text-muted-foreground mt-2 flex flex-wrap items-center gap-x-5 gap-y-2 text-sm">
-                <a
-                  className="hover:text-foreground flex items-center gap-2"
-                  href={AUTHOR.channel}
-                  target="_blank"
-                  rel="noopener"
-                >
-                  <Romantic className="size-4 shrink-0" />
-                  {t("general.channel")}
-                </a>
-                <a
-                  className="hover:text-foreground flex items-center gap-2"
-                  href={AUTHOR.repo}
-                  target="_blank"
-                  rel="noopener"
-                >
-                  <Octocat className="size-4 shrink-0" />
-                  GitHub
-                </a>
-              </div>
             </FieldGroup>
+
+            {/* Чей это продукт. У нижнего края раздела и тише текста: это подпись автора,
+                а не настройка. В колонке разделов такая ссылка читалась как ещё один раздел,
+                а сразу под «Темой» — как продолжение полей. */}
+            <div className="text-muted-foreground/60 mt-auto flex flex-wrap items-center gap-x-5 gap-y-2 pt-10 text-sm">
+              <a
+                className="hover:text-foreground flex items-center gap-2 transition-colors"
+                href={AUTHOR.channel}
+                target="_blank"
+                rel="noopener"
+              >
+                <Romantic className="size-4 shrink-0" />
+                {t("general.channel")}
+              </a>
+              <a
+                className="hover:text-foreground flex items-center gap-2 transition-colors"
+                href={AUTHOR.repo}
+                target="_blank"
+                rel="noopener"
+              >
+                <Octocat className="size-4 shrink-0" />
+                GitHub
+              </a>
+            </div>
           </TabsContent>
 
           {/* КТО. Состав команды и что каждый умеет. */}
