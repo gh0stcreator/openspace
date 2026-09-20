@@ -379,10 +379,14 @@ const server = http.createServer(async (req, res) => {
         : orch.stopMode(room);
       // Один тихий след в ленте: как теперь работаем. Пишем только по действию
       // человека — внутри режима шаги сменяются сами, и комментировать их незачем.
+      const now = mode ? loadMode(mode.name) : loadMode(BUILTIN);
       store.append(room, {
         from: 'system',
-        kind: 'system',
-        text: mode ? mode.title : loadMode(BUILTIN).title,
+        kind: 'mode',
+        text: now.title,
+        // Знак кладём в саму отметку: иначе лента опознавала бы режим по тексту,
+        // а от переименования такое опознание ломается молча.
+        icon: now.icon,
         mentions: [],
       });
       // Режим приводит свой состав, поэтому присутствие возвращаем вместе с ним.

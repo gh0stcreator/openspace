@@ -17,6 +17,7 @@ export type ThreadEvent =
   | { type: "agent-message"; msg: Msg; handoff: string[] }
   | { type: "handoff"; msg: Msg; to: string[] }
   | { type: "system-event"; msg: Msg }
+  | { type: "mode-change"; msg: Msg }
   | { type: "memory-proposal"; msg: Msg }
   | { type: "stage-transition"; msg: Msg; name: string; step?: number; steps?: number }
   | { type: "agent-activity"; who: string; since: number }
@@ -36,6 +37,7 @@ const handoffOf = (m: Msg) => (m.mentions ?? []).filter((n) => n !== m.from)
 export function eventType(m: Msg, user: string): ThreadEvent["type"] {
   if (m.kind === "message") return m.from === user ? "human-message" : "agent-message"
   if (m.kind === "memory-proposal") return "memory-proposal"
+  if (m.kind === "mode") return "mode-change"
   return "system-event"
 }
 
@@ -49,6 +51,9 @@ export function thread(messages: Msg[], user: string): ThreadEvent[] {
         break
       case "memory-proposal":
         out.push({ type: "memory-proposal", msg })
+        break
+      case "mode":
+        out.push({ type: "mode-change", msg })
         break
       case "system":
       case "error":

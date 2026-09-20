@@ -161,12 +161,15 @@ function Name({
   color,
   onPick,
   className = "font-bold",
+  children,
 }: {
   name: string
   color?: string | null
   onPick: (name: string) => void
   /** Вес: в тексте имя жирное, над репликой — весом заголовка. */
   className?: string
+  /** Что показать вместо ника: в тексте имя склоняется — «Инженера», «Дизайнеру». */
+  children?: React.ReactNode
 }) {
   return (
     // Кнопка стоит в строке текста: Button из системы — inline-flex со своей высотой,
@@ -180,7 +183,7 @@ function Name({
         onPick(name)
       }}
     >
-      {name}
+      {children ?? name}
     </button>
   )
 }
@@ -199,7 +202,21 @@ function Rich({
 }) {
   const parts = React.useMemo(() => {
     const out: React.ReactNode[] = []
-    const re = /```(\w*)\n?([\s\S]*?)```|`([^`\n]+)`|\*\*([^*\n]+)\*\*|(^|[\s(,:;«"'[])@([a-z0-9_\-Ѐ-ӿ]+)/gi
+    // Участники зовут друг друга словами, а не тегами: тег будит, а они просто ссылаются.
+    // Поэтому имя узнаём и без собаки — с русскими окончаниями и только с большой буквы:
+    // «Инженера» в реплике — это он, «инженера» строчными — профессия.
+    const named = known
+      .map((n) => n.replace(/[.*+?^${}()|[\]\\]/g, "\\$&"))
+      .sort((a, b) => b.length - a.length)
+      .join("|")
+    const re = new RegExp(
+      "```(\\w*)\\n?([\\s\\S]*?)```" +
+        "|`([^`\\n]+)`" +
+        "|\\*\\*([^*\\n]+)\\*\\*" +
+        "|(^|[\\s(,:;«\"'\\[])@([a-zA-Z0-9_\\-Ѐ-ӿ]+)" +
+        (named ? `|(?<![\\p{L}\\p{N}])(${named})(а|у|ом|е|ы|ов|ам|ами|ах)?(?![\\p{L}\\p{N}])` : ""),
+      "gu"
+    )
     let last = 0
     let m: RegExpExecArray | null
     let i = 0
@@ -225,6 +242,20 @@ function Rich({
         )
       } else if (m[4]) {
         out.push(<b key={i++}>{m[4]}</b>)
+      } else if (m[7]) {
+        // Имя без собаки: показываем цветом, но передачей хода это не считается —
+        // её по-прежнему определяют разобранные сервером обращения.
+        const word = m[7]
+        const hit = known.find((k) => k.toLowerCase() === word.toLowerCase())
+        out.push(
+          hit ? (
+            <Name key={i++} name={hit} color={getAgent(agents, hit)?.color} onPick={onMention}>
+              {word + (m[8] ?? "")}
+            </Name>
+          ) : (
+            word + (m[8] ?? "")
+          )
+        )
       } else if (m[6]) {
         const name = m[6]
         out.push(m[5])
@@ -608,6 +639,20 @@ export function ChatFeed({ messages, user, agents, thinking, onReply, onMention,
                       </MessageScrollerItem>
                     ))}
                   </React.Fragment>
+                )
+              }
+
+              if (type === "mode-change") {
+                // Смена режима — единственный служебный след в разговоре, и он должен
+                // читаться с одного взгляда: знак режима и его имя, а не просто слово.
+                return (
+                  <MessageScrollerItem key={first.id} messageId={first.id}>
+                    <div className="text-muted-foreground/70 my-3 flex items-center justify-center gap-1.5 text-sm">
+                      <span>{t("feed.modeOn")}</span>
+                      <Icon name={first.icon} className="size-4" />
+                      <b className="text-foreground/80 font-medium">{first.text}</b>
+                    </div>
+                  </MessageScrollerItem>
                 )
               }
 

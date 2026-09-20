@@ -3,13 +3,15 @@ export type Msg = {
   id: string
   room: string
   from: string
-  kind: "message" | "system" | "error" | "edit" | "memory-proposal" | "memory-resolved"
+  kind: "message" | "system" | "error" | "edit" | "mode" | "memory-proposal" | "memory-resolved"
   /** Событие правки: какую реплику и на что. Сама реплика после правки несёт `edited`. */
   target?: number
   edited?: number
   text: string
   ts: number
   mentions: string[]
+  /** Знак режима: лежит в самой отметке о его включении. */
+  icon?: string
   files?: FileRef[]
   replyTo?: number
   meta?: { elapsedMs?: number; usage?: { input_tokens?: number } }
