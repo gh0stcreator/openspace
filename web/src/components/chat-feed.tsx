@@ -773,9 +773,12 @@ export function ChatFeed({ messages, user, agents, thinking, onReply, onMention,
                             <Files files={m.files} />
                             <Handoff msg={m} agents={agents} user={user} onPick={onMention} />
                           </div>
-                          <MessageFooter className="px-0 font-normal">
+                          {/* Не MessageFooter: базовая карточка поднимает аватарку
+                              на 32px, как только внутри появляется низ, — это верно
+                              для своего пузыря справа и ломает строку слева. */}
+                          <div className="flex items-center">
                             <CopyButton text={m.text} />
-                          </MessageFooter>
+                          </div>
                         </MessageContent>
                       </Message>
                     </MessageScrollerItem>
