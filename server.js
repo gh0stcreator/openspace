@@ -308,7 +308,9 @@ const server = http.createServer(async (req, res) => {
           if (a.color) agents[name].color = a.color;
           if (a.promptCustom?.trim()) agents[name].prompt = a.promptCustom.trim();
           else delete agents[name].prompt;
-          if (a.manner?.trim()) agents[name].manner = a.manner.trim();
+          // Именно mannerCustom: в manner лежит то, что видно в поле, — голос амплуа.
+          // Читая его, сохранение делало своим голосом каждого, кто просто открыл карточку.
+          if (a.mannerCustom?.trim()) agents[name].manner = a.mannerCustom.trim();
           else delete agents[name].manner;
           // Своё амплуа держим, только если оно отличается от объявленного ролью:
           // иначе смена роли не меняла бы голос, а тащила бы за собой прежний.

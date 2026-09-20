@@ -21,13 +21,14 @@ import {
   AlertDialogTitle,
   AlertDialogTrigger,
 } from "@/components/ui/alert-dialog"
-import { Field, FieldDescription, FieldLabel } from "@/components/ui/field"
+import { Field, FieldLabel } from "@/components/ui/field"
+import { Tooltip, TooltipContent, TooltipTrigger } from "@/components/ui/tooltip"
 import { FacePicker } from "@/components/face-picker"
 import { Input } from "@/components/ui/input"
 import { Textarea } from "@/components/ui/textarea"
 
 import { typo } from "@/lib/typo"
-import { useLang, plural, pick } from "@/lib/i18n"
+import { useLang, pick } from "@/lib/i18n"
 import type { FullMode } from "@/lib/api"
 
 /**
@@ -64,7 +65,6 @@ export function ModeCard({
    *  разбор на каждую букву ломал бы шаг ровно посередине набора. */
   const [draft, setDraft] = React.useState(mode.source)
   React.useEffect(() => setDraft(mode.source), [mode.source])
-  const blind = mode.steps.filter((x) => !x.hear).length
   const patch = (p: Partial<FullMode>) => onChange({ ...mode, ...p })
 
   return (
@@ -137,13 +137,16 @@ export function ModeCard({
               и текст прятали главное и заставляли собирать режим по частям. Текст —
               источник правды, сервер разбирает его обратно в шаги. */}
           <Field>
-            <div className="flex items-baseline justify-between gap-2">
-              <FieldLabel htmlFor={`steps-${mode.name}`}>{t("mode.steps")}</FieldLabel>
-              <span className="text-muted-foreground text-xs">
-                {mode.steps.length} {plural(lang, mode.steps.length, [t("mode.stepOne"), t("mode.stepFew"), t("mode.stepMany")])}
-                {blind > 0 && ` · ${blind} ${t("step.blind")}`}
-              </span>
-            </div>
+              <Tooltip>
+                <TooltipTrigger asChild>
+                  <FieldLabel htmlFor={`steps-${mode.name}`} className="cursor-help">
+                    {t("mode.steps")}
+                  </FieldLabel>
+                </TooltipTrigger>
+                {/* Разметку шагов объясняем по наведению: тем, кто её уже знает,
+                    абзац под полем мешает, а нужен он ровно один раз. */}
+                <TooltipContent className="max-w-80">{t("mode.stepsNote")}</TooltipContent>
+              </Tooltip>
             <Textarea
               id={`steps-${mode.name}`}
               rows={12}
@@ -153,7 +156,6 @@ export function ModeCard({
               onChange={(e) => setDraft(e.target.value)}
               onBlur={() => draft !== mode.source && patch({ source: draft })}
             />
-            <FieldDescription>{t("mode.stepsNote")}</FieldDescription>
           </Field>
 
           <div className="grid gap-3 sm:grid-cols-[1fr_1.4fr_auto]">

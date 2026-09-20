@@ -96,7 +96,7 @@ export function AgentCard({ name, agent, settings, autoOpen, onChange, onRename,
   // из файла. Поэтому «вернуть как было» — это просто выбрать базовое амплуа в списке.
   const wear = (n: string) => {
     const a = settings.archetypes.find((x) => x.name === n)
-    onChange({ archetype: a?.title ?? n, manner: "" })
+    onChange({ archetype: a?.title ?? n, manner: "", mannerCustom: null })
   }
 
   return (
@@ -152,7 +152,9 @@ export function AgentCard({ name, agent, settings, autoOpen, onChange, onRename,
       <CollapsibleContent className="data-[state=closed]:animate-collapsible-up data-[state=open]:animate-collapsible-down overflow-hidden">
         <div className="grid gap-5 pt-1 pb-4">
           {/* Сначала кто это и что делает, техническое — ниже. */}
-          <div className="grid gap-3 sm:grid-cols-[1fr_1.4fr]">
+          {/* Колонки одинаковой ширины: пара полей в ряд читается как пара, только
+              когда они равны — иначе правое выглядит важнее левого без причины. */}
+          <div className="grid gap-3 sm:grid-cols-2">
             <Field>
               <FieldLabel htmlFor={`nick-${name}`}>{t("card.nick")}</FieldLabel>
               <Input
@@ -186,7 +188,9 @@ export function AgentCard({ name, agent, settings, autoOpen, onChange, onRename,
 
           {/* Амплуа — готовый голос: выбор кладёт его текст целиком в поле ниже,
               дальше он правится руками. Роль отвечает на «что делает», амплуа — на
-              «как звучит», и одно к другому не привязано намертво. */}
+              «как звучит», и одно к другому не привязано намертво. Модель рядом:
+              обе строки про то, как участник звучит и чем думает. */}
+          <div className="grid gap-3 sm:grid-cols-2">
           <Field>
             <FieldLabel>{t("card.archetype")}</FieldLabel>
             <Select
@@ -237,44 +241,7 @@ export function AgentCard({ name, agent, settings, autoOpen, onChange, onRename,
             </AlertDialog>
           </Field>
 
-          {/* Текста роли в карточке нет: роль — файл в roles/, там её и правят.
-              Поле, заменявшее её целиком, стирало характер одной строкой и было
-              третьим способом сказать то же, что закон пространства или новая роль. */}
-          <Field>
-            <FieldLabel htmlFor={`manner-${name}`}>{t("card.manner")}</FieldLabel>
-            <Textarea
-              id={`manner-${name}`}
-              rows={8}
-              value={agent.manner ?? ""}
-              placeholder={t("card.mannerHint")}
-              className="max-h-72 text-xs leading-relaxed"
-              onChange={(e) => onChange({ manner: e.target.value })}
-            />
-          </Field>
-
-          <div className="grid gap-3 border-t pt-4 sm:grid-cols-3">
             <Field>
-              <FieldLabel>{t("card.skills")}</FieldLabel>
-              {/* Умения выдают поштучно: выдача и есть разрешение. Прежний «уровень
-                  доступа» отвечал сразу на два вопроса — что умеет и что позволено. */}
-              <div className="divide-y rounded-lg border">
-                {settings.skillList.map((k) => (
-                  <Label
-                    key={k}
-                    className="flex items-center justify-between gap-3 px-3 py-2.5 text-sm font-normal"
-                  >
-                    {t(`skill.${k}` as never)}
-                    <Switch
-                      checked={agent.skills.includes(k)}
-                      onCheckedChange={(v) =>
-                        onChange({ skills: v ? [...agent.skills, k] : agent.skills.filter((x) => x !== k) })
-                      }
-                    />
-                  </Label>
-                ))}
-              </div>
-            </Field>
-            <Field className="sm:col-span-2">
               <FieldLabel>{t("card.model")}</FieldLabel>
               <Select
                 value={brainValue(agent)}
@@ -303,6 +270,45 @@ export function AgentCard({ name, agent, settings, autoOpen, onChange, onRename,
                   ))}
                 </SelectContent>
               </Select>
+            </Field>
+          </div>
+
+          {/* Текста роли в карточке нет: роль — файл в roles/, там её и правят.
+              Поле, заменявшее её целиком, стирало характер одной строкой и было
+              третьим способом сказать то же, что закон пространства или новая роль. */}
+          <Field>
+            <FieldLabel htmlFor={`manner-${name}`}>{t("card.manner")}</FieldLabel>
+            <Textarea
+              id={`manner-${name}`}
+              rows={8}
+              value={agent.manner ?? ""}
+              placeholder={t("card.mannerHint")}
+              className="max-h-72 text-xs leading-relaxed"
+              onChange={(e) => onChange({ manner: e.target.value, mannerCustom: e.target.value })}
+            />
+          </Field>
+
+          <div className="border-t pt-4">
+            <Field>
+              <FieldLabel>{t("card.skills")}</FieldLabel>
+              {/* Умения выдают поштучно: выдача и есть разрешение. Прежний «уровень
+                  доступа» отвечал сразу на два вопроса — что умеет и что позволено. */}
+              <div className="divide-y rounded-lg border">
+                {settings.skillList.map((k) => (
+                  <Label
+                    key={k}
+                    className="flex items-center justify-between gap-3 px-3 py-2.5 text-sm font-normal"
+                  >
+                    {t(`skill.${k}` as never)}
+                    <Switch
+                      checked={agent.skills.includes(k)}
+                      onCheckedChange={(v) =>
+                        onChange({ skills: v ? [...agent.skills, k] : agent.skills.filter((x) => x !== k) })
+                      }
+                    />
+                  </Label>
+                ))}
+              </div>
             </Field>
           </div>
           </div>
