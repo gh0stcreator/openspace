@@ -17,24 +17,12 @@ import { toneVars } from "@/components/chat-feed"
 export type Pair = { mode: string; subject: string }
 
 /**
- * Что знак показывает под курсором. Слева — настоящие слаги режимов, справа — темы
- * разговора: правая половина в демонстрации не комната, а пример того, о чём говорят.
- *
- * Списки независимы: половины берутся из них по отдельности, поэтому сочетание каждый
- * раз новое — знак показывает грамматику, а не готовый набор фраз.
+ * Что знак показывает под курсором — всегда одно и то же: open(space), имя продукта.
+ * Случайные пары из списков показывали грамматику знака, но выглядели как подмена
+ * наугад: слово менялось на слово, и прочитать в этом было нечего. Собственное имя
+ * под курсором и возврат к настоящему состоянию — это один понятный жест.
  */
-const MODES = ["open", "defense", "brainstorm", "roast", "review", "sixhats"]
-const SUBJECTS = ["space", "pitch", "product", "design", "code", "idea"]
-
-/**
- * Слово из списка, кроме названных. Исключаем и то, что сейчас на экране (подмена
- * на себя же выглядит заминкой), и то, что показывали в прошлый раз: два одинаковых
- * наведения подряд читаются как поломка, а не как случайность.
- */
-const other = (list: string[], ...skip: (string | undefined)[]) => {
-  const pool = list.filter((w) => !skip.includes(w))
-  return pool[Math.floor(Math.random() * pool.length)] ?? list[0]
-}
+const HOME: Pair = { mode: "open", subject: "space" }
 
 // Слово уезжает, через HOLD подменяется и приходит обратно. Одно значение на обе
 // половины: движение у них общее. EVERY — пауза между левой и правой, STAY — сколько
@@ -75,8 +63,6 @@ export function Logo({
   const live = React.useRef<number[]>([])
   const hovering = React.useRef(false)
   const playing = React.useRef(false)
-  /** Что показывали в прошлое наведение: второй раз подряд это же не берём. */
-  const last = React.useRef<Partial<Pair>>({})
 
   /** Пробник внутри знака наследует шрифт, кегль и трекинг. */
   const measure = React.useCallback((s: string) => {
@@ -174,18 +160,15 @@ export function Logo({
   }, [color, paint])
 
   React.useEffect(() => {
-    // Одно наведение — один показ: левая половина, следом правая, пауза, и знак разом
-    // возвращается к настоящему состоянию. Карусель под курсором мигала бы сбоку
-    // от текста, и выключить её можно было бы только уведя мышь.
+    // Одно наведение — один показ: знак собирается в open(space), держится и возвращается
+    // к настоящему состоянию. Карусель под курсором мигала бы сбоку от текста,
+    // и выключить её можно было бы только уведя мышь.
     const enter = () => {
       if (playing.current) return
       hovering.current = true
       playing.current = true
-      const mode = other(MODES, idle.current.mode, last.current.mode)
-      const subject = other(SUBJECTS, idle.current.subject, last.current.subject)
-      last.current = { mode, subject }
-      roll("mode", mode, colors?.[mode])
-      timers.current.push(window.setTimeout(() => roll("subject", subject), EVERY))
+      roll("mode", HOME.mode, colors?.[HOME.mode])
+      timers.current.push(window.setTimeout(() => roll("subject", HOME.subject), EVERY))
       timers.current.push(
         window.setTimeout(() => {
           playing.current = false

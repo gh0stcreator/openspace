@@ -37,6 +37,8 @@ export type Agent = {
   /** Амплуа: одно слово про место в ансамбле. Приходит из роли, в карточке не правится. */
   archetype: string
   archetypeEn: string
+  /** Куда роль тянет разговор: полюс оси. Пусто — роль вне пар (ведёт или молчит). */
+  pulls: string
   icon: string
   iconCustom: string | null
   color: string | null
@@ -44,7 +46,9 @@ export type Agent = {
   briefEn: string
   prompt: string
   promptCustom: string | null
+  /** Голос, который реально работает: своё поле, текст амплуа или голос роли. */
   manner: string
+  mannerCustom: string | null
   engine: string
   model: string | null
   trust: string
@@ -84,7 +88,10 @@ export type Settings = Omit<Config, "defaultResponders" | "off" | "rooms"> & {
     archetype: string
     archetypeEn: string
     model: string
+    pulls: string
   }[]
+  /** Амплуа — готовые голоса. Выбор кладёт текст целиком в поле «как говорит». */
+  archetypes: { name: string; title: string; titleEn: string; brief: string; briefEn: string; voice: string }[]
   engines: string[]
   trustLevels: string[]
   icons: Record<string, string>

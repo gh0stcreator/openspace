@@ -166,16 +166,57 @@ export function AgentCard({ name, agent, settings, autoOpen, onChange, onRename,
             </Field>
           </div>
 
+          {/* Амплуа — готовый голос: выбор кладёт его текст целиком в поле ниже,
+              дальше он правится руками. Роль отвечает на «что делает», амплуа — на
+              «как звучит», и одно к другому не привязано намертво. */}
+          <Field>
+            <FieldLabel>{t("card.archetype")}</FieldLabel>
+            <Select
+              value={agent.archetype.toLowerCase()}
+              onValueChange={(v) => {
+                const a = settings.archetypes.find((x) => x.name === v)
+                onChange({ archetype: a?.title ?? v, manner: a?.voice ?? "" })
+              }}
+            >
+              <SelectTrigger>
+                <SelectValue>{agent.archetype}</SelectValue>
+              </SelectTrigger>
+              <SelectContent>
+                {settings.archetypes.map((a) => (
+                  <SelectItem key={a.name} value={a.name}>
+                    <span className="grid gap-0.5">
+                      {pick(lang, a.title, a.titleEn)}
+                      <span className="text-muted-foreground text-xs">{pick(lang, a.brief, a.briefEn)}</span>
+                    </span>
+                  </SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
+          </Field>
+
           {/* Текста роли в карточке нет: роль — файл в roles/, там её и правят.
               Поле, заменявшее её целиком, стирало характер одной строкой и было
               третьим способом сказать то же, что закон пространства или новая роль. */}
           <Field>
-            <FieldLabel htmlFor={`manner-${name}`}>{t("card.manner")}</FieldLabel>
+            <div className="flex items-baseline justify-between gap-2">
+              <FieldLabel htmlFor={`manner-${name}`}>{t("card.manner")}</FieldLabel>
+              {agent.mannerCustom && (
+                <Button
+                  variant="ghost"
+                  size="xs"
+                  className="text-muted-foreground"
+                  onClick={() => onChange({ manner: "" })}
+                >
+                  {t("card.mannerReset")}
+                </Button>
+              )}
+            </div>
             <Textarea
               id={`manner-${name}`}
-              rows={3}
+              rows={8}
               value={agent.manner ?? ""}
               placeholder={t("card.mannerHint")}
+              className="text-xs leading-relaxed"
               onChange={(e) => onChange({ manner: e.target.value })}
             />
           </Field>

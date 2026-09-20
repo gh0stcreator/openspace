@@ -221,7 +221,11 @@ export function Composer({
   // Плейсхолдер держим в одну строку: иначе поле растянуто под него и прыгает, когда начинаешь
   // писать. Спрашивает он ровно то, с чего начинается выбранный режим: «Какое решение будем
   // проверять?» объясняет вход лучше, чем любая подпись рядом с полем.
-  const hint = t(`composer.hint.${mode ?? "open"}` as never) || t("composer.placeholder")
+  // Отвечая на реплику, поле не должно выглядеть так же, как в покое: подсказка
+  // называет адресата, иначе единственный признак ответа — цитата, и её проматывают.
+  const hint = replyTo
+    ? t("composer.replyTo", { name: replyTo.from })
+    : t(`composer.hint.${mode ?? "open"}` as never) || t("composer.placeholder")
 
   return (
     <div className="bg-background">

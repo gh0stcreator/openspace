@@ -29,7 +29,7 @@ import { Label } from "@/components/ui/label"
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
 import { Switch } from "@/components/ui/switch"
 import { Textarea } from "@/components/ui/textarea"
-import { Icon } from "@/components/chat-feed"
+
 import { cn } from "@/lib/utils"
 import { typo } from "@/lib/typo"
 import { useLang, plural, pick, type Lang } from "@/lib/i18n"
@@ -184,9 +184,14 @@ export function ModeCard({
     <Collapsible open={open} onOpenChange={setOpen} asChild>
       <div aria-current={current || undefined}>
       <div className="flex min-h-16 items-center gap-3 py-3">
-        <span className="bg-muted text-muted-foreground flex size-10 shrink-0 items-center justify-center rounded-full">
-          <Icon name={mode.icon} className="size-5" />
-        </span>
+        {/* Знак и цвет меняются тем же кружком, что и у участника: одно правило на всех.
+            Отдельная строка «цвет и знак» под шапкой была вторым способом сделать то же. */}
+        <FacePicker
+          name={mode.title}
+          icon={mode.icon}
+          color={mode.color || null}
+          onChange={(v) => patch(v.icon !== undefined ? { icon: v.icon } : { color: v.color })}
+        />
 
         <button className="min-w-0 flex-1 text-left" onClick={() => setOpen((v) => !v)}>
           <div className="text-sm font-medium">{pick(lang, mode.title, mode.titleEn)}</div>
@@ -242,29 +247,7 @@ export function ModeCard({
       {/* Раскрытие анимируем компонентом системы: карточка не прыгает. */}
       <CollapsibleContent className="data-[state=closed]:animate-collapsible-up data-[state=open]:animate-collapsible-down overflow-hidden">
         <div className="grid gap-5 pt-1 pb-4">
-          <div className="flex items-center gap-4">
-            {/* Знак и цвет тем же пикером, что у участника: правило «цвет есть — тон,
-                нет — нейтрально» живёт в одном месте. */}
-            <FacePicker
-              name={mode.title}
-              icon={mode.icon}
-              color={mode.color || null}
-              size="md"
-              label={t("card.face")}
-              onChange={(v) => patch(v.icon !== undefined ? { icon: v.icon } : { color: v.color })}
-            />
-            <Field className="max-w-44">
-              <FieldLabel htmlFor={`slug-${mode.name}`}>{t("mode.slug")}</FieldLabel>
-              <Input
-                id={`slug-${mode.name}`}
-                value={mode.slug}
-                placeholder={t("mode.slugHint")}
-                onChange={(e) => patch({ slug: e.target.value.toLowerCase().replace(/[^a-z0-9_]/g, "") })}
-              />
-            </Field>
-          </div>
-
-          <div className="grid gap-3 sm:grid-cols-[1fr_1.4fr]">
+          <div className="grid gap-3 sm:grid-cols-[1fr_1.4fr_auto]">
             <Field>
               <FieldLabel htmlFor={`title-${mode.name}`}>{t("mode.name")}</FieldLabel>
               <Input
@@ -280,6 +263,16 @@ export function ModeCard({
                 value={mode.for}
                 placeholder={t("mode.forHint")}
                 onChange={(e) => patch({ for: e.target.value })}
+              />
+            </Field>
+            <Field className="sm:w-28">
+              <FieldLabel htmlFor={`slug-${mode.name}`}>{t("mode.slug")}</FieldLabel>
+              <Input
+                id={`slug-${mode.name}`}
+                value={mode.slug}
+                placeholder={t("mode.slugHint")}
+                className="font-mono"
+                onChange={(e) => patch({ slug: e.target.value.toLowerCase().replace(/[^a-z0-9_]/g, "") })}
               />
             </Field>
           </div>

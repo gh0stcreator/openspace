@@ -7,6 +7,7 @@ import { Store } from './lib/store.js';
 import { Orchestrator } from './lib/orchestrator.js';
 import { loadConfig } from './lib/config.js';
 import { roleOf, listRoles } from './lib/roles.js';
+import { loadArchetype, listArchetypes } from './lib/archetypes.js';
 import { BUILTIN, listModes, loadMode, removeMode, saveMode, stepTargets } from './lib/modes.js';
 
 const root = path.dirname(fileURLToPath(import.meta.url));
@@ -77,13 +78,19 @@ const describe = (name, a) => ({
   role: roleOf(a).title,
   roleEn: roleOf(a).titleEn,
   roleName: a.role ?? 'peer',
-  archetype: roleOf(a).archetype,
-  archetypeEn: roleOf(a).archetypeEn,
+  // Амплуа своё, если выбрано в карточке, иначе то, что объявила роль.
+  archetype: a.archetype ?? roleOf(a).archetype,
+  archetypeEn: a.archetype ? '' : roleOf(a).archetypeEn,
+  pulls: roleOf(a).pulls,
   icon: a.icon ?? roleOf(a).icon,
   color: a.color ?? null,
   prompt: a.prompt ?? roleOf(a).body,
   promptCustom: a.prompt ?? null,
-  manner: a.manner ?? '',
+  // В поле показываем то, что реально работает: пусто там не значит «без голоса».
+  manner: a.manner
+    ?? loadArchetype(a.archetype ?? roleOf(a).archetype)?.voice
+    ?? roleOf(a).voice,
+  mannerCustom: a.manner ?? null,
   iconCustom: a.icon ?? null,
   brief: a.persona ?? roleOf(a).brief,
   briefEn: a.persona ?? roleOf(a).briefEn,
@@ -231,6 +238,10 @@ const server = http.createServer(async (req, res) => {
           archetype: r.archetype,
           archetypeEn: r.archetypeEn,
           model: r.model,
+          pulls: r.pulls,
+        })),
+        archetypes: listArchetypes().map((x) => ({
+          name: x.name, title: x.title, titleEn: x.titleEn, brief: x.brief, briefEn: x.briefEn, voice: x.voice,
         })),
         engines: ['claude', 'codex'],
         trustLevels: ['safe', 'full'],
@@ -283,6 +294,11 @@ const server = http.createServer(async (req, res) => {
           else delete agents[name].prompt;
           if (a.manner?.trim()) agents[name].manner = a.manner.trim();
           else delete agents[name].manner;
+          // Своё амплуа держим, только если оно отличается от объявленного ролью:
+          // иначе смена роли не меняла бы голос, а тащила бы за собой прежний.
+          if (a.archetype && a.archetype !== roleOf(agents[name]).archetype) {
+            agents[name].archetype = a.archetype;
+          } else delete agents[name].archetype;
         }
         if (Object.keys(agents).length) patch.agents = agents;
       }
