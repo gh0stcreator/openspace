@@ -276,6 +276,44 @@ type Props = {
   onEdit: (m: Msg) => void
   /** Клик по имени в ленте: поставить обращение в поле ввода. */
   onMention: (name: string) => void
+  /** Клик по предложению архивариуса: применить diff к памяти пространства. */
+  onConfirmMemory: (m: Msg) => void
+}
+
+const MEMORY_ACTION = { добавить: "+", заменить: "→", отменить: "−" } as const
+
+/**
+ * Предложение архивариуса — не реплика, а решение: несколько записей с видом и действием,
+ * читаются построчно. Заметно ровно настолько, чтобы не проскроллить не глядя, но без
+ * своего цвета — нейтральный акцент, как у остальных структурных элементов ленты.
+ */
+function MemoryProposal({ msg, onConfirm }: { msg: Msg; onConfirm: (m: Msg) => void }) {
+  const { t } = useLang()
+  const resolved = msg.status && msg.status !== "ожидает"
+  return (
+    <div className="my-3 flex justify-center">
+      <Bubble variant="outline" className="max-w-[85%]" align="start">
+        <BubbleContent
+          onClick={() => {
+            if (!resolved) onConfirm(msg)
+          }}
+          className={cn("text-sm", !resolved && "cursor-pointer hover:bg-muted/50")}
+        >
+          <div className="text-muted-foreground mb-1.5 text-xs font-medium">
+            {msg.from} · {t(resolved ? "memory.applied" : "memory.proposal")}
+          </div>
+          <div className="flex flex-col gap-1">
+            {(msg.diff ?? []).map((d, i) => (
+              <div key={i} className="flex gap-2">
+                <span className="text-muted-foreground/70 shrink-0">{MEMORY_ACTION[d.action] ?? "·"}</span>
+                <span>{d.text}</span>
+              </div>
+            ))}
+          </div>
+        </BubbleContent>
+      </Bubble>
+    </div>
+  )
 }
 
 /** Текст без разметки: в цитате нет ни кода, ни жирного, ни собак у имён. */
@@ -325,6 +363,41 @@ export function Quote({
   )
 }
 
+/**
+ * Сколько идёт ход. Рантайм присылает только «начал» и «кончил», поэтому время считаем
+ * с прихода статуса: «двенадцать секунд» и «четыре минуты» — очень разное ожидание,
+ * а без цифры и то и другое выглядит как «завис».
+ */
+function useElapsed(names: string[]) {
+  const started = React.useRef<Record<string, number>>({})
+  const [, tick] = React.useReducer((n: number) => n + 1, 0)
+  const key = names.join(",")
+
+  React.useEffect(() => {
+    const now = Date.now()
+    for (const n of names) started.current[n] ??= now
+    for (const n of Object.keys(started.current)) {
+      if (!names.includes(n)) delete started.current[n]
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [key])
+
+  React.useEffect(() => {
+    if (!names.length) return
+    const id = setInterval(tick, 1000)
+    return () => clearInterval(id)
+  }, [names.length])
+
+  return (name: string) => {
+    const from = started.current[name]
+    return from ? Math.max(0, Math.round((Date.now() - from) / 1000)) : 0
+  }
+}
+
+/** Секунды до минуты — секундами, дальше минутами: «12с», «4:07». */
+const spent = (sec: number) =>
+  sec < 60 ? `${sec}с` : `${Math.floor(sec / 60)}:${String(sec % 60).padStart(2, "0")}`
+
 /** Группа — подряд идущие реплики одного автора с паузой меньше пяти минут. */
 function groups(messages: Msg[]) {
   const out: Msg[][] = []
@@ -352,7 +425,8 @@ function FollowMine({ seq }: { seq?: number }) {
   return null
 }
 
-export function ChatFeed({ messages, user, agents, thinking, onReply, onMention, onEdit }: Props) {
+export function ChatFeed({ messages, user, agents, thinking, onReply, onMention, onEdit, onConfirmMemory }: Props) {
+  const elapsed = useElapsed(thinking)
   const { lang, t } = useLang()
   const known = React.useMemo(() => [...Object.keys(agents), user], [agents, user])
   const bySeq = React.useMemo(() => new Map(messages.map((m) => [m.seq, m])), [messages])
@@ -365,6 +439,18 @@ export function ChatFeed({ messages, user, agents, thinking, onReply, onMention,
           <MessageScrollerContent className="mx-auto w-full max-w-3xl px-4 py-6">
             {groups(messages).map((group) => {
               const first = group[0]
+
+              if (first.kind === "memory-proposal") {
+                return (
+                  <React.Fragment key={first.id}>
+                    {group.map((m) => (
+                      <MessageScrollerItem key={m.id} messageId={m.id} id={`msg-${m.seq}`}>
+                        <MemoryProposal msg={m} onConfirm={onConfirmMemory} />
+                      </MessageScrollerItem>
+                    ))}
+                  </React.Fragment>
+                )
+              }
 
               if (first.kind !== "message") {
                 // Служебное событие — неброская отметка в ленте, не блок во всю ширину.
@@ -455,54 +541,17 @@ export function ChatFeed({ messages, user, agents, thinking, onReply, onMention,
               )
             })}
 
-            {thinking.length > 0 && (
-              <MessageGroup>
-                <Message align="start">
-                  <MessageAvatar className="bg-transparent">
-                    <FaceButton
-                      name={thinking[0]}
-                      icon={getAgent(agents, thinking[0])?.icon}
-                      color={getAgent(agents, thinking[0])?.color}
-                      onPick={onMention}
-                    />
-                  </MessageAvatar>
-                  <MessageContent>
-                    <Bubble variant="secondary" align="start">
-                      {/* Пузырь сразу в цвете участника: ждать его реплику
-                          и получить её — одно и то же место, а не два разных. */}
-                      <BubbleContent
-                        className={cn(
-                          "text-sm",
-                          "tone-bubble"
-                        )}
-                        style={toneVars(getAgent(agents, thinking[0])?.color)}
-                      >
-                        <span className="flex items-center gap-1.5 opacity-70">
-                          <span>
-                            {thinking.map((n, i) => (
-                              <React.Fragment key={n}>
-                                {i > 0 && ` ${t("feed.and")} `}
-                                <Name name={n} onPick={onMention} />
-                              </React.Fragment>
-                            ))}{" "}
-                            {t(thinking.length > 1 ? "feed.thinkingMany" : "feed.thinkingOne")}
-                          </span>
-                          <span className="flex gap-1">
-                            {[0, 1, 2].map((d) => (
-                              <span
-                                key={d}
-                                className="size-1 animate-pulse rounded-full bg-current"
-                                style={{ animationDelay: `${d * 0.2}s` }}
-                              />
-                            ))}
-                          </span>
-                        </span>
-                      </BubbleContent>
-                    </Bubble>
-                  </MessageContent>
-                </Message>
-              </MessageGroup>
-            )}
+            {/* Кто сейчас работает — строкой в потоке, а не пузырём: это не реплика,
+                а состояние. Время идёт рядом, потому что ход у участника, который правит
+                файлы, занимает минуты, и без цифры это неотличимо от «завис». */}
+            {thinking.map((n) => (
+              <div key={n} className="text-muted-foreground flex items-center gap-2 px-1 py-1 text-sm">
+                <Face name={n} icon={getAgent(agents, n)?.icon} color={getAgent(agents, n)?.color} size="sm" />
+                <Name name={n} onPick={onMention} />
+                <span>{t("feed.thinkingOne")}</span>
+                <span className="tabular-nums opacity-60">{spent(elapsed(n))}</span>
+              </div>
+            ))}
           </MessageScrollerContent>
         </MessageScrollerViewport>
         <MessageScrollerButton className="ms-[min(22rem,45vw)]" />
