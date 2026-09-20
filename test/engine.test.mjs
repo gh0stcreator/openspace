@@ -317,3 +317,16 @@ test('перезапуск посреди шага: оборванный шаг 
   await sleep(200);
   assert.ok(second.calls.some((c) => c.who === 'первый'), 'недоспрошенного так и не позвали');
 });
+
+test('выход из режима возвращает тот состав, что был до него', async () => {
+  const dir = fs.mkdtempSync(path.join(os.tmpdir(), 'openspace-off-'));
+  const { orch } = setup(['первый', 'второй'], { dir, stateDir: dir });
+
+  // Человек убрал второго ещё до режима — это его решение, а не режима.
+  orch.toggle(ROOM, 'второй', false);
+  assert.deepEqual(orch.here(ROOM), ['первый']);
+
+  orch.startMode(ROOM, 'проба');
+  orch.stopMode(ROOM);
+  assert.deepEqual(orch.here(ROOM), ['первый'], 'конец режима включил того, кого убрал человек');
+});

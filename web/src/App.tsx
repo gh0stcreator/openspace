@@ -221,7 +221,7 @@ export default function App() {
   if (!cfg) {
     return (
       <div className="bg-background flex h-dvh flex-col">
-        <header className="flex h-14 shrink-0 items-center gap-3 border-b px-4">
+        <header className="flex h-14 shrink-0 items-center gap-3 px-4">
           <Skeleton className="h-5 w-32 shrink-0" />
           <div className="hidden min-w-0 flex-1 items-center justify-center gap-2.5 sm:flex">
             {Array.from({ length: 5 }).map((_, i) => (
@@ -276,7 +276,7 @@ export default function App() {
   return (
     <TooltipProvider>
       <div className="bg-background flex h-dvh flex-col">
-        <header className="flex h-14 shrink-0 items-center gap-3 border-b px-4">
+        <header className="flex h-14 shrink-0 items-center gap-3 px-4">
           {/* Знак и профиль забирают по половине свободного места. Иначе ряд аватарок
               стоит по центру того, что осталось, и уезжает, когда имя комнаты
               меняет длину знака. */}

@@ -11,7 +11,19 @@ import {
   DropdownMenuItem,
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu"
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+  AlertDialogTrigger,
+} from "@/components/ui/alert-dialog"
 import { Field, FieldDescription, FieldLabel } from "@/components/ui/field"
+import { FacePicker } from "@/components/face-picker"
 import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
@@ -151,10 +163,26 @@ export function ModeCard({
               {t("card.duplicate")}
             </DropdownMenuItem>
             {!fixed && (
-              <DropdownMenuItem variant="destructive" onClick={onRemove}>
-                <Trash2 />
-                {t("card.delete")}
-              </DropdownMenuItem>
+              <AlertDialog>
+                <AlertDialogTrigger asChild>
+                  <DropdownMenuItem variant="destructive" onSelect={(e) => e.preventDefault()}>
+                    <Trash2 />
+                    {t("card.delete")}
+                  </DropdownMenuItem>
+                </AlertDialogTrigger>
+                <AlertDialogContent>
+                  <AlertDialogHeader>
+                    <AlertDialogTitle>{t("mode.deleteTitle", { name: mode.title })}</AlertDialogTitle>
+                    <AlertDialogDescription>{t("mode.deleteBody")}</AlertDialogDescription>
+                  </AlertDialogHeader>
+                  <AlertDialogFooter>
+                    <AlertDialogCancel>{t("space.cancel")}</AlertDialogCancel>
+                    <AlertDialogAction variant="destructive" onClick={onRemove}>
+                      {t("card.delete")}
+                    </AlertDialogAction>
+                  </AlertDialogFooter>
+                </AlertDialogContent>
+              </AlertDialog>
             )}
           </DropdownMenuContent>
         </DropdownMenu>
@@ -163,6 +191,29 @@ export function ModeCard({
       {/* Раскрытие анимируем компонентом системы: карточка не прыгает. */}
       <CollapsibleContent className="data-[state=closed]:animate-collapsible-up data-[state=open]:animate-collapsible-down overflow-hidden">
         <div className="grid gap-5 pt-1 pb-4">
+          <div className="flex items-center gap-4">
+            {/* Знак и цвет тем же пикером, что у участника: правило «цвет есть — тон,
+                нет — нейтрально» живёт в одном месте. */}
+            <FacePicker
+              name={mode.title}
+              icon={mode.icon}
+              color={mode.color || null}
+              size="md"
+              label={t("card.face")}
+              onChange={(v) => patch(v.icon !== undefined ? { icon: v.icon } : { color: v.color })}
+            />
+            <Field className="max-w-44">
+              <FieldLabel htmlFor={`slug-${mode.name}`}>{t("mode.slug")}</FieldLabel>
+              <Input
+                id={`slug-${mode.name}`}
+                value={mode.slug}
+                placeholder={t("mode.slugHint")}
+                onChange={(e) => patch({ slug: e.target.value.toLowerCase().replace(/[^a-z0-9_]/g, "") })}
+              />
+              <FieldDescription>{t("mode.slugNote")}</FieldDescription>
+            </Field>
+          </div>
+
           <div className="grid gap-3 sm:grid-cols-[1fr_1.4fr]">
             <Field>
               <FieldLabel htmlFor={`title-${mode.name}`}>{t("mode.name")}</FieldLabel>

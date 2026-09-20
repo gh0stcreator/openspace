@@ -78,6 +78,9 @@ const RU = {
   "feed.statusDone": "ответил на шаге",
   "memory.proposal": "предлагает изменить память — нажмите, чтобы принять",
   "memory.applied": "принято в память",
+  "memory.appliedPartial": "принято частично — часть правок устарела, см. ниже",
+  "memory.rejected": "решили не записывать — вернуться к этому куску уже нельзя",
+  "memory.reject": "Здесь нечего записывать",
   "composer.cancelEdit": "Отменить правку",
   "composer.editFailed": "Правка не сохранилась — {error}",
 
@@ -149,6 +152,11 @@ const RU = {
 
   "mode.current": "Текущий",
   "mode.new": "Создать режим",
+  "mode.slug": "Имя в знаке",
+  "mode.slugHint": "roast",
+  "mode.slugNote": "Латиницей: из него собирается open(…)",
+  "mode.deleteTitle": "Удалить «{name}»?",
+  "mode.deleteBody": "Файл режима будет удалён. Разговоры, которые в нём шли, останутся.",
   "mode.name": "Название",
   "mode.for": "Для чего",
   "mode.forHint": "Проверить решение до того, как его проверит жизнь",
@@ -238,6 +246,9 @@ const EN: Record<keyof typeof RU, string> = {
   "feed.statusDone": "answered on this step",
   "memory.proposal": "proposes a change to memory — click to accept",
   "memory.applied": "applied to memory",
+  "memory.appliedPartial": "applied in part — some edits were stale, see below",
+  "memory.rejected": "decided not to record it — this piece can't be recovered",
+  "memory.reject": "Nothing worth recording here",
   "composer.cancelEdit": "Cancel the edit",
   "composer.editFailed": "The edit wasn't saved — {error}",
 
@@ -309,6 +320,11 @@ const EN: Record<keyof typeof RU, string> = {
 
   "mode.current": "Current",
   "mode.new": "New mode",
+  "mode.slug": "Name in the mark",
+  "mode.slugHint": "roast",
+  "mode.slugNote": "Latin letters: open(…) is built from it",
+  "mode.deleteTitle": "Delete “{name}”?",
+  "mode.deleteBody": "The mode file will be deleted. Conversations held in it stay.",
   "mode.name": "Name",
   "mode.for": "What for",
   "mode.forHint": "Test a decision before life tests it",

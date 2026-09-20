@@ -590,7 +590,7 @@ export function ChatFeed({ messages, user, agents, thinking, onReply, onMention,
     <MessageScrollerProvider autoScroll defaultScrollPosition="end">
       <FollowMine seq={messages.findLast((m) => m.from === user)?.seq} />
       <MessageScroller className="min-h-0 flex-1">
-        <MessageScrollerViewport>
+        <MessageScrollerViewport className="feed-fade">
           <MessageScrollerContent className="mx-auto w-full max-w-3xl px-4 py-6">
             {groups(messages).map((group) => {
               const first = group[0]
