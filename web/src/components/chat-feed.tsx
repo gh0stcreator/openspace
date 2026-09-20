@@ -309,16 +309,18 @@ function Rich({
       .map((n) => n.replace(/[.*+?^${}()|[\]\\]/g, "\\$&"))
       .sort((a, b) => b.length - a.length)
       .join("|")
+    // Все ветки — именованными группами. Номера здесь плывут дважды: от того, есть ли
+    // в комнате участники, и от любой новой скобки в разборе. Именем не плывут.
     const re = new RegExp(
-      "```(\\w*)\\n?([\\s\\S]*?)```" +
-        "|`([^`\\n]+)`" +
-        // Ссылки называем именованными группами: номера здесь плывут от того,
-        // есть ли в комнате участники, а имя не плывёт.
+      "```(?<fl>\\w*)\\n?(?<fence>[\\s\\S]*?)```" +
+        "|`(?<code>[^`\\n]+)`" +
         "|\\[(?<lt>[^\\]\\n]+)\\]\\((?<lu>[^)\\s]+)\\)" +
         "|(?<url>https?://[^\\s<>()\\[\\]]+)" +
-        "|\\*\\*([^*\\n]+)\\*\\*" +
-        "|(^|[\\s(,:;«\"'\\[])@([a-zA-Z0-9_\\-Ѐ-ӿ]+)" +
-        (named ? `|(?<![\\p{L}\\p{N}])(${named})(а|у|ом|е|ы|ов|ам|ами|ах)?(?![\\p{L}\\p{N}])` : ""),
+        "|\\*\\*(?<bold>[^*\\n]+)\\*\\*" +
+        "|(?:^|[\\s(,:;«\"'\\[])@(?<tag>[a-zA-Z0-9_\\-Ѐ-ӿ]+)" +
+        (named
+          ? `|(?<![\\p{L}\\p{N}])(?<bare>${named})(?<end>а|у|ом|е|ы|ов|ам|ами|ах)?(?![\\p{L}\\p{N}])`
+          : ""),
       "gu"
     )
     let last = 0
@@ -343,13 +345,13 @@ function Rich({
             {m.groups?.lt ?? link.replace(/^https?:\/\//, "")}
           </a>
         )
-      } else if (m[2] !== undefined) {
+      } else if (m.groups?.fence !== undefined) {
         out.push(
           <pre key={i++} className="bg-code-surface text-code my-2 overflow-x-auto rounded-md p-3 text-[0.85em]">
-            <code>{m[2].replace(/\n$/, "")}</code>
+            <code>{m.groups!.fence.replace(/\n$/, "")}</code>
           </pre>
         )
-      } else if (m[3]) {
+      } else if (m.groups?.code) {
         out.push(
           <code
             key={i++}
@@ -357,27 +359,27 @@ function Rich({
                в цитате 14, и фиксированные 12 в одном месте были мелкими, в другом нет. */
             className="bg-code-surface text-code rounded px-1.5 py-0.5 text-[0.85em]"
           >
-            {m[3]}
+            {m.groups.code}
           </code>
         )
-      } else if (m[4]) {
-        out.push(<b key={i++}>{m[4]}</b>)
-      } else if (m[7]) {
+      } else if (m.groups?.bold) {
+        out.push(<b key={i++}>{m.groups.bold}</b>)
+      } else if (m.groups?.bare) {
         // Имя без собаки: показываем цветом, но передачей хода это не считается —
         // её по-прежнему определяют разобранные сервером обращения.
-        const word = m[7]
+        const word = m.groups.bare
         const hit = known.find((k) => k.toLowerCase() === word.toLowerCase())
         out.push(
           hit ? (
             <Name key={i++} name={hit} color={getAgent(agents, hit)?.color} onPick={onMention}>
-              {word + (m[8] ?? "")}
+              {word + (m.groups.end ?? "")}
             </Name>
           ) : (
-            word + (m[8] ?? "")
+            word + (m.groups.end ?? "")
           )
         )
-      } else if (m[6]) {
-        const name = m[6]
+      } else if (m.groups?.tag) {
+        const name = m.groups.tag
         out.push(m[5])
         const hit = known.find((k) => k.toLowerCase() === name.toLowerCase())
         // Обращение — цветом того, кого позвали: имя в ленте и имя в тексте должны
