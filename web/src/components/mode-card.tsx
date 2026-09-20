@@ -247,36 +247,6 @@ export function ModeCard({
       {/* Раскрытие анимируем компонентом системы: карточка не прыгает. */}
       <CollapsibleContent className="data-[state=closed]:animate-collapsible-up data-[state=open]:animate-collapsible-down overflow-hidden">
         <div className="grid gap-5 pt-1 pb-4">
-          <div className="grid gap-3 sm:grid-cols-[1fr_1.4fr_auto]">
-            <Field>
-              <FieldLabel htmlFor={`title-${mode.name}`}>{t("mode.name")}</FieldLabel>
-              <Input
-                id={`title-${mode.name}`}
-                value={mode.title}
-                onChange={(e) => patch({ title: e.target.value })}
-              />
-            </Field>
-            <Field>
-              <FieldLabel htmlFor={`for-${mode.name}`}>{t("mode.for")}</FieldLabel>
-              <Input
-                id={`for-${mode.name}`}
-                value={mode.for}
-                placeholder={t("mode.forHint")}
-                onChange={(e) => patch({ for: e.target.value })}
-              />
-            </Field>
-            <Field className="sm:w-28">
-              <FieldLabel htmlFor={`slug-${mode.name}`}>{t("mode.slug")}</FieldLabel>
-              <Input
-                id={`slug-${mode.name}`}
-                value={mode.slug}
-                placeholder={t("mode.slugHint")}
-                className="font-mono"
-                onChange={(e) => patch({ slug: e.target.value.toLowerCase().replace(/[^a-z0-9_]/g, "") })}
-              />
-            </Field>
-          </div>
-
           <div className="grid gap-3">
             <FieldLabel>{t("mode.steps")}</FieldLabel>
             {/* Полоса, а не четыре раскрытые формы подряд: устройство режима — сколько
@@ -400,6 +370,37 @@ export function ModeCard({
               <Plus /> {t("step.add")}
             </Button>
           </div>
+
+          <div className="grid gap-3 sm:grid-cols-[1fr_1.4fr_auto]">
+            <Field>
+              <FieldLabel htmlFor={`title-${mode.name}`}>{t("mode.name")}</FieldLabel>
+              <Input
+                id={`title-${mode.name}`}
+                value={mode.title}
+                onChange={(e) => patch({ title: e.target.value })}
+              />
+            </Field>
+            <Field>
+              <FieldLabel htmlFor={`for-${mode.name}`}>{t("mode.for")}</FieldLabel>
+              <Input
+                id={`for-${mode.name}`}
+                value={mode.for}
+                placeholder={t("mode.forHint")}
+                onChange={(e) => patch({ for: e.target.value })}
+              />
+            </Field>
+            <Field className="sm:w-28">
+              <FieldLabel htmlFor={`slug-${mode.name}`}>{t("mode.slug")}</FieldLabel>
+              <Input
+                id={`slug-${mode.name}`}
+                value={mode.slug}
+                placeholder={t("mode.slugHint")}
+                className="font-mono"
+                onChange={(e) => patch({ slug: e.target.value.toLowerCase().replace(/[^a-z0-9_]/g, "") })}
+              />
+            </Field>
+          </div>
+
           </div>
         </CollapsibleContent>
       </div>

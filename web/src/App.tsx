@@ -40,6 +40,9 @@ export default function App() {
   const [messages, setMessages] = React.useState<Msg[]>([])
   const [state, setState] = React.useState<RoomState>({ autoTurns: 0, paused: false })
   const [thinking, setThinking] = React.useState<string[]>([])
+  /** Лента приехала хотя бы раз. До этого показываем скелет, а не пустой экран:
+   *  настройки приходят раньше сообщений, и между ними виден чистый лист. */
+  const [ready, setReady] = React.useState(false)
   const [live, setLive] = React.useState(true)
   const [settingsOpen, setSettingsOpen] = React.useState(false)
   const [replyTo, setReplyTo] = React.useState<Msg | null>(null)
@@ -128,6 +131,7 @@ export default function App() {
       if (!alive) return
       setMessages(shown(messages))
       setState(state)
+      setReady(true)
     })
     const stop = listen(
       room,
@@ -217,7 +221,7 @@ export default function App() {
     [cfg?.modes]
   )
 
-  if (!cfg) {
+  if (!cfg || !ready) {
     return (
       <div className="bg-background flex h-dvh flex-col">
         <header className="flex h-14 shrink-0 items-center gap-3 px-4">
