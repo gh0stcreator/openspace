@@ -358,7 +358,7 @@ export function SettingsDialog({
             {/* Чей это продукт. У нижнего края раздела и тише текста: это подпись автора,
                 а не настройка. В колонке разделов такая ссылка читалась как ещё один раздел,
                 а сразу под «Темой» — как продолжение полей. */}
-            <div className="text-muted-foreground/60 mt-auto flex flex-wrap items-center gap-x-5 gap-y-2 pt-10 text-sm">
+            <div className="text-muted-foreground/60 mt-auto flex flex-wrap items-center justify-center gap-x-5 gap-y-2 pt-10 text-sm">
               <a
                 className="hover:text-foreground flex items-center gap-2 transition-colors"
                 href={AUTHOR.channel}
