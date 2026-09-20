@@ -23,13 +23,13 @@ import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover
 import { Switch } from "@/components/ui/switch"
 import { Skeleton } from "@/components/ui/skeleton"
 import { Toaster } from "@/components/ui/sonner"
-import { TooltipProvider } from "@/components/ui/tooltip"
+import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip"
 import { ChatFeed, Face, FaceButton, Icon } from "@/components/chat-feed"
 import { Composer } from "@/components/composer"
 import { Logo } from "@/components/logo"
 import { SettingsDialog } from "@/components/settings-dialog"
 import { cn } from "@/lib/utils"
-import { useLang, pick } from "@/lib/i18n"
+import { useLang, pick, plural } from "@/lib/i18n"
 import { typo } from "@/lib/typo"
 import { subjectOf } from "@/lib/latin"
 import { api, listen, type Config, type Msg, type RoomState } from "@/lib/api"
@@ -54,17 +54,23 @@ export default function App() {
     (prev: Msg[], m: Msg) =>
       m.kind === "edit"
         ? prev.map((x) => (x.seq === m.target ? { ...x, text: m.text, mentions: m.mentions, edited: m.ts } : x))
-        : prev.some((x) => x.seq === m.seq)
-          ? prev
-          : [...prev, m],
+        : m.kind === "memory-resolved"
+          ? prev.map((x) => (x.seq === m.target ? { ...x, status: m.status } : x))
+          : prev.some((x) => x.seq === m.seq)
+            ? prev
+            : [...prev, m],
     []
   )
-  const shown = (list: Msg[]) => list.filter((m) => m.kind !== "edit")
+  const shown = (list: Msg[]) => list.filter((m) => m.kind !== "edit" && m.kind !== "memory-resolved")
   const [insert, setInsert] = React.useState<{ name: string; nonce: number }>()
 
   /** Выключенные в этой комнате: состав общий, присутствие — своё у каждой. */
   const off = cfg?.off ?? []
   const here = (n: string) => !off.includes(n)
+  const present = React.useMemo(
+    () => Object.keys(cfg?.agents ?? {}).filter((n) => !off.includes(n)),
+    [cfg?.agents, off]
+  )
   const toggle = async (name: string, on: boolean) => {
     const { here: names } = await api.presence(room, name, on)
     setCfg((c) => (c ? { ...c, off: Object.keys(c.agents).filter((n) => !names.includes(n)) } : c))
@@ -84,6 +90,17 @@ export default function App() {
   }
 
   const local = React.useCallback((text: string) => toast.error(text), [])
+
+  /** Клик по предложению архивариуса: применяем diff к памяти. Ответ приходит и через
+   * SSE (событие memory-resolved), но не ждём его — своё решение видно сразу. */
+  const confirmMemory = async (m: Msg) => {
+    try {
+      const { resolved } = await api.confirmMemory(room, m.seq)
+      setMessages((prev) => take(prev, resolved))
+    } catch (e) {
+      toast.error((e as Error).message)
+    }
+  }
   React.useEffect(() => {
     api.config().then((c) => {
       setCfg(c)
@@ -231,6 +248,20 @@ export default function App() {
   // Текущий режим целиком: из него берём и знак, и цвет.
   const now = cfg.modes?.find((m) => (state.modeState ? m.name === state.modeState.name : m.builtin))
 
+  /**
+   * Чем участник занят. Всё, кроме «работает», существует только внутри режима: вне его
+   * очереди нет, и «ждёт» было бы догадкой. Состав шага и те, кого он ещё не дождался,
+   * приходят от оркестратора — интерфейс их не вычисляет.
+   */
+  const ms = state.modeState
+  const doing = (n: string): "working" | "waiting" | "done" | "idle" => {
+    if (thinking.includes(n)) return "working"
+    if (!ms || !ms.cast.includes(n)) return "idle"
+    return ms.pending.includes(n) ? "waiting" : "done"
+  }
+  // Кто ждёт своей очереди, пока говорит другой: строкой в ленте, под тем, кто работает.
+  const waiting = ms ? ms.pending.filter((n) => !thinking.includes(n)) : []
+
   return (
     <TooltipProvider>
       <div className="bg-background flex h-dvh flex-col">
@@ -257,15 +288,39 @@ export default function App() {
               ряд появляется только когда разговор начался. */}
           {started && (
             <div className="hidden shrink-0 items-center gap-2.5 sm:flex">
-              {Object.entries(cfg.agents).filter(([n]) => here(n)).map(([n, a]) => (
-                <FaceButton
-                  key={n}
-                  name={n}
-                  icon={a.icon}
-                  color={a.color}
-                  onPick={(name) => setInsert({ name, nonce: Date.now() })}
-                />
-              ))}
+              {Object.entries(cfg.agents).filter(([n]) => here(n)).map(([n, a]) => {
+                const at = doing(n)
+                return (
+                  <Tooltip key={n}>
+                    <TooltipTrigger asChild>
+                      {/* Состояние показано вокруг аватарки, а не вместо неё: цвет остаётся
+                          опознавательным знаком участника и ничего не значит сам по себе. */}
+                      <span
+                        className={cn(
+                          "relative rounded-full transition-opacity",
+                          at === "working" && "ring-ring/50 ring-2 ring-offset-2 ring-offset-background",
+                          at === "waiting" && "opacity-40"
+                        )}
+                      >
+                        <FaceButton
+                          name={n}
+                          icon={a.icon}
+                          color={a.color}
+                          onPick={(name) => setInsert({ name, nonce: Date.now() })}
+                        />
+                        {at === "done" && (
+                          <span className="bg-background text-muted-foreground absolute -right-0.5 -bottom-0.5 flex size-3.5 items-center justify-center rounded-full">
+                            <Check className="size-2.5" />
+                          </span>
+                        )}
+                      </span>
+                    </TooltipTrigger>
+                    <TooltipContent>
+                      {n} · {t(`feed.status${at[0].toUpperCase()}${at.slice(1)}` as never)}
+                    </TooltipContent>
+                  </Tooltip>
+                )
+              })}
             </div>
           )}
 
@@ -348,6 +403,7 @@ export default function App() {
             user={cfg.user}
             agents={cfg.agents}
             thinking={thinking}
+            waiting={waiting}
             onReply={(m) => {
               setEditing(null)
               setReplyTo(m)
@@ -357,6 +413,7 @@ export default function App() {
               setEditing(m)
             }}
             onMention={(name) => setInsert({ name, nonce: Date.now() })}
+            onConfirmMemory={confirmMemory}
           />
         )}
 
@@ -393,6 +450,7 @@ export default function App() {
           onEdit={setEditing}
           lastMine={messages.findLast((m) => m.kind === "message" && m.from === cfg.user)}
           insert={insert}
+          mode={now?.slug}
         />
 
 
@@ -409,7 +467,14 @@ export default function App() {
                 title={spent ? t("bar.tokens", { n: Math.round(spent / 1000) }) : undefined}
               >
                 <Users />
-                {t("bar.people", { n: Object.keys(cfg.agents).filter(here).length })}
+                {t("bar.people", {
+                  n: present.length,
+                  word: plural(lang, present.length, [
+                    t("bar.peopleOne"),
+                    t("bar.peopleFew"),
+                    t("bar.peopleMany"),
+                  ]),
+                })}
               </Button>
             </PopoverTrigger>
             <PopoverContent align="start" className="w-64 p-2">

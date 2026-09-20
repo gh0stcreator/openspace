@@ -41,6 +41,8 @@ type Props = {
   lastMine?: Msg
   /** Клик по участнику в шапке: {name, nonce} — nonce меняется, чтобы повтор тоже сработал. */
   insert?: { name: string; nonce: number }
+  /** Слаг текущего режима: от него зависит, чего поле просит на входе. */
+  mode?: string
 }
 
 export function Composer({
@@ -55,6 +57,7 @@ export function Composer({
   onEdit,
   lastMine,
   insert,
+  mode,
 }: Props) {
   const { lang, t } = useLang()
   const [text, setText] = React.useState("")
@@ -221,8 +224,10 @@ export function Composer({
     }
   }, [upload])
 
-  // Плейсхолдер держим в одну строку: иначе поле растянуто под него и прыгает, когда начинаешь писать.
-  const hint = t("composer.placeholder")
+  // Плейсхолдер держим в одну строку: иначе поле растянуто под него и прыгает, когда начинаешь
+  // писать. Спрашивает он ровно то, с чего начинается выбранный режим: «Какое решение будем
+  // проверять?» объясняет вход лучше, чем любая подпись рядом с полем.
+  const hint = t(`composer.hint.${mode ?? "open"}` as never) || t("composer.placeholder")
 
   return (
     <div className="bg-background">

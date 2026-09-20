@@ -1,6 +1,6 @@
 import * as React from "react"
 import * as Icons from "lucide-react"
-import { FileText } from "lucide-react"
+import { ArrowRight, FileText } from "lucide-react"
 
 import { Bubble, BubbleContent } from "@/components/ui/bubble"
 import {
@@ -20,10 +20,12 @@ import {
   MessageScrollerViewport,
   useMessageScroller,
 } from "@/components/ui/message-scroller"
+import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover"
 import type { Agent, Msg } from "@/lib/api"
+import { eventType } from "@/lib/events"
 import { cn } from "@/lib/utils"
 import { typo } from "@/lib/typo"
-import { useLang, pick } from "@/lib/i18n"
+import { useLang } from "@/lib/i18n"
 
 /**
  * Палитра участников живёт в теме (index.css): там тон и насыщенность каждого цвета,
@@ -271,6 +273,8 @@ type Props = {
   user: string
   agents: Record<string, Agent>
   thinking: string[]
+  /** Кого шаг режима ещё не дождался, пока говорит другой. */
+  waiting?: string[]
   onReply: (m: Msg) => void
   /** Клик по своей реплике: не отвечать же себе — правим её. */
   onEdit: (m: Msg) => void
@@ -364,6 +368,96 @@ export function Quote({
 }
 
 /**
+ * Метаданные хода. В строке — только то, что говорит «дорого это было или дёшево»:
+ * сколько шёл ход и сколько токенов ушло. Остальное по клику: время отправки, движок
+ * и модель. Стоимости здесь нет и не будет — оба движка работают по подписке, и цифра
+ * в долларах была бы выдумкой.
+ */
+function Meta({ msg, agent }: { msg: Msg; agent?: Agent }) {
+  const { t } = useLang()
+  const sec = msg.meta?.elapsedMs ? Math.round(msg.meta.elapsedMs / 1000) : 0
+  const tok = msg.meta?.usage?.input_tokens ?? 0
+  const at = new Date(msg.ts).toLocaleTimeString("ru", { hour: "2-digit", minute: "2-digit" })
+  const brief = [sec ? `${sec}с` : "", tok ? `${Math.round(tok / 1000)}k` : ""].filter(Boolean)
+
+  if (!brief.length) {
+    return <span className="text-muted-foreground/70 text-xs tabular-nums">{at}</span>
+  }
+
+  const rows: [string, string][] = [
+    [t("feed.sentAt"), at],
+    [t("feed.turnTook"), `${sec}с`],
+    [t("feed.tokens"), tok.toLocaleString("ru")],
+    [t("card.engine"), agent?.engine ?? ""],
+    [t("card.model"), agent?.model ?? t("model.default")],
+  ]
+
+  return (
+    <Popover>
+      <PopoverTrigger asChild>
+        <button
+          className="text-muted-foreground/70 hover:text-foreground text-xs tabular-nums transition-colors"
+          onClick={(e) => e.stopPropagation()}
+        >
+          {brief.join(" · ")}
+        </button>
+      </PopoverTrigger>
+      <PopoverContent align="start" className="w-64 text-sm" onClick={(e) => e.stopPropagation()}>
+        <div className="text-muted-foreground mb-2 text-xs">{t("feed.details")}</div>
+        <dl className="grid grid-cols-[auto_1fr] gap-x-4 gap-y-1">
+          {rows.filter(([, v]) => v).map(([k, v]) => (
+            <React.Fragment key={k}>
+              <dt className="text-muted-foreground">{k}</dt>
+              <dd className="tabular-nums">{v}</dd>
+            </React.Fragment>
+          ))}
+        </dl>
+      </PopoverContent>
+    </Popover>
+  )
+}
+
+/**
+ * Передача хода. В этом продукте обращение и есть передача: тегнули — участник проснулся
+ * и отвечает. Поэтому блок собирается из разобранных сервером `mentions`, а не из того,
+ * какими словами это сказано в тексте.
+ */
+function Handoff({
+  msg,
+  color,
+  agents,
+  user,
+  onPick,
+}: {
+  msg: Msg
+  color?: string | null
+  agents: Record<string, Agent>
+  user: string
+  onPick: (name: string) => void
+}) {
+  const { t } = useLang()
+  // Владельца задачи зовут почти в каждой реплике — это разговор с ним, а не передача
+  // работы. Блок остаётся для того, что он и означает: работа ушла к другому участнику.
+  const to = (msg.mentions ?? []).filter((n) => n !== msg.from && n !== user)
+  if (!to.length) return null
+  return (
+    <div className="mt-2 flex w-fit max-w-full overflow-hidden rounded-md" style={toneVars(color)}>
+      <span className="tone-dot w-0.5 shrink-0" />
+      <span className="tone-bubble flex min-w-0 flex-wrap items-center gap-x-2 gap-y-1 py-1 pr-3 pl-2.5 text-sm">
+        <span className="text-muted-foreground">{t("feed.handoff")}</span>
+        <ArrowRight className="text-muted-foreground size-3.5 shrink-0" />
+        {to.map((n) => (
+          <span key={n} className="flex min-w-0 items-center gap-1.5">
+            <Face name={n} icon={getAgent(agents, n)?.icon} color={getAgent(agents, n)?.color} size="xs" />
+            <Name name={n} color={getAgent(agents, n)?.color} onPick={onPick} />
+          </span>
+        ))}
+      </span>
+    </div>
+  )
+}
+
+/**
  * Сколько идёт ход. Рантайм присылает только «начал» и «кончил», поэтому время считаем
  * с прихода статуса: «двенадцать секунд» и «четыре минуты» — очень разное ожидание,
  * а без цифры и то и другое выглядит как «завис».
@@ -425,9 +519,9 @@ function FollowMine({ seq }: { seq?: number }) {
   return null
 }
 
-export function ChatFeed({ messages, user, agents, thinking, onReply, onMention, onEdit, onConfirmMemory }: Props) {
+export function ChatFeed({ messages, user, agents, thinking, waiting = [], onReply, onMention, onEdit, onConfirmMemory }: Props) {
   const elapsed = useElapsed(thinking)
-  const { lang, t } = useLang()
+  const { t } = useLang()
   const known = React.useMemo(() => [...Object.keys(agents), user], [agents, user])
   const bySeq = React.useMemo(() => new Map(messages.map((m) => [m.seq, m])), [messages])
 
@@ -440,7 +534,11 @@ export function ChatFeed({ messages, user, agents, thinking, onReply, onMention,
             {groups(messages).map((group) => {
               const first = group[0]
 
-              if (first.kind === "memory-proposal") {
+              // Чем рисовать — решает тип события, а не текст реплики: интерфейс,
+              // который вычитывает смысл из слов, ломается от любой перефразировки.
+              const type = eventType(first, user)
+
+              if (type === "memory-proposal") {
                 return (
                   <React.Fragment key={first.id}>
                     {group.map((m) => (
@@ -452,7 +550,7 @@ export function ChatFeed({ messages, user, agents, thinking, onReply, onMention,
                 )
               }
 
-              if (first.kind !== "message") {
+              if (type === "system-event") {
                 // Служебное событие — неброская отметка в ленте, не блок во всю ширину.
                 return (
                   <MessageScrollerItem key={first.id} messageId={first.id}>
@@ -468,75 +566,79 @@ export function ChatFeed({ messages, user, agents, thinking, onReply, onMention,
                 )
               }
 
-              const mine = first.from === user
               const agent = getAgent(agents, first.from)
 
-              return (
-                <MessageGroup key={first.id}>
-                  {group.map((m, i) => {
-                    const tagged = m.mentions?.includes(user)
-                    const foot = [
-                      new Date(m.ts).toLocaleTimeString("ru", { hour: "2-digit", minute: "2-digit" }),
-                      m.meta?.elapsedMs ? `${Math.round(m.meta.elapsedMs / 1000)}с` : "",
-                      m.meta?.usage?.input_tokens
-                        ? `${Math.round(m.meta.usage.input_tokens / 1000)}k`
-                        : "",
-                      m.edited ? t("feed.edited") : "",
-                    ].filter(Boolean)
-
-                    return (
+              // Своя реплика остаётся пузырём справа: так она отличается от чужих
+              // с одного взгляда, не читая имени.
+              if (type === "human-message") {
+                return (
+                  <MessageGroup key={first.id}>
+                    {group.map((m) => (
                       <MessageScrollerItem key={m.id} messageId={m.id} id={`msg-${m.seq}`}>
-                        <Message align={mine ? "end" : "start"}>
-                          {!mine && (
-                            <MessageAvatar className="bg-transparent">
-                              <FaceButton name={m.from} icon={agent?.icon} color={agent?.color} onPick={onMention} />
-                            </MessageAvatar>
-                          )}
+                        <Message align="end">
                           <MessageContent className="gap-1">
-                            {!mine && i === 0 && (
-                              <MessageHeader className="text-sm">
-                                <Name name={m.from} color={agent?.color} onPick={onMention} className="" />
-                                {agent?.role && agent.role.toLowerCase() !== m.from.toLowerCase() && (
-                                  <span className="ml-1.5">{pick(lang, agent.role, agent.roleEn)}</span>
-                                )}
-                              </MessageHeader>
-                            )}
-                            <Bubble
-                              variant="secondary"
-                              align={mine ? "end" : "start"}
-                            >
+                            <Bubble variant="secondary" align="end">
                               <BubbleContent
-                                // Ответить — кликом по реплике. Клик, которым закончили
-                                // выделять текст, ответом не считается.
                                 onClick={() => {
                                   if (window.getSelection()?.toString()) return
-                                  if (mine) onEdit(m)
-                                  else onReply(m)
+                                  onEdit(m)
                                 }}
-                                className={cn(
-                                  "cursor-pointer text-base leading-normal",
-                                  // Своя реплика — нейтральная: цветом кодируются собеседники.
-                                  !mine && "tone-bubble",
-                                  tagged && "is-tagged"
-                                )}
-                                style={mine ? undefined : toneVars(agent?.color)}
+                                className="cursor-pointer text-base leading-normal"
                               >
                                 <Quote to={m.replyTo ? bySeq.get(m.replyTo) : undefined} agents={agents} className="mb-1.5" />
                                 {m.text && <Rich text={m.text} known={known} agents={agents} onMention={onMention} />}
                                 <Files files={m.files} />
                               </BubbleContent>
                             </Bubble>
-                            {/* Время и расход — служебная строка: размер системный, тон тише имени. */}
-                            {i === group.length - 1 && (
-                              <MessageFooter className="text-muted-foreground/70 font-normal">
-                                {foot.join(" · ")}
-                              </MessageFooter>
-                            )}
+                            <MessageFooter className="text-muted-foreground/70 font-normal">
+                              {[
+                                new Date(m.ts).toLocaleTimeString("ru", { hour: "2-digit", minute: "2-digit" }),
+                                m.edited ? t("feed.edited") : "",
+                              ].filter(Boolean).join(" · ")}
+                            </MessageFooter>
                           </MessageContent>
                         </Message>
                       </MessageScrollerItem>
-                    )
-                  })}
+                    ))}
+                  </MessageGroup>
+                )
+              }
+
+              // Реплика участника — текстом в документе, а не цветным пузырём: цвет
+              // здесь опознаёт говорящего, а не заливает то, что он сказал.
+              return (
+                <MessageGroup key={first.id}>
+                  {group.map((m) => (
+                    <MessageScrollerItem key={m.id} messageId={m.id} id={`msg-${m.seq}`}>
+                      <Message
+                        align="start"
+                        onClick={() => {
+                          if (window.getSelection()?.toString()) return
+                          onReply(m)
+                        }}
+                        // В покое реплика прозрачная: фон появляется только под курсором.
+                        // Подсветку «здесь позвали вас» не ставим — вас зовут почти в каждой
+                        // реплике, и она красила бы всю ленту подряд.
+                        className="hover:bg-muted/40 -mx-2 cursor-pointer rounded-lg px-2 py-1.5 transition-colors"
+                      >
+                        <MessageAvatar className="self-start bg-transparent">
+                          <FaceButton name={m.from} icon={agent?.icon} color={agent?.color} onPick={onMention} />
+                        </MessageAvatar>
+                        <MessageContent className="gap-1">
+                          <MessageHeader className="gap-2 px-0 text-sm">
+                            <Name name={m.from} color={agent?.color} onPick={onMention} className="font-semibold" />
+                            <Meta msg={m} agent={agent} />
+                          </MessageHeader>
+                          <div className="text-base leading-normal">
+                            <Quote to={m.replyTo ? bySeq.get(m.replyTo) : undefined} agents={agents} className="mb-1.5" />
+                            {m.text && <Rich text={m.text} known={known} agents={agents} onMention={onMention} />}
+                            <Files files={m.files} />
+                            <Handoff msg={m} color={agent?.color} agents={agents} user={user} onPick={onMention} />
+                          </div>
+                        </MessageContent>
+                      </Message>
+                    </MessageScrollerItem>
+                  ))}
                 </MessageGroup>
               )
             })}
@@ -544,6 +646,17 @@ export function ChatFeed({ messages, user, agents, thinking, onReply, onMention,
             {/* Кто сейчас работает — строкой в потоке, а не пузырём: это не реплика,
                 а состояние. Время идёт рядом, потому что ход у участника, который правит
                 файлы, занимает минуты, и без цифры это неотличимо от «завис». */}
+            {/* Кто стоит в очереди шага, пока говорит другой. Строка появляется только
+                внутри режима: вне его очереди нет, и «ждёт» было бы выдумкой. */}
+            {thinking.length > 0 &&
+              waiting.map((n) => (
+                <div key={n} className="text-muted-foreground/60 flex items-center gap-2 px-1 py-0.5 text-sm">
+                  <Face name={n} icon={getAgent(agents, n)?.icon} color={getAgent(agents, n)?.color} size="xs" />
+                  <span>{n}</span>
+                  <span>{t("feed.waits", { name: thinking[0] })}</span>
+                </div>
+              ))}
+
             {thinking.map((n) => (
               <div key={n} className="text-muted-foreground flex items-center gap-2 px-1 py-1 text-sm">
                 <Face name={n} icon={getAgent(agents, n)?.icon} color={getAgent(agents, n)?.color} size="sm" />

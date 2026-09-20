@@ -3,7 +3,7 @@ export type Msg = {
   id: string
   room: string
   from: string
-  kind: "message" | "system" | "error" | "edit"
+  kind: "message" | "system" | "error" | "edit" | "memory-proposal" | "memory-resolved"
   /** Событие правки: какую реплику и на что. Сама реплика после правки несёт `edited`. */
   target?: number
   edited?: number
@@ -13,6 +13,16 @@ export type Msg = {
   files?: FileRef[]
   replyTo?: number
   meta?: { elapsedMs?: number; usage?: { input_tokens?: number } }
+  /** Предложение архивариуса: что изменить в памяти пространства, и решено ли уже. */
+  diff?: MemoryChange[]
+  status?: "ожидает" | "принято"
+}
+
+export type MemoryChange = {
+  action: "добавить" | "заменить" | "отменить"
+  kind: string
+  text: string
+  id?: string
 }
 
 export type FileRef = { name: string; size: number; url: string; path: string }
@@ -103,6 +113,9 @@ export type ModeState = {
   step: number
   steps: number
   stepName: string
+  /** Кого шаг зовёт и кого ещё не дождался: из этого складывается «ждёт» и «ответил». */
+  cast: string[]
+  pending: string[]
   hear: boolean
   waitingUser: boolean
 } | null
@@ -129,6 +142,13 @@ export const api = {
       headers: { "content-type": "application/json" },
       body: JSON.stringify({ seq, text }),
     }).then(json<{ edit: Msg }>),
+
+  confirmMemory: (room: string, seq: number) =>
+    fetch(`/api/memory/confirm?room=${encodeURIComponent(room)}`, {
+      method: "POST",
+      headers: { "content-type": "application/json" },
+      body: JSON.stringify({ seq }),
+    }).then(json<{ resolved: Msg }>),
 
   send: (room: string, text: string, files: FileRef[] = [], replyTo?: number) =>
     fetch(`/api/messages?room=${encodeURIComponent(room)}`, {
