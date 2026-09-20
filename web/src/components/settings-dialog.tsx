@@ -492,9 +492,13 @@ export function SettingsDialog({
             <div className="max-w-2xl divide-y">
               {modes.map((m, i) => (
                 <React.Fragment key={m.name}>
-                {/* Режимы без регламента — последними и через отбивку: они не про порядок
-                    работы, и в общем списке читаются как ещё один рабочий приём. */}
-                {m.talk && !modes[i - 1]?.talk && <div className="h-8" />}
+                {/* Режимы без регламента — последними и под своей подписью: они не про
+                    порядок работы, и в общем списке читаются как ещё один рабочий приём. */}
+                {m.talk && !modes[i - 1]?.talk && (
+                  <div className="text-muted-foreground border-t-0 pt-8 pb-2 text-sm">
+                    {t(modes.filter((x) => x.talk).length > 1 ? "mode.specialMany" : "mode.special")}
+                  </div>
+                )}
                 <ModeCard
                   mode={m}
                   current={currentMode ? currentMode === m.name : m.builtin}

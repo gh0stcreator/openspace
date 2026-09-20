@@ -605,6 +605,11 @@ export default function App() {
                 return (
                   <React.Fragment key={`${m.name}-wrap`}>
                   {apart && <DropdownMenuSeparator />}
+                  {apart && (
+                    <DropdownMenuLabel className="text-muted-foreground font-normal">
+                      {t(cfg.modes.filter((x) => x.talk).length > 1 ? "mode.specialMany" : "mode.special")}
+                    </DropdownMenuLabel>
+                  )}
                   <DropdownMenuItem
                     key={m.name}
                     className={cn("items-start gap-3 py-2", current && "bg-accent/60")}
