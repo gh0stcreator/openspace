@@ -143,6 +143,13 @@ export function SettingsDialog({
   }
   React.useEffect(() => () => Object.values(later.current).forEach(clearTimeout), [])
 
+  // Журнал вопросов подтягиваем при открытии настроек: он нужен только здесь.
+  React.useEffect(() => {
+    if (!open) return
+    void api.rounds(room).then(setRounds).catch(() => {})
+  }, [open, room])
+
+
   if (!s) return <Dialog open={open} onOpenChange={onOpenChange} />
 
   /** Применить настройки разговора: состояние уже обновлено, сервер догоняет. */
@@ -203,12 +210,6 @@ export function SettingsDialog({
     setModes(r.modes)
     onModes(r.modes)
   }
-
-  // Журнал вопросов подтягиваем при открытии настроек: он нужен только здесь.
-  React.useEffect(() => {
-    if (!open) return
-    void api.rounds(room).then(setRounds).catch(() => {})
-  }, [open, room])
 
   function hire() {
     const name = hireName.trim()
