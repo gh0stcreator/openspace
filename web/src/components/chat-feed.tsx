@@ -208,7 +208,7 @@ function Rich({
       if (m.index > last) out.push(typo(text.slice(last, m.index)))
       if (m[2] !== undefined) {
         out.push(
-          <pre key={i++} className="bg-background/60 my-2 overflow-x-auto rounded-md p-3 text-[0.85em]">
+          <pre key={i++} className="bg-code-surface text-code my-2 overflow-x-auto rounded-md p-3 text-[0.85em]">
             <code>{m[2].replace(/\n$/, "")}</code>
           </pre>
         )
@@ -218,7 +218,7 @@ function Rich({
             key={i++}
             /* Кегль связан с текстом вокруг, а не задан числом: в реплике шрифт 16,
                в цитате 14, и фиксированные 12 в одном месте были мелкими, в другом нет. */
-            className="bg-background/60 rounded px-1 py-0.5 text-[0.85em]"
+            className="bg-code-surface text-code rounded px-1.5 py-0.5 text-[0.85em]"
           >
             {m[3]}
           </code>
