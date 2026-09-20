@@ -400,3 +400,26 @@ test('кто позвал человека и ждёт — второй раз �
   await sleep(200);
   assert.ok(calls.some((c) => c.who === 'первый'), 'после ответа человека участник не проснулся');
 });
+
+test('затянувшийся вопрос: Ведущий предлагает режим — один раз', async () => {
+  const { orch, calls } = setup(['первый', 'ведущий'], {
+    roles: { ведущий: 'продюсер' }, freeTalk: true,
+  });
+
+  // Счёт вопроса набран: двенадцать ходов, а вопрос не закрыт.
+  orch.post(ROOM, { from: 'Roman', text: 'обсудим' });
+  await sleep(100);
+  const st = orch.state(ROOM);
+  st.round = { from: 1, mode: '', turns: 20, tokens: 0, at: Date.now() };
+
+  calls.length = 0;
+  orch.post(ROOM, { from: 'первый', text: 'по-моему так', mentions: [] });
+  await sleep(250);
+  assert.ok(calls.some((c) => c.step === 'режим'), 'никто не предложил режим на двадцатом ходу');
+
+  // Второй раз за тот же вопрос не зовём: напоминать дважды — то же, от чего ушли.
+  calls.length = 0;
+  orch.post(ROOM, { from: 'первый', text: 'и ещё вот', mentions: [] });
+  await sleep(250);
+  assert.ok(!calls.some((c) => c.step === 'режим'), 'предложил режим второй раз за один вопрос');
+});
