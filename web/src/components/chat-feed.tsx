@@ -478,6 +478,41 @@ function CopyButton({ text }: { text: string }) {
 }
 
 /**
+ * Длинная своя реплика — превью с возможностью развернуть. Статья, вставленная целиком,
+ * занимает весь экран и выталкивает из поля зрения всё, что на неё ответили. Режем по
+ * высоте, а не по числу знаков: обрыв должен приходиться на строку, а не на середину слова.
+ */
+const LONG = 700
+
+function Folded({ text, children }: { text: string; children: React.ReactNode }) {
+  const { t } = useLang()
+  const [open, setOpen] = React.useState(false)
+  if (text.length <= LONG) return <>{children}</>
+
+  return (
+    <>
+      <div className={cn("relative", !open && "max-h-52 overflow-hidden")}>
+        {children}
+        {/* Затухание вместо жёсткого среза: видно, что текст продолжается. */}
+        {!open && (
+          <span className="from-secondary pointer-events-none absolute inset-x-0 bottom-0 h-10 bg-gradient-to-t to-transparent" />
+        )}
+      </div>
+      <button
+        type="button"
+        className="text-muted-foreground hover:text-foreground mt-1 text-sm"
+        onClick={(e) => {
+          e.stopPropagation()
+          setOpen((v) => !v)
+        }}
+      >
+        {t(open ? "feed.fold" : "feed.unfold")}
+      </button>
+    </>
+  )
+}
+
+/**
  * Шапка реплики: кто сказал и во что это обошлось. В строке — только «дорого или дёшево»:
  * сколько шёл ход и сколько токенов ушло. Остальное раскрывается на месте, под той же
  * строкой, а не всплывает окном поверх разговора.
@@ -724,7 +759,9 @@ export function ChatFeed({ messages, user, agents, thinking, onReply, onMention,
                                 className="cursor-pointer text-base leading-normal"
                               >
                                 <Quote to={m.replyTo ? bySeq.get(m.replyTo) : undefined} agents={agents} className="mb-1.5" />
-                                {m.text && <Rich text={m.text} known={known} agents={agents} onMention={onMention} />}
+                                <Folded text={m.text}>
+                                  {m.text && <Rich text={m.text} known={known} agents={agents} onMention={onMention} />}
+                                </Folded>
                                 <Files files={m.files} />
                               </BubbleContent>
                             </Bubble>
