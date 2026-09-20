@@ -452,6 +452,7 @@ export function SettingsDialog({
                   key={m.name}
                   mode={m}
                   participants={people}
+                  roles={s.roles}
                   current={currentMode ? currentMode === m.name : m.builtin}
                   fixed={m.builtin}
                   onChange={saveMode}

@@ -336,7 +336,7 @@ export function Composer({
             rows={1}
             value={text}
             placeholder={hint}
-            className="max-h-40 min-h-9 py-2 text-base"
+            className="composer-field max-h-40 min-h-9 py-2"
             onChange={(e) => onType(e.target.value, e.target.selectionStart)}
             onKeyDown={onKey}
             onPaste={(e) => {

@@ -68,7 +68,11 @@ export function Logo({
   // Текст половин ведёт roll(), а не React: иначе смена режима приходит уже подменённой —
   // roll() видит «слово на месте», не играет смену и оставляет ширину прежнего слова.
   const first = React.useRef<Pair>({ mode, subject })
+  // Таймеров два набора. Перебор под курсором свой эффект переподписывает при каждой
+  // смене цветов, и его уборка гасила бы заодно смену настоящего состояния: знак застывал
+  // на полпути, уехавшей половиной вверх. Живую смену ведут свои таймеры, их никто не трогает.
   const timers = React.useRef<number[]>([])
+  const live = React.useRef<number[]>([])
   const hovering = React.useRef(false)
   const playing = React.useRef(false)
   /** Что показывали в прошлое наведение: второй раз подряд это же не берём. */
@@ -139,9 +143,9 @@ export function Logo({
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [measure, paint])
 
-  const drop = () => {
-    timers.current.forEach(clearTimeout)
-    timers.current = []
+  const drop = (bag = timers) => {
+    bag.current.forEach(clearTimeout)
+    bag.current = []
   }
 
   /**
@@ -152,7 +156,7 @@ export function Logo({
   const show = React.useCallback(
     (pair: Pair) => {
       roll("mode", pair.mode, color)
-      timers.current.push(window.setTimeout(() => roll("subject", pair.subject), EVERY))
+      live.current.push(window.setTimeout(() => roll("subject", pair.subject), EVERY))
     },
     [roll, color]
   )
@@ -194,6 +198,7 @@ export function Logo({
       hovering.current = false
       playing.current = false
       drop()
+      drop(live)
       show(idle.current)
     }
 
@@ -206,6 +211,7 @@ export function Logo({
       playing.current = false
       drop()
     }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [colors, roll, show])
 
   // Настоящее состояние сменилось: вне наведения показываем его той же сменой,
@@ -213,7 +219,7 @@ export function Logo({
   React.useEffect(() => {
     idle.current = { mode, subject }
     if (hovering.current) return
-    drop()
+    drop(live)
     show({ mode, subject })
   }, [mode, subject, show])
 

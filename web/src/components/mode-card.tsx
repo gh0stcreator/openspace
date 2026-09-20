@@ -30,8 +30,9 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { Switch } from "@/components/ui/switch"
 import { Textarea } from "@/components/ui/textarea"
 import { Icon } from "@/components/chat-feed"
+import { cn } from "@/lib/utils"
 import { typo } from "@/lib/typo"
-import { useLang, plural, pick } from "@/lib/i18n"
+import { useLang, plural, pick, type Lang } from "@/lib/i18n"
 import type { FullMode, Step } from "@/lib/api"
 
 /**
@@ -45,56 +46,104 @@ import type { FullMode, Step } from "@/lib/api"
 
 const ALL = /^(все|all)?$/i
 
-/** Кого зовёт шаг: пусто или «все» — всех, иначе список ников. */
-function parseWho(who: string) {
+/**
+ * Кого зовёт шаг, тремя способами: все, носители ролей («роли: скептик, инженер»)
+ * или поимённо («@первый, @второй»). Режимы написаны ролями — так они переживают
+ * переименование участника, — и редактор обязан это понимать: раньше он знал только
+ * ники и молча превращал «роли: скептик» в список ников при первом же касании.
+ */
+function parseWho(who: string): { kind: "all" } | { kind: "roles" | "names"; list: string[] } {
   const s = (who ?? "").trim()
-  if (ALL.test(s)) return null
-  return [...s.matchAll(/@([a-zA-Z0-9_\-Ѐ-ӿ]+)/g)].map((m) => m[1].toLowerCase())
+  if (ALL.test(s)) return { kind: "all" }
+  const byRole = s.match(/^рол[ьи]:\s*(.+)$/i)
+  if (byRole) {
+    return { kind: "roles", list: byRole[1].split(",").map((r) => r.trim().toLowerCase()).filter(Boolean) }
+  }
+  return { kind: "names", list: [...s.matchAll(/@([a-zA-Z0-9_\-Ѐ-ӿ]+)/g)].map((m) => m[1].toLowerCase()) }
+}
+
+const writeWho = (kind: "roles" | "names", list: string[]) =>
+  !list.length ? "все" : kind === "roles" ? `роли: ${list.join(", ")}` : list.map((x) => `@${x}`).join(", ")
+
+/** Строка состава для полосы шагов: имена ролей или ники, как в самом шаге. */
+function whoLabel(
+  who: string,
+  roles: { name: string; title: string; titleEn: string }[],
+  lang: Lang,
+  t: (k: never) => string
+) {
+  const parsed = parseWho(who)
+  if (parsed.kind === "all") return t("step.whoAll" as never)
+  if (!parsed.list.length) return t("step.whoAll" as never)
+  if (parsed.kind === "names") return parsed.list.map((n) => `@${n}`).join(", ")
+  return parsed.list
+    .map((n) => {
+      const r = roles.find((x) => x.name.toLowerCase() === n)
+      return r ? pick(lang, r.title, r.titleEn) : n
+    })
+    .join(", ")
 }
 
 function Who({
   step,
   participants,
+  roles,
   onChange,
 }: {
   step: Step
   participants: string[]
+  roles: { name: string; title: string; titleEn: string }[]
   onChange: (who: string) => void
 }) {
-  const { t } = useLang()
-  const picked = parseWho(step.who)
+  const { lang, t } = useLang()
+  const parsed = parseWho(step.who)
+  const kind = parsed.kind
+  const list = kind === "all" ? [] : parsed.list
+
+  const chips = (
+    k: "roles" | "names",
+    items: { key: string; label: string }[],
+  ) => (
+    <div className="flex flex-wrap gap-2">
+      {items.map((it) => {
+        const on = kind === k && list.includes(it.key)
+        return (
+          <Label
+            key={it.key}
+            className="flex items-center gap-2 rounded-full border px-3 py-1.5 text-sm font-normal"
+          >
+            <Checkbox
+              checked={on}
+              onCheckedChange={(v) => {
+                // Переключение между ролями и никами — это смена способа, а не добавка:
+                // «роли: скептик, @первый» движок не понимает.
+                const base = kind === k ? list : []
+                const next = v ? [...base, it.key] : base.filter((x) => x !== it.key)
+                onChange(writeWho(k, next))
+              }}
+            />
+            {it.label}
+          </Label>
+        )
+      })}
+    </div>
+  )
 
   return (
     <div className="grid gap-2">
       <Label className="flex items-center justify-between gap-3 font-normal">
         <span>{t("step.whoAll")}</span>
         <Switch
-          checked={picked === null}
-          onCheckedChange={(v) => onChange(v ? "все" : `@${participants[0] ?? ""}`)}
+          checked={kind === "all"}
+          onCheckedChange={(v) => onChange(v ? "все" : writeWho("roles", [roles[0]?.name ?? ""]))}
         />
       </Label>
-      {picked !== null && (
-        <div className="flex flex-wrap gap-2">
-          {participants.map((n) => {
-            const on = picked.includes(n.toLowerCase())
-            return (
-              <Label
-                key={n}
-                className="flex items-center gap-2 rounded-full border px-3 py-1.5 text-sm font-normal"
-              >
-                <Checkbox
-                  checked={on}
-                  onCheckedChange={(v) => {
-                    const next = v
-                      ? [...picked, n.toLowerCase()]
-                      : picked.filter((x) => x !== n.toLowerCase())
-                    onChange(next.map((x) => `@${x}`).join(", ") || "все")
-                  }}
-                />
-                @{n}
-              </Label>
-            )
-          })}
+      {kind !== "all" && (
+        <div className="grid gap-2">
+          <span className="text-muted-foreground text-sm">{t("step.whoRoles")}</span>
+          {chips("roles", roles.map((r) => ({ key: r.name.toLowerCase(), label: pick(lang, r.title, r.titleEn) })))}
+          <span className="text-muted-foreground mt-1 text-sm">{t("step.whoNames")}</span>
+          {chips("names", participants.map((n) => ({ key: n.toLowerCase(), label: `@${n}` })))}
         </div>
       )}
     </div>
@@ -104,6 +153,7 @@ function Who({
 type Props = {
   mode: FullMode
   participants: string[]
+  roles: { name: string; title: string; titleEn: string }[]
   onChange: (next: FullMode) => void
   onCopy: () => void
   onRemove: () => void
@@ -115,6 +165,7 @@ type Props = {
 export function ModeCard({
   mode,
   participants,
+  roles,
   onChange,
   onCopy,
   onRemove,
@@ -123,6 +174,8 @@ export function ModeCard({
 }: Props) {
   const { lang, t } = useLang()
   const [open, setOpen] = React.useState(false)
+  /** Раскрыт один шаг за раз: иначе полоса снова превращается в четыре формы подряд. */
+  const [step, setStep] = React.useState<number | null>(null)
   const patch = (p: Partial<FullMode>) => onChange({ ...mode, ...p })
   const patchStep = (i: number, p: Partial<Step>) =>
     patch({ steps: mode.steps.map((s, j) => (i === j ? { ...s, ...p } : s)) })
@@ -233,78 +286,110 @@ export function ModeCard({
 
           <div className="grid gap-3">
             <FieldLabel>{t("mode.steps")}</FieldLabel>
-            {mode.steps.map((st, i) => (
-              <div key={i} className="grid gap-4 rounded-lg border p-3">
-                <div className="flex items-center gap-2">
-                  <span className="text-muted-foreground w-6 shrink-0 font-mono text-sm">
-                    {String(i + 1).padStart(2, "0")}
-                  </span>
-                  <Input
-                    value={st.name}
-                    placeholder={t("step.name")}
-                    onChange={(e) => patchStep(i, { name: e.target.value })}
-                  />
-                  <Button
-                    variant="ghost"
-                    size="icon"
-                    className="text-muted-foreground shrink-0"
-                    aria-label={t("step.remove")}
-                    onClick={() => patch({ steps: mode.steps.filter((_, j) => j !== i) })}
-                  >
-                    <Trash2 />
-                  </Button>
-                </div>
-
-                <div className="grid gap-4 pl-8 sm:grid-cols-2">
-                  <Field>
-                    <FieldLabel>{t("step.who")}</FieldLabel>
-                    <Who step={st} participants={participants} onChange={(who) => patchStep(i, { who })} />
-                  </Field>
-
-                  <div className="grid content-start gap-4">
-                    <Field>
-                      <FieldLabel>{t("step.until")}</FieldLabel>
-                      <Select
-                        value={/человек/i.test(st.until) ? "человек" : "все ответят"}
-                        onValueChange={(v) => patchStep(i, { until: v })}
-                      >
-                        <SelectTrigger>
-                          <SelectValue />
-                        </SelectTrigger>
-                        <SelectContent>
-                          <SelectItem value="все ответят">{t("step.untilAll")}</SelectItem>
-                          <SelectItem value="человек">{t("step.untilHuman")}</SelectItem>
-                        </SelectContent>
-                      </Select>
-                    </Field>
-
-                    <Label className="flex items-start justify-between gap-3 font-normal">
-                      <span className="grid gap-0.5">
-                        {t("step.hear")}
-                        <span className="text-muted-foreground text-sm">
-                          {t(st.hear ? "step.hearYes" : "step.hearNo")}
-                        </span>
+            {/* Полоса, а не четыре раскрытые формы подряд: устройство режима — сколько
+                шагов, где вслепую, чем каждый закрывается — должно читаться с одного
+                взгляда. Текст шага раскрывается по клику, по одному за раз. */}
+            <div className="divide-y rounded-lg border">
+              {mode.steps.map((st, i) => (
+                <div key={i}>
+                  <div className="flex items-center gap-3 px-3 py-2">
+                    <span className="text-muted-foreground w-5 shrink-0 font-mono text-xs">
+                      {String(i + 1).padStart(2, "0")}
+                    </span>
+                    <button
+                      className="flex min-w-0 flex-1 items-center gap-3 text-left"
+                      onClick={() => setStep(step === i ? null : i)}
+                    >
+                      <span className="w-24 shrink-0 truncate text-sm font-medium">{st.name}</span>
+                      <span className="text-muted-foreground min-w-0 flex-1 truncate text-sm">
+                        {whoLabel(st.who, roles, lang, t as never)}
                       </span>
-                      <Switch checked={st.hear} onCheckedChange={(v) => patchStep(i, { hear: v })} />
-                    </Label>
+                      {/* Вслепую или нет — главное свойство шага, поэтому оно видно всегда. */}
+                      <span className={cn("shrink-0 text-xs", st.hear ? "text-muted-foreground" : "text-foreground")}>
+                        {t(st.hear ? "step.aloud" : "step.blind")}
+                      </span>
+                      <span className="text-muted-foreground hidden w-24 shrink-0 text-right text-xs sm:block">
+                        {t(/человек/i.test(st.until) ? "step.waitHuman" : "step.waitAll")}
+                      </span>
+                    </button>
+                    <Button
+                      variant="ghost"
+                      size="icon"
+                      className="text-muted-foreground shrink-0"
+                      aria-label={t("step.remove")}
+                      onClick={() => {
+                        setStep(null)
+                        patch({ steps: mode.steps.filter((_, j) => j !== i) })
+                      }}
+                    >
+                      <Trash2 />
+                    </Button>
                   </div>
-                </div>
 
-                <div className="pl-8">
-                  <Field>
-                    <FieldLabel>{t("step.prompt")}</FieldLabel>
-                    <Textarea
-                      rows={3}
-                      value={st.prompt}
-                      placeholder={t("step.promptHint")}
-                      className="font-mono text-xs leading-relaxed"
-                      onChange={(e) => patchStep(i, { prompt: e.target.value })}
-                    />
-                    <FieldDescription>{t("step.promptNote")}</FieldDescription>
-                  </Field>
+                  {step === i && (
+                    <div className="grid gap-4 border-t px-3 py-4">
+                      <div className="grid gap-4 sm:grid-cols-2">
+                        <Field>
+                          <FieldLabel>{t("step.name")}</FieldLabel>
+                          <Input
+                            value={st.name}
+                            placeholder={t("step.name")}
+                            onChange={(e) => patchStep(i, { name: e.target.value })}
+                          />
+                        </Field>
+                        <Field>
+                          <FieldLabel>{t("step.until")}</FieldLabel>
+                          <Select
+                            value={/человек/i.test(st.until) ? "человек" : "все ответят"}
+                            onValueChange={(v) => patchStep(i, { until: v })}
+                          >
+                            <SelectTrigger>
+                              <SelectValue />
+                            </SelectTrigger>
+                            <SelectContent>
+                              <SelectItem value="все ответят">{t("step.untilAll")}</SelectItem>
+                              <SelectItem value="человек">{t("step.untilHuman")}</SelectItem>
+                            </SelectContent>
+                          </Select>
+                        </Field>
+                      </div>
+
+                      <Label className="flex items-start justify-between gap-3 font-normal">
+                        <span className="grid gap-0.5">
+                          {t("step.hear")}
+                          <span className="text-muted-foreground text-sm">
+                            {t(st.hear ? "step.hearYes" : "step.hearNo")}
+                          </span>
+                        </span>
+                        <Switch checked={st.hear} onCheckedChange={(v) => patchStep(i, { hear: v })} />
+                      </Label>
+
+                      <Field>
+                        <FieldLabel>{t("step.who")}</FieldLabel>
+                        <Who
+                          step={st}
+                          participants={participants}
+                          roles={roles}
+                          onChange={(who) => patchStep(i, { who })}
+                        />
+                      </Field>
+
+                      <Field>
+                        <FieldLabel>{t("step.prompt")}</FieldLabel>
+                        <Textarea
+                          rows={4}
+                          value={st.prompt}
+                          placeholder={t("step.promptHint")}
+                          className="font-mono text-xs leading-relaxed"
+                          onChange={(e) => patchStep(i, { prompt: e.target.value })}
+                        />
+                        <FieldDescription>{t("step.promptNote")}</FieldDescription>
+                      </Field>
+                    </div>
+                  )}
                 </div>
-              </div>
-            ))}
+              ))}
+            </div>
 
             <Button
               variant="ghost"
