@@ -240,8 +240,10 @@ export function SettingsDialog({
               <DialogTitle className="text-lg font-semibold">{t("settings.title")}</DialogTitle>
             </DialogHeader>
             {/* Пункты — по центру колонки: их четыре, а колонка во весь диалог, и прижатые
-                к заголовку они висят в пустоте верхней трети. */}
-            <TabsList className="w-full flex-1 justify-center gap-0.5 bg-transparent p-0">
+                к заголовку они висят в пустоте верхней трети. Центрируем обёрткой, а не самим
+                списком: `flex-1` на списке растягивает его пункты, а не двигает их. */}
+            <div className="flex flex-1 flex-col justify-center">
+            <TabsList className="w-full gap-0.5 bg-transparent p-0">
               <TabsTrigger value="general" className={NAV}>
                 <Gear /> {t("settings.general")}
               </TabsTrigger>
@@ -255,6 +257,7 @@ export function SettingsDialog({
                 <Layers /> {t("settings.space")}
               </TabsTrigger>
             </TabsList>
+            </div>
 
             {/* Чей это продукт. Ряды те же, что у навигации, только тише: это ссылки наружу,
                 а не разделы настроек. */}
