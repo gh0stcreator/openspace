@@ -4,6 +4,16 @@ import { Copy, MoreHorizontal, Settings as Gear, Trash2 } from "lucide-react"
 import { Button } from "@/components/ui/button"
 import { Collapsible, CollapsibleContent } from "@/components/ui/collapsible"
 import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+} from "@/components/ui/alert-dialog"
+import {
   DropdownMenu,
   DropdownMenuContent,
   DropdownMenuItem,
@@ -75,6 +85,17 @@ export function AgentCard({ name, agent, settings, autoOpen, onChange, onRename,
   const { lang, t } = useLang()
   const [open, setOpen] = React.useState(autoOpen ?? false)
   const [nick, setNick] = React.useState(name)
+  /** Амплуа, выбранное поверх правленого голоса: сначала предупреждаем, потом заменяем. */
+  const [swap, setSwap] = React.useState<string | null>(null)
+
+  /** Правленый голос — это отдельное, безымянное амплуа: в списке он так и стоит. */
+  const custom = agent.mannerCustom !== null
+  // Выбор амплуа не пишет его текст в участника, а только называет амплуа: текст берётся
+  // из файла. Поэтому «вернуть как было» — это просто выбрать базовое амплуа в списке.
+  const wear = (n: string) => {
+    const a = settings.archetypes.find((x) => x.name === n)
+    onChange({ archetype: a?.title ?? n, manner: "" })
+  }
 
   return (
     <Collapsible open={open} onOpenChange={setOpen} asChild>
@@ -172,16 +193,21 @@ export function AgentCard({ name, agent, settings, autoOpen, onChange, onRename,
           <Field>
             <FieldLabel>{t("card.archetype")}</FieldLabel>
             <Select
-              value={agent.archetype.toLowerCase()}
-              onValueChange={(v) => {
-                const a = settings.archetypes.find((x) => x.name === v)
-                onChange({ archetype: a?.title ?? v, manner: a?.voice ?? "" })
-              }}
+              value={custom ? "—" : agent.archetype.toLowerCase()}
+              onValueChange={(v) => (custom ? setSwap(v) : wear(v))}
             >
               <SelectTrigger>
-                <SelectValue>{agent.archetype}</SelectValue>
+                <SelectValue>{custom ? t("card.archetypeCustom") : agent.archetype}</SelectValue>
               </SelectTrigger>
               <SelectContent>
+                {custom && (
+                  <SelectItem value="—">
+                    <span className="grid gap-0.5">
+                      {t("card.archetypeCustom")}
+                      <span className="text-muted-foreground text-xs">{t("card.archetypeCustomNote")}</span>
+                    </span>
+                  </SelectItem>
+                )}
                 {settings.archetypes.map((a) => (
                   <SelectItem key={a.name} value={a.name}>
                     <span className="grid gap-0.5">
@@ -192,25 +218,33 @@ export function AgentCard({ name, agent, settings, autoOpen, onChange, onRename,
                 ))}
               </SelectContent>
             </Select>
+
+            <AlertDialog open={swap !== null} onOpenChange={(o) => !o && setSwap(null)}>
+              <AlertDialogContent>
+                <AlertDialogHeader>
+                  <AlertDialogTitle>{t("card.archetypeSwapTitle")}</AlertDialogTitle>
+                  <AlertDialogDescription>{t("card.archetypeSwapBody")}</AlertDialogDescription>
+                </AlertDialogHeader>
+                <AlertDialogFooter>
+                  <AlertDialogCancel>{t("space.cancel")}</AlertDialogCancel>
+                  <AlertDialogAction
+                    onClick={() => {
+                      if (swap) wear(swap)
+                      setSwap(null)
+                    }}
+                  >
+                    {t("card.archetypeSwapOk")}
+                  </AlertDialogAction>
+                </AlertDialogFooter>
+              </AlertDialogContent>
+            </AlertDialog>
           </Field>
 
           {/* Текста роли в карточке нет: роль — файл в roles/, там её и правят.
               Поле, заменявшее её целиком, стирало характер одной строкой и было
               третьим способом сказать то же, что закон пространства или новая роль. */}
           <Field>
-            <div className="flex items-baseline justify-between gap-2">
-              <FieldLabel htmlFor={`manner-${name}`}>{t("card.manner")}</FieldLabel>
-              {agent.mannerCustom && (
-                <Button
-                  variant="ghost"
-                  size="xs"
-                  className="text-muted-foreground"
-                  onClick={() => onChange({ manner: "" })}
-                >
-                  {t("card.mannerReset")}
-                </Button>
-              )}
-            </div>
+            <FieldLabel htmlFor={`manner-${name}`}>{t("card.manner")}</FieldLabel>
             <Textarea
               id={`manner-${name}`}
               rows={8}
