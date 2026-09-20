@@ -51,7 +51,8 @@ export type Agent = {
   mannerCustom: string | null
   engine: string
   model: string | null
-  trust: string
+  /** Что умеет руками: файлы, команды, веб. Выдача умения и есть разрешение. */
+  skills: string[]
 }
 
 export type Config = {
@@ -89,11 +90,12 @@ export type Settings = Omit<Config, "defaultResponders" | "off" | "rooms"> & {
     archetypeEn: string
     model: string
     pulls: string
+    skills: string[]
   }[]
   /** Амплуа — готовые голоса. Выбор кладёт текст целиком в поле «как говорит». */
   archetypes: { name: string; title: string; titleEn: string; brief: string; briefEn: string; voice: string }[]
   engines: string[]
-  trustLevels: string[]
+  skillList: string[]
   icons: Record<string, string>
 }
 

@@ -19,7 +19,9 @@ import {
   DropdownMenuItem,
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu"
+import { Checkbox } from "@/components/ui/checkbox"
 import { Field, FieldLabel } from "@/components/ui/field"
+import { Label } from "@/components/ui/label"
 import { Input } from "@/components/ui/input"
 import {
   Select,
@@ -257,16 +259,28 @@ export function AgentCard({ name, agent, settings, autoOpen, onChange, onRename,
 
           <div className="grid gap-3 border-t pt-4 sm:grid-cols-3">
             <Field>
-              <FieldLabel>{t("card.trust")}</FieldLabel>
-              <Select value={agent.trust} onValueChange={(v) => onChange({ trust: v })}>
-                <SelectTrigger>
-                  <SelectValue />
-                </SelectTrigger>
-                <SelectContent>
-                  <SelectItem value="safe">{t("card.trustSafe")}</SelectItem>
-                  <SelectItem value="full">{t("card.trustFull")}</SelectItem>
-                </SelectContent>
-              </Select>
+              <FieldLabel>{t("card.skills")}</FieldLabel>
+              {/* Умения выдают поштучно: выдача и есть разрешение. Прежний «уровень
+                  доступа» отвечал сразу на два вопроса — что умеет и что позволено. */}
+              <div className="flex flex-wrap gap-2">
+                {settings.skillList.map((k) => {
+                  const on = agent.skills.includes(k)
+                  return (
+                    <Label
+                      key={k}
+                      className="flex items-center gap-2 rounded-full border px-3 py-1.5 text-sm font-normal"
+                    >
+                      <Checkbox
+                        checked={on}
+                        onCheckedChange={(v) =>
+                          onChange({ skills: v ? [...agent.skills, k] : agent.skills.filter((x) => x !== k) })
+                        }
+                      />
+                      {t(`skill.${k}` as never)}
+                    </Label>
+                  )
+                })}
+              </div>
             </Field>
             <Field className="sm:col-span-2">
               <FieldLabel>{t("card.model")}</FieldLabel>

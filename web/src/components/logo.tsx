@@ -25,11 +25,9 @@ export type Pair = { mode: string; subject: string }
 const HOME: Pair = { mode: "open", subject: "space" }
 
 // Слово уезжает, через HOLD подменяется и приходит обратно. Одно значение на обе
-// половины: движение у них общее. EVERY — пауза между левой и правой, STAY — сколько
-// собранная пара стоит на экране, прежде чем знак разом вернётся к настоящему.
+// половины: движение у них общее. EVERY — пауза между левой и правой.
 const HOLD = { mode: 110, subject: 110 }
 const EVERY = 260
-const STAY = 900
 
 export function Logo({
   mode,
@@ -169,12 +167,9 @@ export function Logo({
       playing.current = true
       roll("mode", HOME.mode, colors?.[HOME.mode])
       timers.current.push(window.setTimeout(() => roll("subject", HOME.subject), EVERY))
-      timers.current.push(
-        window.setTimeout(() => {
-          playing.current = false
-          show(idle.current)
-        }, EVERY + STAY)
-      )
+      // Обратно знак не возвращается сам: пока курсор на нём, он так и стоит именем
+      // продукта. Возврат к настоящему состоянию — это уход курсора, и ничто другое.
+      timers.current.push(window.setTimeout(() => { playing.current = false }, EVERY))
     }
 
     const leave = () => {

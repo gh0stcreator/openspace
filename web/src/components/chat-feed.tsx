@@ -189,6 +189,106 @@ function Name({
 }
 
 /** Разметка внутри реплики: код, выделение, упоминания. Текст экранирует React. */
+/**
+ * Разметка в реплике. Участникам велено писать как в мессенджере, но человек вставляет
+ * куски статей, а куски статей размечены: заголовки, списки, линейки. Показывать их
+ * сырыми значками — значит показывать текст непрочитанным.
+ *
+ * Блочная разметка разбирается построчно и оборачивает Rich, который остаётся разбором
+ * внутристрочного. Тройные кавычки вырезаются первыми: внутри них строки — это код,
+ * а не разметка, и решётка в начале строки там ничего не значит.
+ */
+function Markdown(props: {
+  text: string
+  known: string[]
+  agents: Record<string, Agent>
+  onMention: (name: string) => void
+}) {
+  const { text, ...rest } = props
+  const out: React.ReactNode[] = []
+  let key = 0
+
+  // Куски вне тройных кавычек разбираем построчно, сами кавычки отдаём Rich как есть.
+  for (const chunk of text.split(/(```[\s\S]*?```)/g)) {
+    if (!chunk) continue
+    if (chunk.startsWith("```")) {
+      out.push(<Rich key={key++} text={chunk} {...rest} />)
+      continue
+    }
+
+    const lines = chunk.split("\n")
+    let para: string[] = []
+    let list: { ordered: boolean; items: string[] } | null = null
+
+    const flushPara = () => {
+      if (!para.length) return
+      const body = para.join("\n").replace(/^\n+|\n+$/g, "")
+      if (body) out.push(<Rich key={key++} text={body} {...rest} />)
+      para = []
+    }
+    const flushList = () => {
+      if (!list) return
+      const L = list.ordered ? "ol" : "ul"
+      out.push(
+        React.createElement(
+          L,
+          {
+            key: key++,
+            className: list.ordered
+              ? "my-1.5 list-decimal space-y-0.5 ps-5"
+              : "my-1.5 list-disc space-y-0.5 ps-5",
+          },
+          list.items.map((it, n) => (
+            <li key={n}>
+              <Rich text={it} {...rest} />
+            </li>
+          ))
+        )
+      )
+      list = null
+    }
+
+    for (const line of lines) {
+      const head = line.match(/^(#{1,6})\s+(.+)$/)
+      const item = line.match(/^\s*[-*•]\s+(.+)$/)
+      const num = line.match(/^\s*\d+[.)]\s+(.+)$/)
+      const quote = line.match(/^>\s?(.*)$/)
+
+      if (/^\s*(-{3,}|\*{3,}|_{3,})\s*$/.test(line)) {
+        flushPara(); flushList()
+        // Линейка — тонкая и короткая: во всю ширину она режет ленту пополам.
+        out.push(<hr key={key++} className="border-border/60 my-3 w-16" />)
+      } else if (head) {
+        flushPara(); flushList()
+        out.push(
+          <div key={key++} className={cn("mt-3 mb-1 font-semibold first:mt-0", head[1].length <= 2 && "text-[1.05em]")}>
+            <Rich text={head[2]} {...rest} />
+          </div>
+        )
+      } else if (item || num) {
+        flushPara()
+        const ordered = !!num
+        if (!list || list.ordered !== ordered) { flushList(); list = { ordered, items: [] } }
+        list.items.push((item ?? num)![1])
+      } else if (quote) {
+        flushPara(); flushList()
+        out.push(
+          <div key={key++} className="border-border text-muted-foreground my-1.5 border-s-2 ps-3">
+            <Rich text={quote[1]} {...rest} />
+          </div>
+        )
+      } else {
+        flushList()
+        para.push(line)
+      }
+    }
+    flushPara()
+    flushList()
+  }
+
+  return <>{out}</>
+}
+
 function Rich({
   text,
   known,
@@ -760,7 +860,7 @@ export function ChatFeed({ messages, user, agents, thinking, onReply, onMention,
                               >
                                 <Quote to={m.replyTo ? bySeq.get(m.replyTo) : undefined} agents={agents} className="mb-1.5" />
                                 <Folded text={m.text}>
-                                  {m.text && <Rich text={m.text} known={known} agents={agents} onMention={onMention} />}
+                                  {m.text && <Markdown text={m.text} known={known} agents={agents} onMention={onMention} />}
                                 </Folded>
                                 <Files files={m.files} />
                               </BubbleContent>
@@ -806,7 +906,7 @@ export function ChatFeed({ messages, user, agents, thinking, onReply, onMention,
                           </MessageHeader>
                           <div className="text-base leading-normal">
                             <Quote to={m.replyTo ? bySeq.get(m.replyTo) : undefined} agents={agents} className="mb-1.5" />
-                            {m.text && <Rich text={m.text} known={known} agents={agents} onMention={onMention} />}
+                            {m.text && <Markdown text={m.text} known={known} agents={agents} onMention={onMention} />}
                             <Files files={m.files} />
                             <Handoff msg={m} agents={agents} user={user} onPick={onMention} />
                           </div>

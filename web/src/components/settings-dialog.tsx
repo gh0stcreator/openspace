@@ -222,7 +222,7 @@ export function SettingsDialog({
             roleName: hireRole,
             engine: hireEngine,
             model: s!.roles.find((r) => r.name === hireRole)?.model || null,
-            trust: "safe",
+            skills: s!.roles.find((r) => r.name === hireRole)?.skills ?? ["файлы"],
           } as Agent,
         },
       },

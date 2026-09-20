@@ -8,6 +8,7 @@ import { Orchestrator } from './lib/orchestrator.js';
 import { loadConfig } from './lib/config.js';
 import { roleOf, listRoles } from './lib/roles.js';
 import { loadArchetype, listArchetypes } from './lib/archetypes.js';
+import { SKILLS, skillsOf } from './lib/skills.js';
 import { BUILTIN, listModes, loadMode, removeMode, saveMode, stepTargets } from './lib/modes.js';
 
 const root = path.dirname(fileURLToPath(import.meta.url));
@@ -96,7 +97,7 @@ const describe = (name, a) => ({
   briefEn: a.persona ?? roleOf(a).briefEn,
   engine: a.kind ?? name,
   model: a.model ?? null,
-  trust: a.trust ?? 'safe',
+  skills: skillsOf(a),
 });
 
 store.onMessage((event) => {
@@ -239,12 +240,13 @@ const server = http.createServer(async (req, res) => {
           archetypeEn: r.archetypeEn,
           model: r.model,
           pulls: r.pulls,
+          skills: r.skills,
         })),
         archetypes: listArchetypes().map((x) => ({
           name: x.name, title: x.title, titleEn: x.titleEn, brief: x.brief, briefEn: x.briefEn, voice: x.voice,
         })),
         engines: ['claude', 'codex'],
-        trustLevels: ['safe', 'full'],
+        skillList: SKILLS,
       });
     }
 
@@ -280,11 +282,16 @@ const server = http.createServer(async (req, res) => {
             ...prev,
             kind: ['claude', 'codex'].includes(a.engine) ? a.engine : (prev.kind ?? 'claude'),
             role: a.roleName ?? prev.role ?? 'peer',
-            trust: ['safe', 'full'].includes(a.trust) ? a.trust : (prev.trust ?? 'safe'),
             label: name,
             lean: true,
             timeoutMs: prev.timeoutMs ?? 300000,
           };
+          // Умения выдают поштучно, и выдача — это и есть разрешение: отдельного
+          // уровня доступа (trust) больше нет, старый читается как набор умений.
+          if (Array.isArray(a.skills)) {
+            agents[name].skills = a.skills.filter((x) => SKILLS.includes(x));
+            delete agents[name].trust;
+          }
           if (a.model) agents[name].model = a.model;
           else delete agents[name].model;
           if (a.iconCustom) agents[name].icon = a.iconCustom;
