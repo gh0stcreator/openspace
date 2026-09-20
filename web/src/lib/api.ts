@@ -162,6 +162,8 @@ export type ModeState = {
   /** Кого шаг зовёт и кого ещё не дождался: из этого складывается «ждёт» и «ответил». */
   cast: string[]
   pending: string[]
+  /** Кем участники выходят в этом режиме: ник → персона. Пусто — выходят собой. */
+  personas: Record<string, { name: string; labelEn: string; icon: string; color: string }>
   hear: boolean
   waitingUser: boolean
 } | null

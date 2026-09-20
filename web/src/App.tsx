@@ -32,7 +32,7 @@ import { SettingsDialog } from "@/components/settings-dialog"
 import { cn } from "@/lib/utils"
 import { useLang, pick, plural } from "@/lib/i18n"
 import { typo } from "@/lib/typo"
-import { api, listen, type Config, type Msg, type RoomState } from "@/lib/api"
+import { api, listen, type Agent, type Config, type Msg, type RoomState } from "@/lib/api"
 
 export default function App() {
   const { lang, t } = useLang()
@@ -224,6 +224,26 @@ export default function App() {
     [cfg?.modes]
   )
 
+  /**
+   * Кем участники выходят в этом режиме. `personas` — ник → имя персонажа, `cast` — состав
+   * для ленты и подсказок: в нём и ники, и имена персонажей, поэтому «@Крош» опознаётся
+   * так же, как «@Креатор», и красится его цветом. Тоже до раннего возврата: хук за условием
+   * — это чёрный экран на всё приложение, и мы это уже проходили.
+   */
+  const faces = state.modeState?.personas
+  const personas = React.useMemo(
+    () => Object.fromEntries(Object.entries(faces ?? {}).map(([n, p]) => [n, p.name])),
+    [faces]
+  )
+  const cast = React.useMemo(() => {
+    const out: Record<string, Agent> = { ...(cfg?.agents ?? {}) }
+    for (const [nick, p] of Object.entries(faces ?? {})) {
+      const a = out[nick]
+      if (a) out[p.name] = { ...a, icon: p.icon || a.icon, color: p.color || a.color }
+    }
+    return out
+  }, [cfg?.agents, faces])
+
   if (!cfg || !ready) {
     return (
       <div className="bg-background flex h-dvh flex-col">
@@ -273,6 +293,8 @@ export default function App() {
    * приходят от оркестратора — интерфейс их не вычисляет.
    */
   const ms = state.modeState
+
+
   const doing = (n: string): "working" | "waiting" | "done" | "idle" => {
     if (thinking.includes(n)) return "working"
     if (!ms || !ms.cast.includes(n)) return "idle"
@@ -416,7 +438,8 @@ export default function App() {
           <ChatFeed
             messages={messages}
             user={cfg.user}
-            agents={cfg.agents}
+            agents={cast}
+            personas={personas}
             thinking={thinking}
             since={state.thinking}
             onReply={(m) => {
@@ -456,7 +479,7 @@ export default function App() {
 
         <Composer
           room={room}
-          agents={cfg.agents}
+          agents={cast}
           onError={local}
           onSent={(m) => setMessages((prev) => take(prev, m))}
           replyTo={replyTo}

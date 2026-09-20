@@ -318,7 +318,7 @@ function Rich({
         "|\\[(?<lt>[^\\]\\n]+)\\]\\((?<lu>[^)\\s]+)\\)" +
         "|(?<url>https?://[^\\s<>()\\[\\]]+)" +
         "|\\*\\*(?<bold>[^*\\n]+)\\*\\*" +
-        "|(?:^|[\\s(,:;«\"'\\[])@(?<tag>[a-zA-Z0-9_\\-Ѐ-ӿ]+)" +
+        "|(?<lead>^|[\\s(,:;«\"'\\[])@(?<tag>[a-zA-Z0-9_\\-Ѐ-ӿ]+)" +
         (named
           ? `|(?<![\\p{L}\\p{N}])(?<bare>${named})(?<end>а|у|ом|е|ы|ов|ам|ами|ах)?(?![\\p{L}\\p{N}])`
           : ""),
@@ -381,7 +381,10 @@ function Rich({
         )
       } else if (m.groups?.tag) {
         const name = m.groups.tag
-        out.push(m[5])
+        // Знак перед собакой — часть совпадения, и его надо вернуть на место. Раньше здесь
+        // стояла номерная группа: после перехода на именованные она указывала в пустоту,
+        // и пробел перед каждым обращением съедался — «а@Совунья».
+        out.push(m.groups.lead ?? "")
         const hit = known.find((k) => k.toLowerCase() === name.toLowerCase())
         // Обращение — цветом того, кого позвали: имя в ленте и имя в тексте должны
         // опознаваться одинаково, иначе цвет перестаёт быть признаком участника.
@@ -445,6 +448,8 @@ type Props = {
   onEdit: (m: Msg) => void
   /** Клик по имени в ленте: поставить обращение в поле ввода. */
   onMention: (name: string) => void
+  /** Кем участники выходят в нынешнем режиме: ник → имя персонажа. Пусто — выходят собой. */
+  personas?: Record<string, string>
   /** Клик по предложению архивариуса: применить diff к памяти пространства. */
   onConfirmMemory: (m: Msg) => void
   /** Второе, отдельное действие на том же предложении: здесь нечего записывать —
@@ -733,11 +738,13 @@ function Head({
 function Handoff({
   msg,
   agents,
+  personas,
   user,
   onPick,
 }: {
   msg: Msg
   agents: Record<string, Agent>
+  personas?: Record<string, string>
   user: string
   onPick: (name: string) => void
 }) {
@@ -754,9 +761,12 @@ function Handoff({
   return (
     <div className="text-muted-foreground mt-1.5 flex flex-wrap items-center gap-x-1.5 gap-y-1 text-sm">
       <ArrowRight className="size-3.5 shrink-0" />
-      {to.map((n) => (
-        <Name key={n} name={n} color={getAgent(agents, n)?.color} onPick={onPick} />
-      ))}
+      {to.map((n) => {
+        // Передача хода — тому, кого видно в ленте: обращения разобраны в ники, а в режиме
+        // с персонами ника в ленте нет вовсе, и «→ Скептик» показывал на пустое место.
+        const as = personas?.[n] ?? n
+        return <Name key={n} name={as} color={getAgent(agents, as)?.color} onPick={onPick} />
+      })}
     </div>
   )
 }
@@ -825,7 +835,7 @@ function FollowMine({ seq }: { seq?: number }) {
   return null
 }
 
-export function ChatFeed({ messages, user, agents, thinking, since, onReply, onMention, onEdit, onConfirmMemory, onRejectMemory }: Props) {
+export function ChatFeed({ messages, user, agents, personas, thinking, since, onReply, onMention, onEdit, onConfirmMemory, onRejectMemory }: Props) {
   const elapsed = useElapsed(thinking, since)
   const { t } = useLang()
   const known = React.useMemo(() => [...Object.keys(agents), user], [agents, user])
@@ -962,7 +972,7 @@ export function ChatFeed({ messages, user, agents, thinking, since, onReply, onM
                             <Quote to={m.replyTo ? bySeq.get(m.replyTo) : undefined} agents={agents} className="mb-1.5" />
                             {m.text && <Markdown text={m.text} known={known} agents={agents} onMention={onMention} />}
                             <Files files={m.files} />
-                            <Handoff msg={m} agents={agents} user={user} onPick={onMention} />
+                            <Handoff msg={m} agents={agents} personas={personas} user={user} onPick={onMention} />
                           </div>
                           {/* Не MessageFooter: базовая карточка поднимает аватарку
                               на 32px, как только внутри появляется низ, — это верно
