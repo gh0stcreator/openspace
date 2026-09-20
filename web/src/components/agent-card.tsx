@@ -247,7 +247,7 @@ export function AgentCard({ name, agent, settings, autoOpen, onChange, onRename,
               rows={8}
               value={agent.manner ?? ""}
               placeholder={t("card.mannerHint")}
-              className="text-xs leading-relaxed"
+              className="max-h-72 text-xs leading-relaxed"
               onChange={(e) => onChange({ manner: e.target.value })}
             />
           </Field>

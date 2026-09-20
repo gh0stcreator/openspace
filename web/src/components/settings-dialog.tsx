@@ -74,15 +74,44 @@ const Romantic = (props: React.SVGProps<SVGSVGElement>) => (
 
 /** Пункт навигации: активное состояние как у меню shadcn, без своих индикаторов. */
 const NAV = [
-  "min-h-9 justify-start rounded-md border-transparent px-3 text-sm hover:bg-accent/50",
+  // Рамку гасим и под курсором: вариант вкладок рисует её на hover, и пункт под мышью
+  // выглядел обведённым, а не подсвеченным — читалось как «этот выбран», хотя выбран другой.
+  "min-h-9 justify-start rounded-md border-transparent px-3 text-sm hover:border-transparent hover:bg-accent/50 dark:hover:border-transparent",
   // Активное состояние — только заливка. Вариант вкладок рисует свою рамку, и под dark:
   // тоже, поэтому гасим оба правила: иначе поверх заливки видна вторая рамка.
   "data-active:border-transparent data-active:bg-accent data-active:text-accent-foreground",
   "dark:data-active:border-transparent dark:data-active:bg-accent dark:data-active:text-accent-foreground",
   // Фокус — кольцо. Штатная обводка у вкладок волосяная и в упор к тексту: рядом
   // с заливкой активного пункта она читается как вторая рамка.
-  "focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring",
+  // Кольцо — только на неактивном пункте. Radix переводит фокус на вкладку программно,
+  // и браузер считает такой фокус клавиатурным: после щелчка кольцо оставалось висеть
+  // поверх заливки. Активный пункт и так виден заливкой, второй метки ему не нужно.
+  "focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring data-[state=active]:focus-visible:ring-0",
 ].join(" ")
+
+/** Заготовка нового режима: один шаг-разговор, дальше человек правит его текстом. */
+const BLANK: FullMode = {
+  name: "новый-режим",
+  title: "Новый режим",
+  titleEn: "",
+  rubric: "",
+  rubricEn: "",
+  who: [],
+  short: "Новый",
+  shortEn: "",
+  slug: "custom",
+  color: "",
+  brief: "",
+  briefEn: "",
+  for: "",
+  forEn: "",
+  icon: "list-ordered",
+  needs: [],
+  missing: [],
+  builtin: false,
+  steps: [{ name: "разговор", who: "все", hear: true, until: "все ответят", prompt: "" }],
+  source: "",
+}
 
 type Props = {
   open: boolean
@@ -351,7 +380,16 @@ export function SettingsDialog({
 
           {/* КТО. Состав команды и что каждый умеет. */}
           <TabsContent value="people" className="min-w-0 flex-1 overflow-y-auto p-6">
-            <h2 className="mb-6 text-xl font-semibold">{t("settings.people")}</h2>
+            {/* Действие раздела стоит у заголовка, а не под списком: список длинный,
+                и кнопка под ним прячется за прокруткой ровно тогда, когда нужна. */}
+            <div className="mb-6 flex items-center gap-3">
+              <h2 className="text-xl font-semibold">{t("settings.people")}</h2>
+              {!hiring && (
+                <Button variant="outline" size="sm" onClick={() => setHiring(true)}>
+                  <Plus /> {t("hire.open")}
+                </Button>
+              )}
+            </div>
             <div className="max-w-2xl divide-y">
               {Object.entries(s.agents).map(([name, a]) => (
                 <AgentCard
@@ -443,16 +481,17 @@ export function SettingsDialog({
                   </Button>
                 </div>
               </FieldGroup>
-            ) : (
-              <Button variant="outline" size="sm" className="mt-4" onClick={() => setHiring(true)}>
-                <Plus /> {t("hire.open")}
-              </Button>
-            )}
+            ) : null}
           </TabsContent>
 
           {/* КАК. Правила поведения поверх участников. */}
           <TabsContent value="modes" className="min-w-0 flex-1 overflow-y-auto p-6">
-            <h2 className="mb-6 text-xl font-semibold">{t("settings.modes")}</h2>
+            <div className="mb-6 flex items-center gap-3">
+              <h2 className="text-xl font-semibold">{t("settings.modes")}</h2>
+              <Button variant="outline" size="sm" onClick={() => void copyMode(BLANK)}>
+                <Plus /> {t("mode.new")}
+              </Button>
+            </div>
             <div className="max-w-2xl divide-y">
               {modes.map((m) => (
                 <ModeCard
@@ -467,37 +506,6 @@ export function SettingsDialog({
               ))}
             </div>
 
-            <Button
-              variant="outline"
-              size="sm"
-              className="mt-4"
-              onClick={() =>
-                void copyMode({
-                  name: "новый-режим",
-                  title: "Новый режим",
-                  titleEn: "",
-                  rubric: "",
-                  rubricEn: "",
-                  who: [],
-                  short: "Новый",
-                  shortEn: "",
-                  slug: "custom",
-                  color: "",
-                  brief: "",
-                  briefEn: "",
-                  for: "",
-                  forEn: "",
-                  icon: "list-ordered",
-                  needs: [],
-                  missing: [],
-                  builtin: false,
-                  steps: [{ name: "разговор", who: "все", hear: true, until: "все ответят", prompt: "" }],
-                  source: "",
-                })
-              }
-            >
-              <Plus /> {t("mode.new")}
-            </Button>
           </TabsContent>
 
           {/* ГДЕ. Общий контекст задачи и то, что пространство помнит. */}

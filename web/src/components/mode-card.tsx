@@ -83,8 +83,7 @@ export function ModeCard({
         <button className="min-w-0 flex-1 text-left" onClick={() => setOpen((v) => !v)}>
           <div className="text-sm font-medium">{pick(lang, mode.title, mode.titleEn)}</div>
           <div className="text-muted-foreground truncate text-sm">
-            {typo(pick(lang, mode.for || mode.brief, mode.forEn || mode.briefEn))} · {mode.steps.length}{" "}
-            {plural(lang, mode.steps.length, [t("mode.stepOne"), t("mode.stepFew"), t("mode.stepMany")])}
+            {typo(pick(lang, mode.for || mode.brief, mode.forEn || mode.briefEn))}
           </div>
         </button>
 
@@ -150,7 +149,7 @@ export function ModeCard({
               rows={12}
               value={draft}
               placeholder={t("mode.stepsHint")}
-              className="font-mono text-xs leading-relaxed"
+              className="max-h-72 font-mono text-xs leading-relaxed"
               onChange={(e) => setDraft(e.target.value)}
               onBlur={() => draft !== mode.source && patch({ source: draft })}
             />
