@@ -61,8 +61,9 @@ export type Config = {
   off: string[]
   /** Комнаты этой машины: знак листает их под курсором. */
   rooms: string[]
-  /** Одно слово о том, чем комната занята: правая половина знака. */
+  /** Знак комнаты: чем заняты и над чем. Левую половину в режиме держит сам режим. */
   topic: string
+  doing: string
   modes: Mode[]
   agents: Record<string, Agent>
 }
@@ -233,7 +234,7 @@ export function listen(
   room: string,
   onMessage: (m: Msg) => void,
   onStatus: (who: string, status: string) => void,
-  onTopic: (topic: string) => void,
+  onTopic: (topic: string, doing: string) => void,
   onLive: (live: boolean) => void,
   onReconnect?: () => void
 ) {
@@ -248,7 +249,7 @@ export function listen(
   es.onmessage = (e) => {
     const ev = JSON.parse(e.data)
     if (ev.kind === "status") return onStatus(ev.from, ev.status)
-    if (ev.kind === "topic") return onTopic(ev.topic)
+    if (ev.kind === "topic") return onTopic(ev.topic, ev.doing)
     else onMessage(ev)
   }
   return () => es.close()

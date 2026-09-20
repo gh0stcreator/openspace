@@ -165,8 +165,9 @@ const server = http.createServer(async (req, res) => {
         defaultResponders: orch.duty(room),
         // Кого выключили в этой комнате: состав общий, присутствие — своё у каждой.
         off: orch.state(room).off,
-        // Метка темы в знаке: одно слово о том, чем комната занята.
+        // Знак комнаты: чем заняты и над чем. Левую половину в режиме держит сам режим.
         topic: orch.state(room).topic ?? '',
+        doing: orch.state(room).doing ?? '',
         agents,
         rooms: store.listRooms().length ? store.listRooms() : ['general'],
         modes: listModes().map(short),

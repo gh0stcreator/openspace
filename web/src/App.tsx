@@ -137,7 +137,7 @@ export default function App() {
       },
       (who, status) =>
         setThinking((t) => (status === "thinking" ? [...new Set([...t, who])] : t.filter((x) => x !== who))),
-      (topic) => setCfg((c) => (c ? { ...c, topic } : c)),
+      (topic, doing) => setCfg((c) => (c ? { ...c, topic, doing } : c)),
       setLive,
       () =>
         void api.history(room).then(({ messages, state }) => {
@@ -286,7 +286,7 @@ export default function App() {
                   чем её название. Пока предмет не назван — space. */}
               <Logo
                 subject={cfg.topic || "space"}
-                mode={state.modeState?.slug ?? "open"}
+                mode={state.modeState?.slug ?? (cfg.doing || "open")}
                 color={live ? now?.color : null}
                 colors={tones}
                 className={`transition-colors ${
