@@ -241,7 +241,9 @@ export function SettingsDialog({
             <DialogHeader className="px-3">
               <DialogTitle className="text-lg font-semibold">{t("settings.title")}</DialogTitle>
             </DialogHeader>
-            <TabsList className="mt-6 w-full gap-0.5 bg-transparent p-0">
+            {/* Пункт — кнопка в 36 пикселей с текстом по центру, подпись поля — строка сверху.
+                Чтобы их текст лёг на одну линию, список поднят на половину этой разницы. */}
+            <TabsList className="mt-4 w-full gap-0.5 bg-transparent p-0">
               <TabsTrigger value="general" className={NAV}>
                 <Gear /> {t("settings.general")}
               </TabsTrigger>
