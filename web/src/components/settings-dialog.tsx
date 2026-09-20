@@ -43,7 +43,7 @@ import {
 } from "@/components/ui/select"
 import { Switch } from "@/components/ui/switch"
 import { useLang, pick } from "@/lib/i18n"
-import { api, type Agent, type FullMode, type Settings } from "@/lib/api"
+import { api, type Agent, type FullMode, type Rounds, type Settings } from "@/lib/api"
 
 /** Ссылки автора: репозиторий и канал. Пустая строка — ссылка не показывается. */
 const AUTHOR = {
@@ -114,6 +114,7 @@ export function SettingsDialog({
   const { theme, setTheme } = useTheme()
   const [s, setS] = React.useState<Settings | null>(null)
   const [modes, setModes] = React.useState<FullMode[]>([])
+  const [rounds, setRounds] = React.useState<Rounds | null>(null)
   const [hiring, setHiring] = React.useState(false)
   // Созданный участник — заготовка: всё остальное настраивают в его карточке, и она
   // открывается сразу, чтобы не искать его в списке.
@@ -202,6 +203,12 @@ export function SettingsDialog({
     setModes(r.modes)
     onModes(r.modes)
   }
+
+  // Журнал вопросов подтягиваем при открытии настроек: он нужен только здесь.
+  React.useEffect(() => {
+    if (!open) return
+    void api.rounds(room).then(setRounds).catch(() => {})
+  }, [open, room])
 
   function hire() {
     const name = hireName.trim()
@@ -616,6 +623,31 @@ export function SettingsDialog({
                   </AlertDialogContent>
                 </AlertDialog>
               </Field>
+
+              {/* Во что обходится вопрос. Без этого счёта сравнение режимов —
+                  разговор о вкусах: «сказано больше» не значит «решено лучше». */}
+              {rounds && rounds.byMode.length > 0 && (
+                <Field>
+                  <FieldLabel>{t("space.cost")}</FieldLabel>
+                  <div className="divide-y rounded-lg border text-sm">
+                    <div className="text-muted-foreground flex gap-3 px-3 py-2 text-xs">
+                      <span className="flex-1">{t("space.costMode")}</span>
+                      <span className="w-16 text-right">{t("space.costTimes")}</span>
+                      <span className="w-16 text-right">{t("space.costTurns")}</span>
+                      <span className="w-20 text-right">{t("space.costTokens")}</span>
+                    </div>
+                    {rounds.byMode.map((m) => (
+                      <div key={m.mode} className="flex items-center gap-3 px-3 py-2">
+                        <span className="flex-1 font-mono">{m.mode}</span>
+                        <span className="w-16 text-right tabular-nums">{m.n}</span>
+                        <span className="w-16 text-right tabular-nums">{m.turns.toFixed(1)}</span>
+                        <span className="w-20 text-right tabular-nums">{Math.round(m.tokens / 1000)}k</span>
+                      </div>
+                    ))}
+                  </div>
+                  <FieldDescription>{t("space.costNote")}</FieldDescription>
+                </Field>
+              )}
             </FieldGroup>
           </TabsContent>
           {error && (

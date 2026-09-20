@@ -9,6 +9,7 @@ import { loadConfig } from './lib/config.js';
 import { roleOf, listRoles } from './lib/roles.js';
 import { loadArchetype, listArchetypes } from './lib/archetypes.js';
 import { SKILLS, skillsOf } from './lib/skills.js';
+import { read as readRounds } from './lib/rounds.js';
 import { BUILTIN, listModes, loadMode, removeMode, saveMode, stepTargets } from './lib/modes.js';
 
 const root = path.dirname(fileURLToPath(import.meta.url));
@@ -248,6 +249,12 @@ const server = http.createServer(async (req, res) => {
         engines: ['claude', 'codex'],
         skillList: SKILLS,
       });
+    }
+
+    // Журнал вопросов: во что обошёлся каждый и сколько в среднем стоит режим.
+    if (url.pathname === '/api/rounds' && req.method === 'GET') {
+      const room = url.searchParams.get('room') || config.defaultRoom;
+      return json(res, 200, readRounds(orch.stateDir, room));
     }
 
     if (url.pathname === '/api/settings' && req.method === 'POST') {

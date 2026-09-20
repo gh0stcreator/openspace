@@ -129,6 +129,10 @@ export type Mode = {
 export type Step = { name: string; who: string; hear: boolean; until: string; prompt: string }
 export type FullMode = Omit<Mode, "steps"> & { steps: Step[] }
 
+/** Во что обошёлся вопрос: от реплики человека до возврата хода ему же. */
+export type Round = { room: string; mode: string; turns: number; tokens: number; ms: number; why: string; at: string }
+export type Rounds = { rounds: Round[]; byMode: { mode: string; n: number; turns: number; tokens: number; ms: number }[] }
+
 export type ModeState = {
   name: string
   slug: string
@@ -213,6 +217,9 @@ export const api = {
     }).then(json<{ mode: ModeState; off: string[] }>),
 
   modes: () => fetch("/api/modes").then(json<{ modes: FullMode[] }>),
+
+  rounds: (room: string) =>
+    fetch(`/api/rounds?room=${encodeURIComponent(room)}`).then(json<Rounds>),
 
   saveMode: (mode: Partial<FullMode> & { name: string }) =>
     fetch("/api/modes", {
