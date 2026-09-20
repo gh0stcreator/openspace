@@ -7,15 +7,6 @@ import {
   InputGroupButton,
   InputGroupTextarea,
 } from "@/components/ui/input-group"
-import {
-  Attachment,
-  AttachmentAction,
-  AttachmentActions,
-  AttachmentContent,
-  AttachmentGroup,
-  AttachmentMedia,
-  AttachmentTitle,
-} from "@/components/ui/attachment"
 import { Spinner } from "@/components/ui/spinner"
 import { Tooltip, TooltipContent, TooltipTrigger } from "@/components/ui/tooltip"
 import { Button } from "@/components/ui/button"
@@ -23,6 +14,9 @@ import { Quote } from "@/components/chat-feed"
 import { useLang, pick as label } from "@/lib/i18n"
 import { cn } from "@/lib/utils"
 import { api, type Agent, type FileRef, type Msg } from "@/lib/api"
+
+/** Показывать картинку собой имеет смысл только для картинки. */
+const IMAGE = /\.(png|jpe?g|gif|webp|avif|svg)$/i
 
 type Pending = FileRef & { uploading?: boolean }
 
@@ -258,28 +252,6 @@ export function Composer({
           </div>
         )}
 
-        {files.length > 0 && (
-          <AttachmentGroup className="mb-2">
-            {files.map((f, i) => (
-              <Attachment key={f.url || f.name + i}>
-                <AttachmentMedia>
-                  {f.uploading ? <Spinner className="size-4" /> : <Paperclip className="size-4" />}
-                </AttachmentMedia>
-                <AttachmentContent>
-                  <AttachmentTitle>{f.name}</AttachmentTitle>
-                </AttachmentContent>
-                {!f.uploading && (
-                  <AttachmentActions>
-                    <AttachmentAction onClick={() => setFiles((v) => v.filter((x) => x !== f))}>
-                      <X />
-                    </AttachmentAction>
-                  </AttachmentActions>
-                )}
-              </Attachment>
-            ))}
-          </AttachmentGroup>
-        )}
-
         {/* С прицепленной цитатой поле подсвечено кольцом: вы отвечаете конкретной
             реплике, и это состояние, которое видно, а не помнится. Кольцо, а не рамка:
             рамка у группы своя, и два правила цвета спорили бы между собой. */}
@@ -288,6 +260,46 @@ export function Composer({
               что вы сейчас пишете. Отступ слева подобран так, чтобы строка цитаты
               начиналась ровно там же, где текст в поле: два соседних текста
               в разнобой читаются неряшливо. */}
+          {/* Приложенное — внутри поля, над строкой: картинка показывается собой, а не
+              именем файла. Про скриншот «image.png» не скажешь, тот ли он, а про картинку
+              видно сразу. Всё прочее остаётся строкой со скрепкой. */}
+          {files.length > 0 && (
+            <InputGroupAddon align="block-start" className="flex-wrap gap-2 px-3 pt-3 pb-1">
+              {files.map((f, i) => (
+                <span key={f.url || f.name + i} className="group/att relative">
+                  {IMAGE.test(f.name) && f.url ? (
+                    <img
+                      src={f.url}
+                      alt={f.name}
+                      className="border-border size-20 rounded-lg border object-cover"
+                    />
+                  ) : (
+                    <span className="border-border bg-muted/40 flex h-20 w-32 flex-col justify-end gap-1 rounded-lg border p-2">
+                      <Paperclip className="text-muted-foreground size-4" />
+                      <span className="truncate text-xs">{f.name}</span>
+                    </span>
+                  )}
+                  {f.uploading && (
+                    <span className="bg-background/70 absolute inset-0 flex items-center justify-center rounded-lg">
+                      <Spinner className="size-4" />
+                    </span>
+                  )}
+                  {!f.uploading && (
+                    <Button
+                      variant="secondary"
+                      size="icon-sm"
+                      aria-label={t("composer.removeFile", { name: f.name })}
+                      className="absolute -top-2 -right-2 size-6 rounded-full shadow-sm"
+                      onClick={() => setFiles((v) => v.filter((x) => x !== f))}
+                    >
+                      <X />
+                    </Button>
+                  )}
+                </span>
+              ))}
+            </InputGroupAddon>
+          )}
+
           {(editing || replyTo) && (
             <InputGroupAddon align="block-start" className="pt-2 pr-2 pb-0 pl-5">
               <Quote to={editing ?? replyTo} agents={agents}>
