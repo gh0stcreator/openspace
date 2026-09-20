@@ -132,6 +132,8 @@ export default function App() {
       if (!alive) return
       setMessages(shown(messages))
       setState(state)
+      // Кто думал, пока нас не было: живые события мы пропустили, состояние знает.
+      setThinking(Object.keys(state.thinking ?? {}))
       setReady(true)
     })
     const stop = listen(
@@ -416,6 +418,7 @@ export default function App() {
             user={cfg.user}
             agents={cfg.agents}
             thinking={thinking}
+            since={state.thinking}
             onReply={(m) => {
               setEditing(null)
               setReplyTo(m)

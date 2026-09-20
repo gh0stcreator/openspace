@@ -415,6 +415,8 @@ type Props = {
   user: string
   agents: Record<string, Agent>
   thinking: string[]
+  /** Когда начался ход каждого: приходит из состояния комнаты. */
+  since?: Record<string, number>
   onReply: (m: Msg) => void
   /** Клик по своей реплике: не отвечать же себе — правим её. */
   onEdit: (m: Msg) => void
@@ -727,14 +729,16 @@ function Handoff({
  * с прихода статуса: «двенадцать секунд» и «четыре минуты» — очень разное ожидание,
  * а без цифры и то и другое выглядит как «завис».
  */
-function useElapsed(names: string[]) {
+function useElapsed(names: string[], since: Record<string, number> = {}) {
   const started = React.useRef<Record<string, number>>({})
   const [, tick] = React.useReducer((n: number) => n + 1, 0)
   const key = names.join(",")
 
   React.useEffect(() => {
     const now = Date.now()
-    for (const n of names) started.current[n] ??= now
+    // Начало хода берём у сервера, если оно известно: после перезагрузки страницы
+    // иначе десятая минута ожидания показалась бы первой секундой.
+    for (const n of names) started.current[n] ??= since[n] ?? now
     for (const n of Object.keys(started.current)) {
       if (!names.includes(n)) delete started.current[n]
     }
@@ -784,8 +788,8 @@ function FollowMine({ seq }: { seq?: number }) {
   return null
 }
 
-export function ChatFeed({ messages, user, agents, thinking, onReply, onMention, onEdit, onConfirmMemory, onRejectMemory }: Props) {
-  const elapsed = useElapsed(thinking)
+export function ChatFeed({ messages, user, agents, thinking, since, onReply, onMention, onEdit, onConfirmMemory, onRejectMemory }: Props) {
+  const elapsed = useElapsed(thinking, since)
   const { t } = useLang()
   const known = React.useMemo(() => [...Object.keys(agents), user], [agents, user])
   const bySeq = React.useMemo(() => new Map(messages.map((m) => [m.seq, m])), [messages])
