@@ -61,8 +61,8 @@ const RU = {
   "composer.uploadFailed": "Не загрузилось «{name}» — {error}",
   "composer.sendFailed": "Сообщение не ушло — {error}",
 
-  "feed.thinkingOne": "печатает",
-  "feed.thinkingMany": "печатают",
+  "feed.thinkingOne": "думает",
+  "feed.thinkingMany": "думают",
   "feed.and": "и",
   "feed.edited": "изменено",
   "feed.details": "Как это считалось",
@@ -220,8 +220,8 @@ const EN: Record<keyof typeof RU, string> = {
   "composer.uploadFailed": "“{name}” didn't upload — {error}",
   "composer.sendFailed": "The message didn't go — {error}",
 
-  "feed.thinkingOne": "is typing",
-  "feed.thinkingMany": "are typing",
+  "feed.thinkingOne": "is thinking",
+  "feed.thinkingMany": "are thinking",
   "feed.and": "and",
   "feed.edited": "edited",
   "feed.details": "How this was counted",

@@ -21,6 +21,7 @@ import { Tooltip, TooltipContent, TooltipTrigger } from "@/components/ui/tooltip
 import { Button } from "@/components/ui/button"
 import { Quote } from "@/components/chat-feed"
 import { useLang, pick as label } from "@/lib/i18n"
+import { cn } from "@/lib/utils"
 import { api, type Agent, type FileRef, type Msg } from "@/lib/api"
 
 type Pending = FileRef & { uploading?: boolean }
@@ -28,7 +29,6 @@ type Pending = FileRef & { uploading?: boolean }
 type Props = {
   room: string
   agents: Record<string, Agent>
-  user: string
   onError: (text: string) => void
   /** Отданное сервером сообщение: показываем его сразу, не дожидаясь SSE. */
   onSent: (m: Msg) => void
@@ -48,7 +48,6 @@ type Props = {
 export function Composer({
   room,
   agents,
-  user,
   onError,
   onSent,
   replyTo,
@@ -68,7 +67,8 @@ export function Composer({
   const ref = React.useRef<HTMLTextAreaElement>(null)
   const picker = React.useRef<HTMLInputElement>(null)
 
-  const names = React.useMemo(() => [...Object.keys(agents), user], [agents, user])
+  // Себя в подсказке нет: тег будит адресата, а будить себя незачем.
+  const names = React.useMemo(() => Object.keys(agents), [agents])
   const ready = files.filter((f) => !f.uploading)
   const canSend = Boolean(text.trim() || ready.length)
 
@@ -246,9 +246,13 @@ export function Composer({
                 }`}
               >
                 @{n}
-                <span className="text-muted-foreground ml-auto text-xs">
-                  {n === user ? t("composer.you") : label(lang, agents[n]?.role, agents[n]?.roleEn)}
-                </span>
+                {/* Роль справа — только если она говорит больше, чем ник: у «Инженера»
+                    роль «Инженер», и повторять её значит занимать строку ничем. */}
+                {agents[n]?.role && agents[n].role.toLowerCase() !== n.toLowerCase() && (
+                  <span className="text-muted-foreground ml-auto text-xs">
+                    {label(lang, agents[n]?.role, agents[n]?.roleEn)}
+                  </span>
+                )}
               </button>
             ))}
           </div>
@@ -276,7 +280,10 @@ export function Composer({
           </AttachmentGroup>
         )}
 
-        <InputGroup className="rounded-2xl">
+        {/* С прицепленной цитатой поле подсвечено кольцом: вы отвечаете конкретной
+            реплике, и это состояние, которое видно, а не помнится. Кольцо, а не рамка:
+            рамка у группы своя, и два правила цвета спорили бы между собой. */}
+        <InputGroup className={cn("rounded-2xl", (editing || replyTo) && "ring-ring/40 ring-2")}>
           {/* Кому отвечаем — внутри поля, над строкой ввода: ответ и есть часть того,
               что вы сейчас пишете. Отступ слева подобран так, чтобы строка цитаты
               начиналась ровно там же, где текст в поле: два соседних текста

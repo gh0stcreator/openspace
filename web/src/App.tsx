@@ -297,7 +297,7 @@ export default function App() {
                           опознавательным знаком участника и ничего не значит сам по себе. */}
                       <span
                         className={cn(
-                          "relative rounded-full transition-opacity",
+                          "rounded-full transition-opacity",
                           at === "working" && "ring-ring/50 ring-2 ring-offset-2 ring-offset-background",
                           at === "waiting" && "opacity-40"
                         )}
@@ -308,11 +308,6 @@ export default function App() {
                           color={a.color}
                           onPick={(name) => setInsert({ name, nonce: Date.now() })}
                         />
-                        {at === "done" && (
-                          <span className="bg-background text-muted-foreground absolute -right-0.5 -bottom-0.5 flex size-3.5 items-center justify-center rounded-full">
-                            <Check className="size-2.5" />
-                          </span>
-                        )}
                       </span>
                     </TooltipTrigger>
                     <TooltipContent>
@@ -441,7 +436,6 @@ export default function App() {
         <Composer
           room={room}
           agents={cfg.agents}
-          user={cfg.user}
           onError={local}
           onSent={(m) => setMessages((prev) => take(prev, m))}
           replyTo={replyTo}
@@ -511,12 +505,10 @@ export default function App() {
               >
                 <Icon name={now?.icon ?? "message-circle"} className="size-4" />
                 {state.modeState ? pick(lang, state.modeState.short, state.modeState.shortEn) : t("mode.open")}
-                {/* Где мы внутри режима. Номер шага — состояние, поэтому он здесь,
-                    а не строкой посреди разговора. */}
-                {state.modeState && (
-                  <span className="text-muted-foreground/70">
-                    {state.modeState.step}/{state.modeState.steps}
-                  </span>
+                {/* Где мы внутри режима. Имя шага, а не его номер: «3/3» не говорит
+                    ничего, а «Починка» — говорит. Номер остался в подсказке. */}
+                {state.modeState?.stepName && (
+                  <span className="text-muted-foreground/70">· {state.modeState.stepName}</span>
                 )}
                 <ChevronDown className="size-3.5" />
               </Button>

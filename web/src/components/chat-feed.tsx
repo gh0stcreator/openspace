@@ -295,27 +295,29 @@ function MemoryProposal({ msg, onConfirm }: { msg: Msg; onConfirm: (m: Msg) => v
   const { t } = useLang()
   const resolved = msg.status && msg.status !== "ожидает"
   return (
-    <div className="my-3 flex justify-center">
-      <Bubble variant="outline" className="max-w-[85%]" align="start">
-        <BubbleContent
-          onClick={() => {
-            if (!resolved) onConfirm(msg)
-          }}
-          className={cn("text-sm", !resolved && "cursor-pointer hover:bg-muted/50")}
-        >
-          <div className="text-muted-foreground mb-1.5 text-xs font-medium">
-            {msg.from} · {t(resolved ? "memory.applied" : "memory.proposal")}
+    <div
+      onClick={() => {
+        if (!resolved) onConfirm(msg)
+      }}
+      className={cn("border-border my-3 border-l-2 py-0.5 pl-4", !resolved && "cursor-pointer")}
+    >
+      <div className="text-muted-foreground mb-2 text-sm">
+        <b className="text-foreground font-medium">{msg.from}</b>{" "}
+        {t(resolved ? "memory.applied" : "memory.proposal")}
+      </div>
+      {/* Вид записи отдельной колонкой: так список читается как список, а не как
+          семь абзацев подряд. Текст не режем — принимают то, что видят целиком. */}
+      <div className="flex flex-col gap-2 text-base">
+        {(msg.diff ?? []).map((d, i) => (
+          <div key={i} className="flex gap-3">
+            <span className="text-muted-foreground/60 w-3 shrink-0 text-center">
+              {MEMORY_ACTION[d.action] ?? "·"}
+            </span>
+            <span className="text-muted-foreground w-24 shrink-0 text-sm leading-relaxed">{d.kind}</span>
+            <span className="min-w-0 flex-1">{typo(d.text)}</span>
           </div>
-          <div className="flex flex-col gap-1">
-            {(msg.diff ?? []).map((d, i) => (
-              <div key={i} className="flex gap-2">
-                <span className="text-muted-foreground/70 shrink-0">{MEMORY_ACTION[d.action] ?? "·"}</span>
-                <span>{d.text}</span>
-              </div>
-            ))}
-          </div>
-        </BubbleContent>
-      </Bubble>
+        ))}
+      </div>
     </div>
   )
 }
@@ -424,35 +426,25 @@ function Meta({ msg, agent }: { msg: Msg; agent?: Agent }) {
  */
 function Handoff({
   msg,
-  color,
   agents,
   user,
   onPick,
 }: {
   msg: Msg
-  color?: string | null
   agents: Record<string, Agent>
   user: string
   onPick: (name: string) => void
 }) {
-  const { t } = useLang()
   // Владельца задачи зовут почти в каждой реплике — это разговор с ним, а не передача
   // работы. Блок остаётся для того, что он и означает: работа ушла к другому участнику.
   const to = (msg.mentions ?? []).filter((n) => n !== msg.from && n !== user)
   if (!to.length) return null
   return (
-    <div className="mt-2 flex w-fit max-w-full overflow-hidden rounded-md" style={toneVars(color)}>
-      <span className="tone-dot w-0.5 shrink-0" />
-      <span className="tone-bubble flex min-w-0 flex-wrap items-center gap-x-2 gap-y-1 py-1 pr-3 pl-2.5 text-sm">
-        <span className="text-muted-foreground">{t("feed.handoff")}</span>
-        <ArrowRight className="text-muted-foreground size-3.5 shrink-0" />
-        {to.map((n) => (
-          <span key={n} className="flex min-w-0 items-center gap-1.5">
-            <Face name={n} icon={getAgent(agents, n)?.icon} color={getAgent(agents, n)?.color} size="xs" />
-            <Name name={n} color={getAgent(agents, n)?.color} onPick={onPick} />
-          </span>
-        ))}
-      </span>
+    <div className="text-muted-foreground mt-1.5 flex flex-wrap items-center gap-x-1.5 gap-y-1 text-sm">
+      <ArrowRight className="size-3.5 shrink-0" />
+      {to.map((n) => (
+        <Name key={n} name={n} color={getAgent(agents, n)?.color} onPick={onPick} />
+      ))}
     </div>
   )
 }
@@ -616,10 +608,10 @@ export function ChatFeed({ messages, user, agents, thinking, waiting = [], onRep
                           if (window.getSelection()?.toString()) return
                           onReply(m)
                         }}
-                        // В покое реплика прозрачная: фон появляется только под курсором.
-                        // Подсветку «здесь позвали вас» не ставим — вас зовут почти в каждой
-                        // реплике, и она красила бы всю ленту подряд.
-                        className="hover:bg-muted/40 -mx-2 cursor-pointer rounded-lg px-2 py-1.5 transition-colors"
+                        // Фона нет вовсе: ни в покое, ни под курсором. Серая плашка
+                        // под каждой репликой — это снова карточка, от которой уходили,
+                        // а что по реплике можно щёлкнуть, говорит курсор.
+                        className="cursor-pointer py-1.5"
                       >
                         <MessageAvatar className="self-start bg-transparent">
                           <FaceButton name={m.from} icon={agent?.icon} color={agent?.color} onPick={onMention} />
@@ -633,7 +625,7 @@ export function ChatFeed({ messages, user, agents, thinking, waiting = [], onRep
                             <Quote to={m.replyTo ? bySeq.get(m.replyTo) : undefined} agents={agents} className="mb-1.5" />
                             {m.text && <Rich text={m.text} known={known} agents={agents} onMention={onMention} />}
                             <Files files={m.files} />
-                            <Handoff msg={m} color={agent?.color} agents={agents} user={user} onPick={onMention} />
+                            <Handoff msg={m} agents={agents} user={user} onPick={onMention} />
                           </div>
                         </MessageContent>
                       </Message>
@@ -657,14 +649,32 @@ export function ChatFeed({ messages, user, agents, thinking, waiting = [], onRep
                 </div>
               ))}
 
-            {thinking.map((n) => (
-              <div key={n} className="text-muted-foreground flex items-center gap-2 px-1 py-1 text-sm">
-                <Face name={n} icon={getAgent(agents, n)?.icon} color={getAgent(agents, n)?.color} size="sm" />
-                <Name name={n} onPick={onMention} />
-                <span>{t("feed.thinkingOne")}</span>
-                <span className="tabular-nums opacity-60">{spent(elapsed(n))}</span>
+            {thinking.length > 0 && (
+              <div className="text-muted-foreground flex items-center gap-2 px-1 py-1 text-sm">
+                {/* Все, кто сейчас думает, — одной строкой: три отдельных ряда занимают
+                    пол-экрана и выглядят как три события, хотя событие одно. Аватарки
+                    внахлёст, время — по тому, кто ждёт дольше всех. */}
+                <span className="flex shrink-0 items-center">
+                  {thinking.map((n, i) => (
+                    <span key={n} className={cn("ring-background rounded-full ring-2", i > 0 && "-ml-2")}>
+                      <Face name={n} icon={getAgent(agents, n)?.icon} color={getAgent(agents, n)?.color} size="sm" />
+                    </span>
+                  ))}
+                </span>
+                <span className="min-w-0">
+                  {thinking.map((n, i) => (
+                    <React.Fragment key={n}>
+                      {i > 0 && (i === thinking.length - 1 ? ` ${t("feed.and")} ` : ", ")}
+                      <Name name={n} onPick={onMention} />
+                    </React.Fragment>
+                  ))}{" "}
+                  {t(thinking.length > 1 ? "feed.thinkingMany" : "feed.thinkingOne")}
+                </span>
+                <span className="tabular-nums opacity-60">
+                  {spent(Math.max(...thinking.map(elapsed)))}
+                </span>
               </div>
-            ))}
+            )}
           </MessageScrollerContent>
         </MessageScrollerViewport>
         <MessageScrollerButton className="ms-[min(22rem,45vw)]" />
