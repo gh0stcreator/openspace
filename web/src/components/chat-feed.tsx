@@ -446,9 +446,10 @@ export function Quote({
 }
 
 /**
- * Скопировать реплику. Кнопка проявляется под курсором и на фокусе с клавиатуры: висеть
- * над каждой репликой ей незачем, а находиться руками — надо. Подтверждение — сама кнопка:
- * галочка на полторы секунды, без всплывашки поверх разговора.
+ * Скопировать реплику. Кнопка стоит под текстом, а не в шапке: рядом с именем она
+ * читается как «скопировать имя». Проявляется под курсором и на фокусе с клавиатуры —
+ * висеть над каждой репликой ей незачем, а находиться руками надо. Подтверждение —
+ * сама кнопка: галочка на полторы секунды, без всплывашки поверх разговора.
  */
 function CopyButton({ text }: { text: string }) {
   const { t } = useLang()
@@ -508,7 +509,6 @@ function Head({
       <div className="flex items-baseline gap-2 text-base">
         {name}
         <span className="text-muted-foreground/70 text-sm font-normal tabular-nums">{at}</span>
-        <CopyButton text={msg.text} />
       </div>
     )
   }
@@ -533,7 +533,6 @@ function Head({
             {brief.join(" · ")}
           </button>
         </CollapsibleTrigger>
-        <CopyButton text={msg.text} />
       </div>
       <CollapsibleContent
         className="data-[state=closed]:animate-collapsible-up data-[state=open]:animate-collapsible-down overflow-hidden"
@@ -774,6 +773,9 @@ export function ChatFeed({ messages, user, agents, thinking, onReply, onMention,
                             <Files files={m.files} />
                             <Handoff msg={m} agents={agents} user={user} onPick={onMention} />
                           </div>
+                          <MessageFooter className="px-0 font-normal">
+                            <CopyButton text={m.text} />
+                          </MessageFooter>
                         </MessageContent>
                       </Message>
                     </MessageScrollerItem>
