@@ -312,6 +312,15 @@ const server = http.createServer(async (req, res) => {
       }
     }
 
+    if (url.pathname === '/api/memory/confirm' && req.method === 'POST') {
+      const body = await readBody(req);
+      try {
+        return json(res, 200, { resolved: orch.confirmMemory(room, Number(body.seq)) });
+      } catch (e) {
+        return json(res, 400, { error: e.message });
+      }
+    }
+
     if (url.pathname === '/api/messages' && req.method === 'POST') {
       const body = await readBody(req);
       if (!body.text?.trim() && !body.files?.length) return json(res, 400, { error: 'пустое сообщение' });
