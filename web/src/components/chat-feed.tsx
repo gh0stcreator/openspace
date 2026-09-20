@@ -546,9 +546,12 @@ export function Quote({
   children?: React.ReactNode
   className?: string
 }) {
-  const { t } = useLang()
+  const { t, lang } = useLang()
   if (!to) return null
-  const color = getAgent(agents, to.from)?.color
+  // Кого цитируем — тот, под кем он вышел: персона лежит в самой реплике, поэтому
+  // цитата остаётся верной и после того, как режим закончился.
+  const who = to.side?.persona ? pick(lang, to.side.label, to.side.labelEn) : to.from
+  const color = to.side?.color || getAgent(agents, who)?.color
   return (
     <div className={cn("flex w-full min-w-0 items-center gap-2", className)}>
       {/* Полоска цветом автора вместо рамки: цитата принадлежит реплике, а не спорит
@@ -562,7 +565,7 @@ export function Quote({
           className={cn("truncate font-medium", color && "tone-name")}
           style={color ? toneVars(color) : undefined}
         >
-          {to.from}
+          {who}
         </div>
         <div className="text-muted-foreground truncate">
           {typo(plain(to.text)) || t("composer.file")}

@@ -25,6 +25,8 @@ import { Field, FieldLabel } from "@/components/ui/field"
 import { Tooltip, TooltipContent, TooltipTrigger } from "@/components/ui/tooltip"
 import { FacePicker } from "@/components/face-picker"
 import { Input } from "@/components/ui/input"
+import { Label } from "@/components/ui/label"
+import { Switch } from "@/components/ui/switch"
 import { Textarea } from "@/components/ui/textarea"
 
 import { typo } from "@/lib/typo"
@@ -187,6 +189,16 @@ export function ModeCard({
               />
             </Field>
           </div>
+
+          {/* Режим без регламента: шаги не двигаются, ходы идут как в открытом разговоре.
+              Нужен там, где режим меняет не порядок ходов, а то, кем участники в нём выходят. */}
+          <Label className="hover:bg-accent/50 -mx-2 flex items-center gap-3 rounded-md p-2 font-normal">
+            <span className="grid flex-1 gap-0.5">
+              <span className="font-medium">{t("mode.talk")}</span>
+              <span className="text-muted-foreground text-sm">{t("mode.talkHint")}</span>
+            </span>
+            <Switch checked={mode.talk} onCheckedChange={(v) => patch({ talk: v })} />
+          </Label>
 
           </div>
         </CollapsibleContent>

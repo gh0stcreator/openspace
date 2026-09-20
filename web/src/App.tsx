@@ -15,6 +15,7 @@ import {
   DropdownMenuContent,
   DropdownMenuItem,
   DropdownMenuLabel,
+  DropdownMenuSeparator,
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu"
 import { Badge } from "@/components/ui/badge"
@@ -296,6 +297,18 @@ export default function App() {
 
 
   /**
+   * Порядок участников: пары полюсов рядом, ведущий в конце. Хаос найма («кого завели
+   * первым») в шапке читается как случайность, а пара видна сразу: кто тянет в импульс,
+   * а кто в осторожность, стоят плечом к плечу.
+   */
+  const POLES = ["импульс", "осторожность", "теория", "практика", "вкус", "опыт"]
+  const byPole = (a: string, b: string) => {
+    const at = POLES.indexOf(cfg.agents[a]?.pulls ?? "")
+    const bt = POLES.indexOf(cfg.agents[b]?.pulls ?? "")
+    return (at < 0 ? 99 : at) - (bt < 0 ? 99 : bt)
+  }
+
+  /**
    * Как участник выглядит сейчас. Ник остаётся его именем в коде — по нему считается
    * присутствие и состояние хода, — но показываем того, под кем он вышел: в режиме
    * с персонами в шапке и в списке должны стоять те же лица, что в ленте.
@@ -341,7 +354,7 @@ export default function App() {
               ряд появляется только когда разговор начался. */}
           {started && (
             <div className="hidden shrink-0 items-center gap-2.5 sm:flex">
-              {Object.entries(cfg.agents).filter(([n]) => here(n)).map(([n]) => {
+              {Object.keys(cfg.agents).filter(here).sort(byPole).map((n) => {
                 const at = doing(n)
                 const f = face(n)
                 return (
@@ -540,7 +553,7 @@ export default function App() {
               </Button>
             </PopoverTrigger>
             <PopoverContent align="start" className="w-64 p-2">
-              {Object.entries(cfg.agents).map(([n]) => (
+              {Object.keys(cfg.agents).sort(byPole).map((n) => (
                 <Label
                   key={n}
                   className="hover:bg-accent/50 flex items-center gap-2 rounded-md p-2 font-normal"
@@ -584,9 +597,14 @@ export default function App() {
             {/* Ширина по триггеру здесь мала: у пунктов две строки. */}
             <DropdownMenuContent align="end" className="w-80">
               <DropdownMenuLabel>{t("mode.label")}</DropdownMenuLabel>
-              {cfg.modes?.map((m) => {
+              {cfg.modes?.map((m, i) => {
                 const current = state.modeState ? state.modeState.name === m.name : m.builtin
+                // Режимы без регламента идут последними и отделены чертой: они не про
+                // порядок работы, и в одном ряду со «Штабом» читаются как ещё один приём.
+                const apart = m.talk && !cfg.modes[i - 1]?.talk
                 return (
+                  <React.Fragment key={`${m.name}-wrap`}>
+                  {apart && <DropdownMenuSeparator />}
                   <DropdownMenuItem
                     key={m.name}
                     className={cn("items-start gap-3 py-2", current && "bg-accent/60")}
@@ -614,6 +632,7 @@ export default function App() {
                       )}
                     </ItemContent>
                   </DropdownMenuItem>
+                  </React.Fragment>
                 )
               })}
             </DropdownMenuContent>

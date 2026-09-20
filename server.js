@@ -74,6 +74,8 @@ const short = (m) => {
     missing: m.needs.filter((n) => !present.includes(n.toLowerCase())),
     // Кто в режиме за что: лента подписывает этим реплики, а карточка — состав.
     sides: m.sides ?? [],
+    // Без регламента: шагов не двигает. Клиенту это и порядок в списке, и черта перед ним.
+    talk: !!m.talk,
     steps: m.steps.map((st) => ({ name: st.name, who: st.who, hear: st.hear })),
   };
 };

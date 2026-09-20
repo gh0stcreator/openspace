@@ -109,6 +109,7 @@ const BLANK: FullMode = {
   needs: [],
   missing: [],
   sides: [],
+  talk: false,
   builtin: false,
   steps: [{ name: "разговор", who: "все", hear: true, until: "все ответят", prompt: "" }],
   source: "",
@@ -489,9 +490,12 @@ export function SettingsDialog({
               </Button>
             </div>
             <div className="max-w-2xl divide-y">
-              {modes.map((m) => (
+              {modes.map((m, i) => (
+                <React.Fragment key={m.name}>
+                {/* Режимы без регламента — последними и через отбивку: они не про порядок
+                    работы, и в общем списке читаются как ещё один рабочий приём. */}
+                {m.talk && !modes[i - 1]?.talk && <div className="h-8" />}
                 <ModeCard
-                  key={m.name}
                   mode={m}
                   current={currentMode ? currentMode === m.name : m.builtin}
                   fixed={m.builtin}
@@ -499,6 +503,7 @@ export function SettingsDialog({
                   onCopy={() => void copyMode(m)}
                   onRemove={() => void dropMode(m)}
                 />
+                </React.Fragment>
               ))}
             </div>
 

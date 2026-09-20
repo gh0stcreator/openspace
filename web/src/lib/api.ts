@@ -141,6 +141,8 @@ export type Mode = {
   color: string
   /** Стороны режима: подпись, знак и роли, которые её занимают. */
   sides: Side[]
+  /** Без регламента: шагов не двигает, ходы идут как в открытом разговоре. */
+  talk: boolean
   steps: { name: string; who: string; hear: boolean }[]
 }
 
