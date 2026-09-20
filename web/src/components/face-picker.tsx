@@ -14,6 +14,7 @@ export const ICONS = [
   "brain", "lightbulb", "sparkles", "eye", "compass", "telescope", "map", "puzzle",
   // проверяет
   "shield", "bug", "scale", "microscope", "search", "flame", "gavel", "flask-conical",
+  "hand", "octagon-x",
   // делает
   "settings", "wrench", "code", "terminal", "rocket", "hammer", "cpu", "package",
   // говорит
