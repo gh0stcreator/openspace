@@ -50,6 +50,15 @@ export function Logo({
   letters?: string[]
   className?: string
 }) {
+  // Массив приходит из родителя новым на каждый рендер, а он у нас в зависимостях
+  // сразу двух эффектов: знак переигрывал смену слова по кругу и стоял уехавшим,
+  // то есть пустым. Держим за склейку — она меняется, только когда меняются цвета.
+  const tones = React.useMemo(
+    () => (letters?.length ? letters.join(",").split(",") : undefined),
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+    [letters?.join(",")]
+  )
+
   const wrap = React.useRef<HTMLSpanElement>(null)
   const part = { mode: React.useRef<HTMLSpanElement>(null), subject: React.useRef<HTMLSpanElement>(null) }
   const word = { mode: React.useRef<HTMLSpanElement>(null), subject: React.useRef<HTMLSpanElement>(null) }
@@ -166,10 +175,10 @@ export function Logo({
    */
   const show = React.useCallback(
     (pair: Pair) => {
-      roll("mode", pair.mode, color, letters)
+      roll("mode", pair.mode, color, tones)
       live.current.push(window.setTimeout(() => roll("subject", pair.subject), EVERY))
     },
-    [roll, color, letters]
+    [roll, color, tones]
   )
 
   // Шрифт догружается позже разметки: после этого знак надо промерить заново.
@@ -182,11 +191,11 @@ export function Logo({
   // распоряжается перебор, туда не лезем.
   React.useEffect(() => {
     if (hovering.current) return
-    paint(letters?.length ? null : color)
+    paint(tones?.length ? null : color)
     // Первая отрисовка приходит из JSX одной строкой — буквы красим здесь же.
-    if (letters?.length && word.mode.current) write(word.mode.current, idle.current.mode, letters)
+    if (tones?.length && word.mode.current) write(word.mode.current, idle.current.mode, tones)
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [color, letters, paint, write])
+  }, [color, tones, paint, write])
 
   React.useEffect(() => {
     // Одно наведение — один показ: знак собирается в open(space), держится и возвращается
