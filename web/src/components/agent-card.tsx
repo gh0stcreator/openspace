@@ -206,7 +206,7 @@ export function AgentCard({ name, agent, settings, autoOpen, onChange, onRename,
                   <SelectItem value="—">
                     <ItemContent>
                       <ItemTitle>{t("card.archetypeCustom")}</ItemTitle>
-                      <ItemDescription>{t("card.archetypeCustomNote")}</ItemDescription>
+                      <ItemDescription className="text-xs">{t("card.archetypeCustomNote")}</ItemDescription>
                     </ItemContent>
                   </SelectItem>
                 )}
@@ -214,7 +214,7 @@ export function AgentCard({ name, agent, settings, autoOpen, onChange, onRename,
                   <SelectItem key={a.name} value={a.name}>
                     <ItemContent>
                       <ItemTitle>{pick(lang, a.title, a.titleEn)}</ItemTitle>
-                      <ItemDescription>{pick(lang, a.brief, a.briefEn)}</ItemDescription>
+                      <ItemDescription className="text-xs">{pick(lang, a.brief, a.briefEn)}</ItemDescription>
                     </ItemContent>
                   </SelectItem>
                 ))}
@@ -263,7 +263,7 @@ export function AgentCard({ name, agent, settings, autoOpen, onChange, onRename,
                         <SelectItem key={`${e}|${m.value}`} value={`${e}|${m.value}`}>
                           <ItemContent>
                             <ItemTitle>{m.label || t("model.default")}</ItemTitle>
-                            {m.hint && <ItemDescription>{t(m.hint)}</ItemDescription>}
+                            {m.hint && <ItemDescription className="text-xs">{t(m.hint)}</ItemDescription>}
                           </ItemContent>
                         </SelectItem>
                       ))}
