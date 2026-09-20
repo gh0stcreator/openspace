@@ -661,12 +661,18 @@ function Head({
   // Ник и сторона рядом: в споре важно и кто сказал, и за что он вышел. Ник — цветом
   // участника, сторона — нейтральной плашкой: цвет опознаёт человека, а не лагерь,
   // иначе две стороны сливаются в два цвета и участники перестают различаться.
+  const as = pick(lang, msg.side?.label, msg.side?.labelEn)
   const name = (
     <>
-      <Name name={msg.from} color={agent?.color} onPick={onMention} className="font-semibold" />
-      {msg.side && (
+      <Name
+        name={msg.side?.persona ? as : msg.from}
+        color={msg.side?.color || agent?.color}
+        onPick={onMention}
+        className="font-semibold"
+      />
+      {msg.side && !msg.side.persona && (
         <span className="bg-muted text-muted-foreground rounded-full px-2 py-0.5 text-xs font-medium">
-          {pick(lang, msg.side.label, msg.side.labelEn)}
+          {as}
         </span>
       )}
     </>
@@ -942,9 +948,9 @@ export function ChatFeed({ messages, user, agents, thinking, since, onReply, onM
                           {/* Знак стороны сильнее знака роли: в споре видно «за» и «против»,
                               а кто это — держит цвет, он у участника не меняется. */}
                           <FaceButton
-                            name={m.from}
+                            name={m.side?.persona ? m.side.label : m.from}
                             icon={m.side?.icon || agent?.icon}
-                            color={agent?.color}
+                            color={m.side?.color || agent?.color}
                             onPick={onMention}
                           />
                         </MessageAvatar>

@@ -50,13 +50,26 @@ test('стороны режима: разбор, сторона по роли, �
     ],
     steps: [{ name: 'раз', who: 'все', hear: true, until: 'человек', prompt: 'п' }],
   });
-  assert.deepEqual(saved.sides[0], { label: 'За', labelEn: 'For', icon: 'thumbs-up', roles: ['креатор', 'инженер'] });
-  // Знак необязателен: сторона без него остаётся стороной.
-  assert.deepEqual(saved.sides[1], { label: 'Против', labelEn: 'Against', icon: '', roles: ['скептик'] });
+  assert.deepEqual(saved.sides[0], {
+    label: 'За', labelEn: 'For', icon: 'thumbs-up', color: '', roles: ['креатор', 'инженер'],
+  });
+  // Знак и цвет необязательны: сторона без них остаётся стороной.
+  assert.deepEqual(saved.sides[1], {
+    label: 'Против', labelEn: 'Against', icon: '', color: '', roles: ['скептик'],
+  });
   assert.equal(sideOf(saved, 'ИНЖЕНЕР').label, 'За');
   assert.equal(sideOf(saved, 'дизайнер'), null);
   // Режим без сторон — не ошибка: их нет у большинства.
   assert.deepEqual(loadMode('x').sides, []);
+
+  // Персона — сторона с цветом: под ней участник выходит целиком, а не помечен подписью.
+  const cast = saveMode({
+    name: 'цирк', title: 'Цирк', slug: 'circus', talk: true,
+    sides: [{ label: 'Крош', labelEn: 'Krosh', icon: 'rocket', color: 'sky', roles: ['креатор'] }],
+    steps: [{ name: 'разговор', who: 'роли: креатор', hear: true, until: 'человек', prompt: '' }],
+  });
+  assert.equal(cast.sides[0].color, 'sky');
+  assert.equal(cast.talk, true, 'режим без регламента не пережил сохранения');
 });
 
 test('режим переживает круг «сохранили — прочитали»', () => {

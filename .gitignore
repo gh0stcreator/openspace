@@ -20,3 +20,16 @@ drafts/
 
 .DS_Store
 *.log
+
+# Смешарики: чужой товарный знак, а в репозитории лежит инструмент.
+# Механика персон в режиме — часть инструмента и едет в git; сами персонажи — нет.
+archetypes/крош.md
+archetypes/совунья.md
+archetypes/лосяш.md
+archetypes/пин.md
+archetypes/нюша.md
+archetypes/ёжик.md
+archetypes/кар-карыч.md
+archetypes/бараш.md
+archetypes/копатыч.md
+modes/смешарики.md

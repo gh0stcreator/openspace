@@ -35,7 +35,16 @@ export type FileRef = { name: string; size: number; url: string; path: string }
  * Сторона в режиме: кто в нём за что. Роль говорит, что участник делает вообще,
  * сторона — кем он вышел в этот разговор: Скептик в дебатах спорит как «против».
  */
-export type Side = { label: string; labelEn: string; icon: string; roles?: string[] }
+export type Side = {
+  label: string
+  labelEn: string
+  icon: string
+  /** Цвет стороны. У персонажа он есть — голубой Крош голубой и есть; у стороны спора нет. */
+  color?: string
+  /** Персона встаёт вместо ника, сторона — плашкой рядом с ним. */
+  persona?: boolean
+  roles?: string[]
+}
 
 export type Agent = {
   label: string

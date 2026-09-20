@@ -515,7 +515,7 @@ export default function App() {
                 /* Что за шаг и видят ли участники друг друга — подсказкой: нужно это
                    раз в режим, а места в строке нет. */
                 title={
-                  state.modeState
+                  state.modeState?.stepName
                     ? t(state.modeState.hear ? "mode.step" : "mode.blind", {
                         n: state.modeState.step,
                         all: state.modeState.steps,
