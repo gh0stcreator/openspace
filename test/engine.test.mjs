@@ -16,7 +16,7 @@ const { Store } = await import('../lib/store.js');
 const sleep = (ms) => new Promise((r) => setTimeout(r, ms));
 const ROOM = 'r';
 
-function setup(names, { delays = {}, fail = {}, dir = null, stateDir = null, roles = {}, freeTalk = false } = {}) {
+function setup(names, { delays = {}, fail = {}, dir = null, stateDir = null, roles = {}, freeTalk = false, reply = null } = {}) {
   dir = dir ?? fs.mkdtempSync(path.join(os.tmpdir(), 'openspace-test-'));
   const calls = [];
   const built = [];
@@ -28,7 +28,7 @@ function setup(names, { delays = {}, fail = {}, dir = null, stateDir = null, rol
         calls.push({ who: name, step: step?.name ?? null, saw: delta.map((m) => m.seq) });
         await sleep(delays[name] ?? 20);
         if (fail[name]?.length) return { error: fail[name].shift() };
-        return { text: `[${name}${step ? ' · ' + step.name : ''}]`, meta: {} };
+        return { text: reply ?? `[${name}${step ? ' · ' + step.name : ''}]`, meta: {} };
       },
     };
   };
@@ -516,4 +516,20 @@ test('пока ход у человека, прораб за хвостами н
   orch.post(ROOM, { from: 'первый', text: 'и ещё', mentions: [] });
   await sleep(250);
   assert.ok(!calls.some((c) => c.step === 'хвосты'), 'напомнил о том же, пока ход у человека');
+});
+
+test('строка «файл: путь» превращается во вложение, а не в текст', async () => {
+  const dir = fs.mkdtempSync(path.join(os.tmpdir(), 'openspace-attach-'));
+  fs.writeFileSync(path.join(dir, 'статья.md'), '# Заголовок\nтекст\n');
+  const { orch } = setup(['первый'], { dir, reply: 'Готово.\nфайл: статья.md\n' });
+
+  orch.post(ROOM, { from: 'Roman', text: '@первый дай файл' });
+  await sleep(200);
+  const said = orch.store.load(ROOM).filter((m) => m.from === 'первый').at(-1);
+  assert.equal(said.text, 'Готово.', 'строка с файлом осталась в тексте');
+  assert.equal(said.files?.[0]?.name, 'статья.md', 'файл не приложился');
+  assert.ok(said.files[0].url.startsWith('/workdir/'), 'ссылка не на рабочую папку');
+
+  // Наружу из рабочей папки не выпускаем: реплика участника — это команда.
+  assert.equal(orch.attach('../../etc/hosts'), null, 'выпустил файл за пределы папки');
 });

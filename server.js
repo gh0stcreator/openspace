@@ -481,6 +481,18 @@ const server = http.createServer(async (req, res) => {
       return undefined;
     }
 
+    // Файл из рабочей папки: по нему участник прикладывает к реплике то, что сделал.
+    // Наружу не выпускаем — путь обязан остаться внутри рабочей папки.
+    if (url.pathname.startsWith('/workdir/')) {
+      const rel = decodeURIComponent(url.pathname.slice('/workdir/'.length));
+      const base = path.resolve(config.workdir);
+      const file = path.resolve(base, rel);
+      if (!file.startsWith(base + path.sep)) return json(res, 403, { error: 'нельзя' });
+      if (!fs.existsSync(file) || !fs.statSync(file).isFile()) return json(res, 404, { error: 'нет такого файла' });
+      res.writeHead(200, { 'content-type': MIME[path.extname(file).toLowerCase()] ?? 'text/plain; charset=utf-8' });
+      return fs.createReadStream(file).pipe(res);
+    }
+
     if (url.pathname.startsWith('/files/')) {
       const rel = decodeURIComponent(url.pathname.slice('/files/'.length));
       const file = path.join(root, 'rooms', 'files', rel);
