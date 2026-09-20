@@ -486,3 +486,21 @@ test('смена умений пересобирает участника: ст�
   assert.notEqual(orch.agents.get('первый').impl, before, 'умения сменились, а сессия осталась');
   assert.equal(built.filter((n) => n === 'первый').length, 2);
 });
+
+test('сборщик заходит сам, когда накопилось, а не по слову «собери»', async () => {
+  const { orch, calls } = setup(['первый', 'сборщик'], {
+    roles: { сборщик: 'продюсер' }, freeTalk: true,
+  });
+
+  // Пока в ленте пусто, заходить незачем.
+  orch.post(ROOM, { from: 'первый', text: 'первая мысль', mentions: [] });
+  await sleep(200);
+  assert.ok(!calls.some((c) => c.step === 'сборка'), 'зашёл собирать на пустом месте');
+
+  // Накопилось — на следующей остановке разговора он приходит сам.
+  calls.length = 0;
+  for (let i = 0; i < 14; i += 1) orch.store.append(ROOM, { from: 'первый', text: `кусок ${i}` });
+  orch.post(ROOM, { from: 'первый', text: 'и ещё', mentions: [] });
+  await sleep(250);
+  assert.ok(calls.some((c) => c.step === 'сборка'), 'накопилось, а собирать никто не пришёл');
+});
