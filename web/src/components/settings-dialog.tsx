@@ -216,7 +216,14 @@ export function SettingsDialog({
         ...s!,
         agents: {
           ...s!.agents,
-          [name]: { roleName: hireRole, engine: hireEngine, trust: "safe" } as Agent,
+          // Модель по умолчанию объявляет сама роль: Академику нужна большая,
+          // Летописцу хватит мелкой. Перебить её можно в карточке.
+          [name]: {
+            roleName: hireRole,
+            engine: hireEngine,
+            model: s!.roles.find((r) => r.name === hireRole)?.model || null,
+            trust: "safe",
+          } as Agent,
         },
       },
       true

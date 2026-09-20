@@ -34,6 +34,9 @@ export type Agent = {
   role: string
   roleEn: string
   roleName: string
+  /** Амплуа: одно слово про место в ансамбле. Приходит из роли, в карточке не правится. */
+  archetype: string
+  archetypeEn: string
   icon: string
   iconCustom: string | null
   color: string | null
@@ -72,7 +75,16 @@ export type Settings = Omit<Config, "defaultResponders" | "off" | "rooms"> & {
   catchUp: number
   freeTalk: boolean
   laws: string
-  roles: { name: string; title: string; titleEn: string; brief: string; icon: string }[]
+  roles: {
+    name: string
+    title: string
+    titleEn: string
+    brief: string
+    icon: string
+    archetype: string
+    archetypeEn: string
+    model: string
+  }[]
   engines: string[]
   trustLevels: string[]
   icons: Record<string, string>

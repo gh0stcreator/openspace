@@ -11,7 +11,15 @@ import {
 } from "@/components/ui/dropdown-menu"
 import { Field, FieldLabel } from "@/components/ui/field"
 import { Input } from "@/components/ui/input"
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
+import {
+  Select,
+  SelectContent,
+  SelectGroup,
+  SelectItem,
+  SelectLabel,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select"
 import { Textarea } from "@/components/ui/textarea"
 import { FacePicker } from "@/components/face-picker"
 import { useLang, pick, type Key } from "@/lib/i18n"
@@ -48,6 +56,13 @@ type Props = {
 
 const models = (agent: Agent) => MODELS[agent.engine] ?? MODELS.claude
 
+/**
+ * Движок и модель — один выбор, а не два: Opus бывает только у claude, GPT только у codex.
+ * Двумя полями можно было выставить несовместимую пару и узнать об этом на первом же ходу.
+ * В значении они едут вместе, `движок|модель`, и разбираются обратно при сохранении.
+ */
+const brainValue = (agent: Agent) => `${agent.engine}|${agent.model ?? ""}`
+
 /** Чем участник думает: движок и, если выбрана, конкретная модель. */
 const brain = (agent: Agent) => {
   const engine = agent.engine.charAt(0).toUpperCase() + agent.engine.slice(1)
@@ -73,7 +88,16 @@ export function AgentCard({ name, agent, settings, autoOpen, onChange, onRename,
         />
 
         <button className="min-w-0 flex-1 text-left" onClick={() => setOpen((v) => !v)}>
-          <div className="text-sm font-medium capitalize">{name}</div>
+          <div className="text-sm font-medium capitalize">
+            {name}
+            {/* Амплуа рядом с ником: иначе шестеро отличаются в списке только иконкой. */}
+            {agent.archetype && (
+              <span className="text-muted-foreground font-normal normal-case">
+                {" · "}
+                {pick(lang, agent.archetype, agent.archetypeEn)}
+              </span>
+            )}
+          </div>
           <div className="text-muted-foreground truncate text-sm">
             {typo(pick(lang, agent.brief, agent.briefEn))}
           </div>
@@ -169,42 +193,32 @@ export function AgentCard({ name, agent, settings, autoOpen, onChange, onRename,
                 </SelectContent>
               </Select>
             </Field>
-            <Field>
-              <FieldLabel>{t("card.engine")}</FieldLabel>
-              <Select value={agent.engine} onValueChange={(v) => onChange({ engine: v, model: null })}>
-                <SelectTrigger className="capitalize">
-                  <SelectValue />
-                </SelectTrigger>
-                <SelectContent>
-                  {settings.engines.map((e) => (
-                    <SelectItem key={e} value={e} className="capitalize">
-                      {e}
-                    </SelectItem>
-                  ))}
-                </SelectContent>
-              </Select>
-            </Field>
-            <Field>
+            <Field className="sm:col-span-2">
               <FieldLabel>{t("card.model")}</FieldLabel>
               <Select
-                value={agent.model ?? "default"}
-                onValueChange={(v) => onChange({ model: v === "default" ? null : v })}
+                value={brainValue(agent)}
+                onValueChange={(v) => {
+                  const [engine, model] = v.split("|")
+                  onChange({ engine, model: model || null })
+                }}
               >
                 <SelectTrigger>
                   {/* В строке — только название: пояснение живёт в списке. */}
-                  <SelectValue>
-                    {models(agent).find((m) => (m.value || "default") === (agent.model ?? "default"))
-                      ?.label || t("model.default")}
-                  </SelectValue>
+                  <SelectValue>{brain(agent)}</SelectValue>
                 </SelectTrigger>
                 <SelectContent>
-                  {models(agent).map((m) => (
-                    <SelectItem key={m.value || "default"} value={m.value || "default"}>
-                      <span className="grid gap-0.5">
-                        {m.label || t("model.default")}
-                        {m.hint && <span className="text-muted-foreground text-xs">{t(m.hint)}</span>}
-                      </span>
-                    </SelectItem>
+                  {settings.engines.map((e) => (
+                    <SelectGroup key={e}>
+                      <SelectLabel className="capitalize">{e}</SelectLabel>
+                      {(MODELS[e] ?? []).map((m) => (
+                        <SelectItem key={`${e}|${m.value}`} value={`${e}|${m.value}`}>
+                          <span className="grid gap-0.5">
+                            {m.label || t("model.default")}
+                            {m.hint && <span className="text-muted-foreground text-xs">{t(m.hint)}</span>}
+                          </span>
+                        </SelectItem>
+                      ))}
+                    </SelectGroup>
                   ))}
                 </SelectContent>
               </Select>
