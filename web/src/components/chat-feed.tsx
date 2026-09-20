@@ -20,7 +20,7 @@ import {
   MessageScrollerViewport,
   useMessageScroller,
 } from "@/components/ui/message-scroller"
-import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover"
+import { Collapsible, CollapsibleContent, CollapsibleTrigger } from "@/components/ui/collapsible"
 import type { Agent, Msg } from "@/lib/api"
 import { eventType } from "@/lib/events"
 import { cn } from "@/lib/utils"
@@ -288,28 +288,53 @@ type Props = {
   onMention: (name: string) => void
   /** Клик по предложению архивариуса: применить diff к памяти пространства. */
   onConfirmMemory: (m: Msg) => void
+  /** Второе, отдельное действие на том же предложении: здесь нечего записывать —
+   * курсор свёртки уходит вперёд, ничего не коммитится, назад не вернуть. */
+  onRejectMemory: (m: Msg) => void
 }
 
 const MEMORY_ACTION = { добавить: "+", заменить: "→", отменить: "−" } as const
+
+/** Что написать над списком правок — три исхода читаются по-разному, а не одной надписью
+ * «принято»: частичное применение и отказ несут разную цену, и её нельзя прятать за одно слово. */
+const MEMORY_STATUS_KEY = {
+  принято: "memory.applied",
+  "принято частично": "memory.appliedPartial",
+  отклонено: "memory.rejected",
+} as const
 
 /**
  * Предложение архивариуса — не реплика, а решение: несколько записей с видом и действием,
  * читаются построчно. Заметно ровно настолько, чтобы не проскроллить не глядя, но без
  * своего цвета — нейтральный акцент, как у остальных структурных элементов ленты.
+ *
+ * Два разных действия на одной карточке: клик по всей карточке принимает diff — старое
+ * поведение, менять его при появлении второго исхода незачем. «Здесь нечего записывать» —
+ * отдельная строка под списком, не кнопка поверх клика по карточке: спутать одно с другим
+ * значит подтвердить diff, который человек как раз собирался отклонить.
  */
-function MemoryProposal({ msg, onConfirm }: { msg: Msg; onConfirm: (m: Msg) => void }) {
+function MemoryProposal({
+  msg,
+  onConfirm,
+  onReject,
+}: {
+  msg: Msg
+  onConfirm: (m: Msg) => void
+  onReject: (m: Msg) => void
+}) {
   const { t } = useLang()
-  const resolved = msg.status && msg.status !== "ожидает"
+  const pending = !msg.status || msg.status === "ожидает"
+  const statusKey =
+    msg.status && msg.status !== "ожидает" ? MEMORY_STATUS_KEY[msg.status] : "memory.proposal"
   return (
     <div
       onClick={() => {
-        if (!resolved) onConfirm(msg)
+        if (pending) onConfirm(msg)
       }}
-      className={cn("border-border my-3 border-l-2 py-0.5 pl-4", !resolved && "cursor-pointer")}
+      className={cn("border-border my-3 border-l-2 py-0.5 pl-4", pending && "cursor-pointer")}
     >
       <div className="text-muted-foreground mb-2 text-sm">
-        <b className="text-foreground font-medium">{msg.from}</b>{" "}
-        {t(resolved ? "memory.applied" : "memory.proposal")}
+        <b className="text-foreground font-medium">{msg.from}</b> {t(statusKey)}
       </div>
       {/* Вид записи отдельной колонкой: так список читается как список, а не как
           семь абзацев подряд. Текст не режем — принимают то, что видят целиком. */}
@@ -324,6 +349,17 @@ function MemoryProposal({ msg, onConfirm }: { msg: Msg; onConfirm: (m: Msg) => v
           </div>
         ))}
       </div>
+      {pending && (
+        <button
+          onClick={(e) => {
+            e.stopPropagation()
+            onReject(msg)
+          }}
+          className="text-muted-foreground/60 hover:text-foreground mt-2 text-sm underline decoration-dotted underline-offset-2 transition-colors"
+        >
+          {t("memory.reject")}
+        </button>
+      )}
     </div>
   )
 }
@@ -376,20 +412,39 @@ export function Quote({
 }
 
 /**
- * Метаданные хода. В строке — только то, что говорит «дорого это было или дёшево»:
- * сколько шёл ход и сколько токенов ушло. Остальное по клику: время отправки, движок
- * и модель. Стоимости здесь нет и не будет — оба движка работают по подписке, и цифра
- * в долларах была бы выдумкой.
+ * Шапка реплики: кто сказал и во что это обошлось. В строке — только «дорого или дёшево»:
+ * сколько шёл ход и сколько токенов ушло. Остальное раскрывается на месте, под той же
+ * строкой, а не всплывает окном поверх разговора.
+ *
+ * Стоимости здесь нет и не будет: оба движка работают по подписке, и цифра в долларах
+ * была бы выдумкой.
  */
-function Meta({ msg, agent }: { msg: Msg; agent?: Agent }) {
+function Head({
+  msg,
+  agent,
+  onMention,
+}: {
+  msg: Msg
+  agent?: Agent
+  onMention: (name: string) => void
+}) {
   const { t } = useLang()
   const sec = msg.meta?.elapsedMs ? Math.round(msg.meta.elapsedMs / 1000) : 0
   const tok = msg.meta?.usage?.input_tokens ?? 0
   const at = new Date(msg.ts).toLocaleTimeString("ru", { hour: "2-digit", minute: "2-digit" })
   const brief = [sec ? `${sec}с` : "", tok ? `${Math.round(tok / 1000)}k` : ""].filter(Boolean)
 
+  const name = (
+    <Name name={msg.from} color={agent?.color} onPick={onMention} className="font-semibold" />
+  )
+
   if (!brief.length) {
-    return <span className="text-muted-foreground/70 text-xs tabular-nums">{at}</span>
+    return (
+      <div className="flex items-baseline gap-2 text-base">
+        {name}
+        <span className="text-muted-foreground/70 text-sm tabular-nums">{at}</span>
+      </div>
+    )
   }
 
   const rows: [string, string][] = [
@@ -401,27 +456,32 @@ function Meta({ msg, agent }: { msg: Msg; agent?: Agent }) {
   ]
 
   return (
-    <Popover>
-      <PopoverTrigger asChild>
-        <button
-          className="text-muted-foreground/70 hover:text-foreground text-xs tabular-nums transition-colors"
-          onClick={(e) => e.stopPropagation()}
-        >
-          {brief.join(" · ")}
-        </button>
-      </PopoverTrigger>
-      <PopoverContent align="start" className="w-64 text-sm" onClick={(e) => e.stopPropagation()}>
-        <div className="text-muted-foreground mb-2 text-xs">{t("feed.details")}</div>
-        <dl className="grid grid-cols-[auto_1fr] gap-x-4 gap-y-1">
+    <Collapsible>
+      <div className="flex items-baseline gap-2 text-base">
+        {name}
+        <CollapsibleTrigger asChild>
+          <button
+            className="text-muted-foreground/70 hover:text-foreground text-sm tabular-nums transition-colors"
+            onClick={(e) => e.stopPropagation()}
+          >
+            {brief.join(" · ")}
+          </button>
+        </CollapsibleTrigger>
+      </div>
+      <CollapsibleContent
+        className="data-[state=closed]:animate-collapsible-up data-[state=open]:animate-collapsible-down overflow-hidden"
+        onClick={(e) => e.stopPropagation()}
+      >
+        <dl className="text-muted-foreground mt-1.5 grid w-fit grid-cols-[auto_1fr] gap-x-4 gap-y-0.5 text-sm">
           {rows.filter(([, v]) => v).map(([k, v]) => (
             <React.Fragment key={k}>
-              <dt className="text-muted-foreground">{k}</dt>
-              <dd className="tabular-nums">{v}</dd>
+              <dt>{k}</dt>
+              <dd className="text-foreground/70 tabular-nums">{v}</dd>
             </React.Fragment>
           ))}
         </dl>
-      </PopoverContent>
-    </Popover>
+      </CollapsibleContent>
+    </Collapsible>
   )
 }
 
@@ -517,7 +577,7 @@ function FollowMine({ seq }: { seq?: number }) {
   return null
 }
 
-export function ChatFeed({ messages, user, agents, thinking, waiting = [], onReply, onMention, onEdit, onConfirmMemory }: Props) {
+export function ChatFeed({ messages, user, agents, thinking, waiting = [], onReply, onMention, onEdit, onConfirmMemory, onRejectMemory }: Props) {
   const elapsed = useElapsed(thinking)
   const { t } = useLang()
   const known = React.useMemo(() => [...Object.keys(agents), user], [agents, user])
@@ -541,7 +601,7 @@ export function ChatFeed({ messages, user, agents, thinking, waiting = [], onRep
                   <React.Fragment key={first.id}>
                     {group.map((m) => (
                       <MessageScrollerItem key={m.id} messageId={m.id} id={`msg-${m.seq}`}>
-                        <MemoryProposal msg={m} onConfirm={onConfirmMemory} />
+                        <MemoryProposal msg={m} onConfirm={onConfirmMemory} onReject={onRejectMemory} />
                       </MessageScrollerItem>
                     ))}
                   </React.Fragment>
@@ -619,13 +679,12 @@ export function ChatFeed({ messages, user, agents, thinking, waiting = [], onRep
                         // а что по реплике можно щёлкнуть, говорит курсор.
                         className="cursor-pointer py-1.5"
                       >
-                        <MessageAvatar className="self-start bg-transparent">
+                        <MessageAvatar className="-mt-1 self-start bg-transparent">
                           <FaceButton name={m.from} icon={agent?.icon} color={agent?.color} onPick={onMention} />
                         </MessageAvatar>
                         <MessageContent className="gap-1">
-                          <MessageHeader className="gap-2 px-0 text-sm">
-                            <Name name={m.from} color={agent?.color} onPick={onMention} className="font-semibold" />
-                            <Meta msg={m} agent={agent} />
+                          <MessageHeader className="block px-0 text-sm">
+                            <Head msg={m} agent={agent} onMention={onMention} />
                           </MessageHeader>
                           <div className="text-base leading-normal">
                             <Quote to={m.replyTo ? bySeq.get(m.replyTo) : undefined} agents={agents} className="mb-1.5" />
