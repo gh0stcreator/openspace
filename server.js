@@ -147,8 +147,12 @@ const server = http.createServer(async (req, res) => {
       return json(res, 403, { error: 'сервер отвечает только по localhost' });
     }
     if (url.pathname === '/api/config') {
+      // Архивариус — теневой найм: сворачивает ленту в память по вызову оркестратора,
+      // а не как собеседник. В шапке, автодополнении @ и списке дежурных его не показываем.
       const agents = Object.fromEntries(
-        Object.entries(orch.roster).map(([name, a]) => [name, describe(name, a)]),
+        Object.entries(orch.roster)
+          .filter(([, a]) => (a.role ?? '').toLowerCase() !== 'архивариус')
+          .map(([name, a]) => [name, describe(name, a)]),
       );
       return json(res, 200, {
         user: config.user,
@@ -161,6 +165,8 @@ const server = http.createServer(async (req, res) => {
         defaultResponders: orch.duty(room),
         // Кого выключили в этой комнате: состав общий, присутствие — своё у каждой.
         off: orch.state(room).off,
+        // Метка темы в знаке: одно слово о том, чем комната занята.
+        topic: orch.state(room).topic ?? '',
         agents,
         rooms: store.listRooms().length ? store.listRooms() : ['general'],
         modes: listModes().map(short),
@@ -316,6 +322,15 @@ const server = http.createServer(async (req, res) => {
       const body = await readBody(req);
       try {
         return json(res, 200, { resolved: orch.confirmMemory(room, Number(body.seq)) });
+      } catch (e) {
+        return json(res, 400, { error: e.message });
+      }
+    }
+
+    if (url.pathname === '/api/memory/reject' && req.method === 'POST') {
+      const body = await readBody(req);
+      try {
+        return json(res, 200, { resolved: orch.rejectMemory(room, Number(body.seq)) });
       } catch (e) {
         return json(res, 400, { error: e.message });
       }

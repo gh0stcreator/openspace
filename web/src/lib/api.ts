@@ -15,7 +15,7 @@ export type Msg = {
   meta?: { elapsedMs?: number; usage?: { input_tokens?: number } }
   /** Предложение архивариуса: что изменить в памяти пространства, и решено ли уже. */
   diff?: MemoryChange[]
-  status?: "ожидает" | "принято"
+  status?: "ожидает" | "принято" | "принято частично" | "отклонено"
 }
 
 export type MemoryChange = {
@@ -59,6 +59,8 @@ export type Config = {
   off: string[]
   /** Комнаты этой машины: знак листает их под курсором. */
   rooms: string[]
+  /** Одно слово о том, чем комната занята: правая половина знака. */
+  topic: string
   modes: Mode[]
   agents: Record<string, Agent>
 }
@@ -150,6 +152,13 @@ export const api = {
       body: JSON.stringify({ seq }),
     }).then(json<{ resolved: Msg }>),
 
+  rejectMemory: (room: string, seq: number) =>
+    fetch(`/api/memory/reject?room=${encodeURIComponent(room)}`, {
+      method: "POST",
+      headers: { "content-type": "application/json" },
+      body: JSON.stringify({ seq }),
+    }).then(json<{ resolved: Msg }>),
+
   send: (room: string, text: string, files: FileRef[] = [], replyTo?: number) =>
     fetch(`/api/messages?room=${encodeURIComponent(room)}`, {
       method: "POST",
@@ -221,6 +230,7 @@ export function listen(
   room: string,
   onMessage: (m: Msg) => void,
   onStatus: (who: string, status: string) => void,
+  onTopic: (topic: string) => void,
   onLive: (live: boolean) => void,
   onReconnect?: () => void
 ) {
@@ -234,7 +244,8 @@ export function listen(
   es.onerror = () => onLive(false)
   es.onmessage = (e) => {
     const ev = JSON.parse(e.data)
-    if (ev.kind === "status") onStatus(ev.from, ev.status)
+    if (ev.kind === "status") return onStatus(ev.from, ev.status)
+    if (ev.kind === "topic") return onTopic(ev.topic)
     else onMessage(ev)
   }
   return () => es.close()

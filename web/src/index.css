@@ -125,6 +125,10 @@
     }
   body {
     @apply bg-background text-foreground;
+    /* Светлый текст на тёмном macOS рисует субпиксельно и утолщает: буквы выглядят
+       полужирными там, где заданы обычными. Серое сглаживание возвращает им вес. */
+    -webkit-font-smoothing: antialiased;
+    -moz-osx-font-smoothing: grayscale;
     }
   html {
     @apply font-sans;

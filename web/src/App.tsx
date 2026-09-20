@@ -101,6 +101,18 @@ export default function App() {
       toast.error((e as Error).message)
     }
   }
+
+  /** «Здесь нечего записывать»: курсор свёртки уходит вперёд, как если бы diff пришёл
+   * пустым, ничего не коммитится. Действие необратимо — предупреждение об этом в тексте
+   * кнопки, не здесь: второй попытки спросить у человека не будет. */
+  const rejectMemory = async (m: Msg) => {
+    try {
+      const { resolved } = await api.rejectMemory(room, m.seq)
+      setMessages((prev) => take(prev, resolved))
+    } catch (e) {
+      toast.error((e as Error).message)
+    }
+  }
   React.useEffect(() => {
     api.config().then((c) => {
       setCfg(c)
@@ -126,6 +138,7 @@ export default function App() {
       },
       (who, status) =>
         setThinking((t) => (status === "thinking" ? [...new Set([...t, who])] : t.filter((x) => x !== who))),
+      (topic) => setCfg((c) => (c ? { ...c, topic } : c)),
       setLive,
       () =>
         void api.history(room).then(({ messages, state }) => {
@@ -272,7 +285,7 @@ export default function App() {
           <div className="flex min-w-0 flex-1 basis-0 justify-start">
             <a href="/" className="min-w-0">
               <Logo
-                subject={subjectOf(room)}
+                subject={cfg.topic || subjectOf(room)}
                 mode={state.modeState?.slug ?? "open"}
                 color={live ? now?.color : null}
                 colors={tones}
@@ -409,6 +422,7 @@ export default function App() {
             }}
             onMention={(name) => setInsert({ name, nonce: Date.now() })}
             onConfirmMemory={confirmMemory}
+            onRejectMemory={rejectMemory}
           />
         )}
 

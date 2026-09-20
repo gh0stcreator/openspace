@@ -208,13 +208,18 @@ function Rich({
       if (m.index > last) out.push(typo(text.slice(last, m.index)))
       if (m[2] !== undefined) {
         out.push(
-          <pre key={i++} className="bg-background/60 my-2 overflow-x-auto rounded-md p-3 text-xs">
+          <pre key={i++} className="bg-background/60 my-2 overflow-x-auto rounded-md p-3 text-[0.85em]">
             <code>{m[2].replace(/\n$/, "")}</code>
           </pre>
         )
       } else if (m[3]) {
         out.push(
-          <code key={i++} className="bg-background/60 rounded px-1 py-0.5 text-xs">
+          <code
+            key={i++}
+            /* Кегль связан с текстом вокруг, а не задан числом: в реплике шрифт 16,
+               в цитате 14, и фиксированные 12 в одном месте были мелкими, в другом нет. */
+            className="bg-background/60 rounded px-1 py-0.5 text-[0.85em]"
+          >
             {m[3]}
           </code>
         )
@@ -442,7 +447,7 @@ function Head({
     return (
       <div className="flex items-baseline gap-2 text-base">
         {name}
-        <span className="text-muted-foreground/70 text-sm tabular-nums">{at}</span>
+        <span className="text-muted-foreground/70 text-sm font-normal tabular-nums">{at}</span>
       </div>
     )
   }
@@ -461,7 +466,7 @@ function Head({
         {name}
         <CollapsibleTrigger asChild>
           <button
-            className="text-muted-foreground/70 hover:text-foreground text-sm tabular-nums transition-colors"
+            className="text-muted-foreground/70 hover:text-foreground text-sm font-normal tabular-nums transition-colors"
             onClick={(e) => e.stopPropagation()}
           >
             {brief.join(" · ")}
