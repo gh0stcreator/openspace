@@ -16,7 +16,7 @@ const { Store } = await import('../lib/store.js');
 const sleep = (ms) => new Promise((r) => setTimeout(r, ms));
 const ROOM = 'r';
 
-function setup(names, { delays = {}, fail = {}, dir = null, stateDir = null, roles = {} } = {}) {
+function setup(names, { delays = {}, fail = {}, dir = null, stateDir = null, roles = {}, freeTalk = false } = {}) {
   dir = dir ?? fs.mkdtempSync(path.join(os.tmpdir(), 'openspace-test-'));
   const calls = [];
   const built = [];
@@ -37,7 +37,7 @@ function setup(names, { delays = {}, fail = {}, dir = null, stateDir = null, rol
     agents: Object.fromEntries(names.map((n) => [n, { kind: 'claude', role: roles[n] ?? 'peer', color: 'blue' }])),
     maxAutoTurns: 50,
     catchUp: 50,
-    freeTalk: false,
+    freeTalk,
     workdir: dir,
   };
   const orch = new Orchestrator({
@@ -329,4 +329,17 @@ test('выход из режима возвращает тот состав, ч�
   orch.startMode(ROOM, 'проба');
   orch.stopMode(ROOM);
   assert.deepEqual(orch.here(ROOM), ['первый'], 'конец режима включил того, кого убрал человек');
+});
+
+test('цепочка не обрывается молча: ход возвращают человеку', async () => {
+  const { orch, calls } = setup(['первый', 'второй'], { freeTalk: true });
+  orch.post(ROOM, { from: 'Roman', text: 'начали' });
+  await sleep(400);
+
+  const closing = calls.filter((c) => c.step === 'ход человека');
+  assert.equal(closing.length, 1, 'ход человеку не вернули или вернули хором');
+
+  // Второй раз подряд возвращать нечего: иначе закрывающая реплика зовёт следующего по кругу.
+  await sleep(300);
+  assert.equal(calls.filter((c) => c.step === 'ход человека').length, 1, 'пошли по кругу');
 });

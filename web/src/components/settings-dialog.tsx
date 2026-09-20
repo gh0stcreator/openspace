@@ -235,15 +235,13 @@ export function SettingsDialog({
         <Tabs orientation="vertical" defaultValue="general" className="min-w-0 flex-1 gap-0">
           {/* Слева — куда идти, справа — сама настройка. Заголовок диалога живёт в колонке,
               потому что он и есть её шапка. */}
-          <div className="bg-muted/30 flex w-[220px] shrink-0 flex-col border-r p-4">
+          {/* Отступ сверху тот же, что у страницы справа: заголовок колонки и заголовок
+                раздела стоят на одной линии, а первый пункт — на одной с первым полем. */}
+          <div className="bg-muted/30 flex w-[220px] shrink-0 flex-col border-r px-4 py-6">
             <DialogHeader className="px-3">
               <DialogTitle className="text-lg font-semibold">{t("settings.title")}</DialogTitle>
             </DialogHeader>
-            {/* Пункты — по центру колонки: их четыре, а колонка во весь диалог, и прижатые
-                к заголовку они висят в пустоте верхней трети. Центрируем обёрткой, а не самим
-                списком: `flex-1` на списке растягивает его пункты, а не двигает их. */}
-            <div className="flex flex-1 flex-col justify-center">
-            <TabsList className="w-full gap-0.5 bg-transparent p-0">
+            <TabsList className="mt-6 w-full gap-0.5 bg-transparent p-0">
               <TabsTrigger value="general" className={NAV}>
                 <Gear /> {t("settings.general")}
               </TabsTrigger>
@@ -257,7 +255,6 @@ export function SettingsDialog({
                 <Layers /> {t("settings.space")}
               </TabsTrigger>
             </TabsList>
-            </div>
 
             {/* Чей это продукт. Ряды те же, что у навигации, только тише: это ссылки наружу,
                 а не разделы настроек. */}

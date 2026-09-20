@@ -124,7 +124,8 @@ export type ModeState = {
   waitingUser: boolean
 } | null
 
-export type RoomState = { autoTurns: number; paused: boolean; modeState?: ModeState }
+/** `busy` — кто-то отвечает или стоит в очереди. Пусто и не занято — ход за человеком. */
+export type RoomState = { autoTurns: number; paused: boolean; busy?: boolean; modeState?: ModeState }
 
 const json = async <T,>(r: Response): Promise<T> => {
   if (!r.ok) throw new Error(`сервер вернул ${r.status}`)
