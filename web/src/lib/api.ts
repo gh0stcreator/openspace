@@ -127,7 +127,8 @@ export type Mode = {
 
 /** Режим целиком — с шагами: их правит редактор режимов. */
 export type Step = { name: string; who: string; hear: boolean; until: string; prompt: string }
-export type FullMode = Omit<Mode, "steps"> & { steps: Step[] }
+/** Шаги текстом — то, что человек правит одним полем. Сервер разбирает его обратно. */
+export type FullMode = Omit<Mode, "steps"> & { steps: Step[]; source: string }
 
 /** Во что обошёлся вопрос: от реплики человека до возврата хода ему же. */
 export type Round = { room: string; mode: string; turns: number; tokens: number; ms: number; why: string; at: string }

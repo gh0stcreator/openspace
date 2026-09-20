@@ -238,7 +238,6 @@ export function SettingsDialog({
     )
   }
 
-  const people = Object.keys(s.agents)
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
@@ -459,8 +458,6 @@ export function SettingsDialog({
                 <ModeCard
                   key={m.name}
                   mode={m}
-                  participants={people}
-                  roles={s.roles}
                   current={currentMode ? currentMode === m.name : m.builtin}
                   fixed={m.builtin}
                   onChange={saveMode}
@@ -495,6 +492,7 @@ export function SettingsDialog({
                   missing: [],
                   builtin: false,
                   steps: [{ name: "разговор", who: "все", hear: true, until: "все ответят", prompt: "" }],
+                  source: "",
                 })
               }
             >

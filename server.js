@@ -10,7 +10,7 @@ import { roleOf, listRoles } from './lib/roles.js';
 import { loadArchetype, listArchetypes } from './lib/archetypes.js';
 import { SKILLS, skillsOf } from './lib/skills.js';
 import { read as readRounds } from './lib/rounds.js';
-import { BUILTIN, listModes, loadMode, removeMode, saveMode, stepTargets } from './lib/modes.js';
+import { BUILTIN, listModes, loadMode, removeMode, saveMode, stepTargets, bodyOf, stepsFrom } from './lib/modes.js';
 
 const root = path.dirname(fileURLToPath(import.meta.url));
 
@@ -44,7 +44,9 @@ function saveConfig(cfg) {
 }
 
 /** Полное описание режима — для редактора: со всеми шагами и текстами. */
-const full = (m) => ({ ...short(m), steps: m.steps });
+// Шаги едут клиенту и разобранными, и текстом: правят их одним полем, как голос
+// участника, а полоса «сколько шагов, где вслепую» считается по разобранным.
+const full = (m) => ({ ...short(m), steps: m.steps, source: bodyOf(m.steps) });
 
 const short = (m) => {
   const present = orch.names.map((n) => n.toLowerCase());
@@ -397,7 +399,12 @@ const server = http.createServer(async (req, res) => {
     if (url.pathname === '/api/modes' && req.method === 'POST') {
       const body = await readBody(req);
       try {
-        return json(res, 200, { mode: full(saveMode(body)) });
+        // Текст — источник правды, если он пришёл: разбор его и есть сохранение.
+        const steps = typeof body.source === 'string' ? stepsFrom(body.source) : body.steps;
+        if (typeof body.source === 'string' && !steps.length) {
+          return json(res, 400, { error: 'в тексте нет ни одного шага: шаг начинается строкой «## имя»' });
+        }
+        return json(res, 200, { mode: full(saveMode({ ...body, steps })) });
       } catch (e) {
         return json(res, 400, { error: e.message });
       }

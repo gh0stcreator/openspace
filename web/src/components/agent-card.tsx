@@ -111,24 +111,19 @@ export function AgentCard({ name, agent, settings, autoOpen, onChange, onRename,
         />
 
         <button className="min-w-0 flex-1 text-left" onClick={() => setOpen((v) => !v)}>
+          {/* Рядом с ником — чем думает. Амплуа отсюда убрано: оно живёт в карточке,
+              рядом с полем голоса, которым и управляет, а здесь было лишним словом. */}
           <div className="text-sm font-medium capitalize">
             {name}
-            {/* Амплуа рядом с ником: иначе шестеро отличаются в списке только иконкой. */}
-            {agent.archetype && (
-              <span className="text-muted-foreground font-normal normal-case">
-                {" · "}
-                {pick(lang, agent.archetype, agent.archetypeEn)}
-              </span>
-            )}
+            <span className="text-muted-foreground font-normal normal-case">
+              {" · "}
+              {brain(agent)}
+            </span>
           </div>
           <div className="text-muted-foreground truncate text-sm">
             {typo(pick(lang, agent.brief, agent.briefEn))}
           </div>
         </button>
-
-        <span className="text-muted-foreground/70 hidden w-28 shrink-0 text-right text-xs sm:block">
-          {brain(agent)}
-        </span>
 
         <DropdownMenu>
           <DropdownMenuTrigger asChild>
