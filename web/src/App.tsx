@@ -297,20 +297,15 @@ export default function App() {
 
 
   /**
-   * Порядок участников: оппоненты плечом к плечу, остальные следом в порядке найма.
-   * Порядок найма сам по себе читается как случайность, а пара видна сразу.
+   * Порядок участников: пары полюсов рядом, ведущий в конце. Хаос найма («кого завели
+   * первым») в шапке читается как случайность, а пара видна сразу: кто тянет в импульс,
+   * а кто в осторожность, стоят плечом к плечу.
    */
-  const inPairs = (names: string[]) => {
-    const left = [...names]
-    const out: string[] = []
-    while (left.length) {
-      const one = left.shift() as string
-      out.push(one)
-      const rival = cfg.agents[one]?.rival
-      const i = rival ? left.findIndex((n) => cfg.agents[n]?.roleName === rival) : -1
-      if (i >= 0) out.push(left.splice(i, 1)[0])
-    }
-    return out
+  const POLES = ["импульс", "осторожность", "теория", "практика", "вкус", "опыт"]
+  const byPole = (a: string, b: string) => {
+    const at = POLES.indexOf(cfg.agents[a]?.pulls ?? "")
+    const bt = POLES.indexOf(cfg.agents[b]?.pulls ?? "")
+    return (at < 0 ? 99 : at) - (bt < 0 ? 99 : bt)
   }
 
   /**
@@ -361,7 +356,7 @@ export default function App() {
               ряд появляется только когда разговор начался. */}
           {started && (
             <div className="hidden shrink-0 items-center gap-2.5 sm:flex">
-              {inPairs(Object.keys(cfg.agents).filter(here)).map((n) => {
+              {Object.keys(cfg.agents).filter(here).sort(byPole).map((n) => {
                 const at = doing(n)
                 const f = face(n)
                 return (
@@ -560,7 +555,7 @@ export default function App() {
               </Button>
             </PopoverTrigger>
             <PopoverContent align="start" className="w-64 p-2">
-              {inPairs(Object.keys(cfg.agents)).map((n) => (
+              {Object.keys(cfg.agents).sort(byPole).map((n) => (
                 <Label
                   key={n}
                   className="hover:bg-accent/50 flex items-center gap-2 rounded-md p-2 font-normal"
