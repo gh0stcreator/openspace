@@ -10,7 +10,7 @@ import {
 import { Spinner } from "@/components/ui/spinner"
 import { Tooltip, TooltipContent, TooltipTrigger } from "@/components/ui/tooltip"
 import { Button } from "@/components/ui/button"
-import { Quote } from "@/components/chat-feed"
+import { getAgent, Quote, toneVars } from "@/components/chat-feed"
 import { useLang, pick as label } from "@/lib/i18n"
 import { cn } from "@/lib/utils"
 import { api, type Agent, type FileRef, type Msg } from "@/lib/api"
@@ -259,7 +259,9 @@ export function Composer({
         {/* С прицепленной цитатой поле подсвечено кольцом: вы отвечаете конкретной
             реплике, и это состояние, которое видно, а не помнится. Кольцо, а не рамка:
             рамка у группы своя, и два правила цвета спорили бы между собой. */}
-        <InputGroup className={cn(
+        <InputGroup
+            style={toneVars(replyTo ? getAgent(agents, replyTo.from)?.color : null)}
+            className={cn(
               // Радиус больше половины высоты: пока поле в одну строку, это пилюля,
               // а выросло — остаётся крупное скругление, а не капсула на пол-экрана.
               "rounded-3xl",

@@ -46,7 +46,7 @@ export function toneVars(color?: string | null): React.CSSProperties {
 }
 
 /** Ник могли записать в другом регистре (старые логи, ручной ввод) — ищем без учёта регистра. */
-function getAgent(agents: Record<string, Agent>, name?: string): Agent | undefined {
+export function getAgent(agents: Record<string, Agent>, name?: string): Agent | undefined {
   if (!name) return undefined
   if (agents[name]) return agents[name]
   const lower = name.toLowerCase()
@@ -336,7 +336,8 @@ function Rich({
             href={link}
             target="_blank"
             rel="noopener noreferrer"
-            className="underline decoration-current/40 underline-offset-2 hover:decoration-current"
+            // Чуть серее основного текста: ссылка видна, но не перетягивает чтение на себя.
+            className="text-foreground/70 underline decoration-current/35 underline-offset-2 hover:text-foreground"
             onClick={(e) => e.stopPropagation()}
           >
             {m.groups?.lt ?? link.replace(/^https?:\/\//, "")}
