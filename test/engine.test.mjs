@@ -346,3 +346,23 @@ test('цепочка не обрывается молча: ход возвращ
   await sleep(300);
   assert.equal(calls.filter((c) => c.step === 'ход человека').length, 1, 'пошли по кругу');
 });
+
+test('долгий свободный разговор сворачивается в память, когда встал', async () => {
+  // Память живёт рядом с состоянием комнат, поэтому свёртка есть только со stateDir.
+  const dir = fs.mkdtempSync(path.join(os.tmpdir(), 'openspace-fold-'));
+  const { orch, calls } = setup(['первый', 'архив'], {
+    dir, stateDir: dir, roles: { архив: 'архивариус' }, freeTalk: true,
+  });
+
+  // Десяти реплик мало: свёртка — отдельный вызов движка, на каждой паузе она дорога.
+  for (let i = 0; i < 10; i += 1) orch.store.append(ROOM, { from: 'Roman', text: `реплика ${i}` });
+  orch.post(ROOM, { from: 'первый', text: 'и я так думаю' });
+  await sleep(200);
+  assert.ok(!calls.some((c) => c.step === 'свёртка'), 'свернули слишком рано');
+
+  // Порог перейдён — на следующей остановке разговор ложится в память.
+  for (let i = 0; i < 15; i += 1) orch.store.append(ROOM, { from: 'Roman', text: `ещё ${i}` });
+  orch.post(ROOM, { from: 'первый', text: 'ну и ладно' });
+  await sleep(300);
+  assert.ok(calls.some((c) => c.step === 'свёртка'), 'разговор кончился, а в памяти пусто');
+});
