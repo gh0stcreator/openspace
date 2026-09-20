@@ -236,12 +236,12 @@ export function SettingsDialog({
           {/* Слева — куда идти, справа — сама настройка. Заголовок диалога живёт в колонке,
               потому что он и есть её шапка. */}
           <div className="bg-muted/30 flex w-[220px] shrink-0 flex-col border-r p-4">
-            <DialogHeader className="mb-4 px-3">
-              <DialogTitle className="text-muted-foreground text-sm font-medium">
-                {t("settings.title")}
-              </DialogTitle>
+            <DialogHeader className="px-3">
+              <DialogTitle className="text-lg font-semibold">{t("settings.title")}</DialogTitle>
             </DialogHeader>
-            <TabsList className="w-full gap-0.5 bg-transparent p-0">
+            {/* Пункты — по центру колонки: их четыре, а колонка во весь диалог, и прижатые
+                к заголовку они висят в пустоте верхней трети. */}
+            <TabsList className="w-full flex-1 justify-center gap-0.5 bg-transparent p-0">
               <TabsTrigger value="general" className={NAV}>
                 <Gear /> {t("settings.general")}
               </TabsTrigger>

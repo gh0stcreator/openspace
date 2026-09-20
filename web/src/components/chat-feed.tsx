@@ -284,8 +284,6 @@ type Props = {
   user: string
   agents: Record<string, Agent>
   thinking: string[]
-  /** Кого шаг режима ещё не дождался, пока говорит другой. */
-  waiting?: string[]
   onReply: (m: Msg) => void
   /** Клик по своей реплике: не отвечать же себе — правим её. */
   onEdit: (m: Msg) => void
@@ -582,7 +580,7 @@ function FollowMine({ seq }: { seq?: number }) {
   return null
 }
 
-export function ChatFeed({ messages, user, agents, thinking, waiting = [], onReply, onMention, onEdit, onConfirmMemory, onRejectMemory }: Props) {
+export function ChatFeed({ messages, user, agents, thinking, onReply, onMention, onEdit, onConfirmMemory, onRejectMemory }: Props) {
   const elapsed = useElapsed(thinking)
   const { t } = useLang()
   const known = React.useMemo(() => [...Object.keys(agents), user], [agents, user])
@@ -708,27 +706,16 @@ export function ChatFeed({ messages, user, agents, thinking, waiting = [], onRep
             {/* Кто сейчас работает — строкой в потоке, а не пузырём: это не реплика,
                 а состояние. Время идёт рядом, потому что ход у участника, который правит
                 файлы, занимает минуты, и без цифры это неотличимо от «завис». */}
-            {/* Кто стоит в очереди шага, пока говорит другой. Строка появляется только
-                внутри режима: вне его очереди нет, и «ждёт» было бы выдумкой. */}
-            {thinking.length > 0 &&
-              waiting.map((n) => (
-                <div key={n} className="text-muted-foreground/60 flex items-center gap-2 px-1 py-0.5 text-sm">
-                  <Face name={n} icon={getAgent(agents, n)?.icon} color={getAgent(agents, n)?.color} size="xs" />
-                  <span>{n}</span>
-                  <span>{t("feed.waits", { name: thinking[0] })}</span>
-                </div>
-              ))}
-
             {thinking.length > 0 && (
               <div className="text-muted-foreground flex items-center gap-2 px-1 py-1 text-sm">
                 {/* Все, кто сейчас думает, — одной строкой: три отдельных ряда занимают
                     пол-экрана и выглядят как три события, хотя событие одно. Аватарки
                     внахлёст, время — по тому, кто ждёт дольше всех. */}
-                <span className="flex shrink-0 items-center">
-                  {thinking.map((n, i) => (
-                    <span key={n} className={cn("ring-background rounded-full ring-2", i > 0 && "-ml-2")}>
-                      <Face name={n} icon={getAgent(agents, n)?.icon} color={getAgent(agents, n)?.color} size="sm" />
-                    </span>
+                {/* Рядом, а не внахлёст: на маленьком кружке нахлёст с обводкой читается
+                    как грязь, а не как группа. */}
+                <span className="flex shrink-0 items-center gap-1">
+                  {thinking.map((n) => (
+                    <Face key={n} name={n} icon={getAgent(agents, n)?.icon} color={getAgent(agents, n)?.color} size="sm" />
                   ))}
                 </span>
                 <span className="min-w-0">

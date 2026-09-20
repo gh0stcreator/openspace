@@ -272,8 +272,6 @@ export default function App() {
     if (!ms || !ms.cast.includes(n)) return "idle"
     return ms.pending.includes(n) ? "waiting" : "done"
   }
-  // Кто ждёт своей очереди, пока говорит другой: строкой в ленте, под тем, кто работает.
-  const waiting = ms ? ms.pending.filter((n) => !thinking.includes(n)) : []
 
   return (
     <TooltipProvider>
@@ -411,7 +409,6 @@ export default function App() {
             user={cfg.user}
             agents={cfg.agents}
             thinking={thinking}
-            waiting={waiting}
             onReply={(m) => {
               setEditing(null)
               setReplyTo(m)

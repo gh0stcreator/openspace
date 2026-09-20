@@ -11,15 +11,15 @@ import { useLang } from "@/lib/i18n"
  */
 export const ICONS = [
   // думает
-  "brain", "lightbulb", "sparkles", "eye", "compass",
+  "brain", "lightbulb", "sparkles", "eye", "compass", "telescope", "map", "puzzle",
   // проверяет
-  "shield", "bug", "scale", "microscope", "search",
+  "shield", "bug", "scale", "microscope", "search", "flame", "gavel", "flask-conical",
   // делает
-  "settings", "wrench", "code", "terminal", "rocket",
+  "settings", "wrench", "code", "terminal", "rocket", "hammer", "cpu", "package",
   // говорит
-  "megaphone", "pen-line", "type", "book-open", "target",
+  "megaphone", "pen-line", "type", "book-open", "target", "message-circle", "quote", "mic",
   // прочее
-  "users", "crown", "palette", "globe",
+  "users", "crown", "palette", "globe", "heart", "anchor", "key", "layers",
 ]
 
 /**
