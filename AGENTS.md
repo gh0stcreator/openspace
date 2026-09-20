@@ -181,6 +181,9 @@ cd web && npm run build      # разовая сборка, тип-чек вхо
   вместе с padding — строкой ниже, для того, кто полезет чинить.
 - В описании пул-реквеста то же самое: что добавилось, когда и зачем, в том порядке, в каком
   это увидит человек, а не в порядке коммитов.
+- Заметное для того, кто пользуется продуктом, попадает ещё и в [CHANGELOG.md](CHANGELOG.md).
+  `git log` — история правок, CHANGELOG — история продукта: в нём нет ни рефакторингов,
+  ни правок опечаток, зато есть причина, по которой вещь стала другой.
 - `/public/` и `rooms/` не коммитим: это сборка и данные машины. Слэш в начале обязателен,
   иначе правило ловит и `web/public/`, а это исходники.
 - `git add <файлы>`, а не `-A`: над репозиторием работают несколько сессий сразу, и `-A`
@@ -230,6 +233,7 @@ web/public/             фавиконка и знаки — исходники,
 test/                   движок и разбор файлов на заглушках, `npm test`
 bin/                    dev, say, hire, duel — из терминала
 docs/                   концепция, устройство, научная база групповой динамики
+CHANGELOG.md            что менялось в продукте и почему
 ```
 
 ## Как добавить
@@ -238,3 +242,79 @@ docs/                   концепция, устройство, научная
 **Режим** — файл `modes/<имя>.md`, формат в [modes/README.md](modes/README.md), либо прямо
 в интерфейсе: Настройки → Режимы. Редактор пишет тот же файл.
 **Компонент** — `npx shadcn@latest add <имя>` в `web/`, потом использовать как есть.
+
+
+<claude-mem-context>
+# Memory Context
+
+# [openspace] recent context, 2026-09-20 12:03am GMT+3
+
+Legend: 🎯session 🔴bugfix 🟣feature 🔄refactor ✅change 🔵discovery ⚖️decision
+Format: ID TIME TYPE TITLE
+Fetch details: get_observations([IDs]) | Search: mem-search skill
+
+Stats: 50 obs (14,515t read) | 241,536t work | 94% savings
+
+### Sep 19, 2026
+S652 Prostranstvo — docs/plan.md cross-referenced with Opus 5 todo.md using T1–T18 tags (Sep 19 at 12:45 PM)
+S651 openspace review + active refactoring session — comprehensive code/UX/architecture review followed by applying fixes live in the codebase (Sep 19 at 12:45 PM)
+S653 Prostranstvo — "делай что не доделал": завершение этапа 2, движок режимов, правка реплик, UI-полировка (Sep 19 at 12:54 PM)
+S654 openspace — режимы: критерии отбора, восстановление «Шести шляп» и «Премортема», исследование Методотеки (Sep 19 at 1:23 PM)
+S655 Openspace READMEs updated to reference docs/dynamics.md literature review (Sep 19 at 1:30 PM)
+S656 Prostranstvo — коллективные числительные для счётчика участников (Sep 19 at 1:51 PM)
+S657 Prostranstvo settings General tab — visual layout verified via browser screenshot (Sep 19 at 2:03 PM)
+S659 Openspace settings dialog — убрать лишние подписи под полями и упростить подпись автора (Sep 19 at 3:11 PM)
+2979 3:40p 🔴 Prostranstvo тест 21 исправлен — все 25 тестов зелёные
+2980 3:41p 🔄 Prostranstvo face-picker.tsx — иконки аватарки сокращены с 32 до 24 и сгруппированы по смыслу
+2981 3:46p 🔴 Settings Icon Incorrect — Should Be Gear/Cog
+2982 3:47p 🔴 Settings Icon Fixed: Settings2 → Settings in Lucide React
+2983 " 🔴 Settings Icon TS Conflict Resolved via Import Alias
+2984 " ✅ Settings Icon Fix Verified — All 25 Tests Pass
+2985 3:48p 🔵 Цвет UI-элемента реализован через цвет, а не прозрачность
+2986 " 🔵 UI цвет реализован статическим цветом, а не прозрачностью
+2987 3:49p 🔵 Openspace — цвета пузырей реализованы как непрозрачные oklch(), а не через прозрачность
+2988 3:50p 🔴 Openspace — цвета пузырей переведены с непрозрачных oklch() на прозрачную заливку с темовыми переменными
+2989 " 🟣 Openspace settings-dialog — рефакторинг геометрии и структуры General-вкладки
+2990 3:51p 🔄 Openspace agent-card — строка списка переработана: убрана рамка, brain вынесен вправо, min-height 64px
+2991 " 🔄 Openspace — списки агентов и режимов переведены с gap-2 карточек на divide-y строки
+2992 " 🔴 Openspace — удалён лишний импорт `cn`, геометрия диалога подтверждена браузером
+2993 3:52p 🔴 Openspace NAV — `h-9` заменён на `min-h-9` для пунктов навигации в settings-dialog
+2994 3:58p ⚖️ Ясно UI — аватар должен загружаться до основного контента
+2995 " 🔴 Prostranstvo — аватарка перемещена выше поля «Имя» в настройках
+2996 3:59p 🔵 Prostranstvo settings dialog — QA метрики всех четырёх вкладок подтверждены
+2997 " 🔴 Prostranstvo — вкладка «Пространство» получила max-w-xl ограничение ширины контента
+2998 4:00p 🔵 Prostranstvo — focus-visible на табах работает при навигации с клавиатуры
+2999 4:01p 🔴 Prostranstvo — восстановлена видимость фокуса с клавиатуры на табах диалога настроек
+3000 " 🔵 Prostranstvo settings dialog — финальный QA пройден: 25/25 тестов, все вкладки 576px
+3001 4:02p 🔵 Prostranstvo — диагностика: CSS-переменная --ring установлена, ring-ring на обычных элементах работает
+3002 4:03p 🟣 Prostranstvo settings dialog — комплексный UX-полиш: аватарка, табы, кнопка режима, i18n
+3003 4:04p 🔄 Prostranstvo — форма приглашения участника переведена на прогрессивное раскрытие
+3004 " 🔵 Prostranstvo — базовый компонент таба содержит собственные focus-visible:ring классы
+3005 " 🔵 Prostranstvo settings dialog — финальные метрики боковой панели навигации
+3006 4:07p 🔵 Openspace участники — измерение отступов и цветов модели
+3007 4:08p 🔴 Openspace — исправлены отступы, цвет и ширина колонки модели в карточках участников
+3008 4:09p 🔴 Openspace — откат -mr-2 с кнопки меню и переименование поля space.goal
+3009 4:10p ✅ Openspace i18n — переработаны строки формы создания участника
+S660 Openspace — исправить отступы справа, позиционирование и цвет названия модели в панели участников (Sep 19 at 4:10 PM)
+3010 4:11p 🔵 Prostranstvo — settings-dialog.tsx содержит логику найма агентов
+3011 4:12p 🟣 Prostranstvo — новый агент автоматически открывает свою карточку после создания
+3012 " 🟣 Prostranstvo — autoOpen агента подтверждён QA-тестом в браузере
+3013 " 🔵 Prostranstvo — API /api/settings поддерживает удаление агентов через replaceTeam
+3014 4:20p 🔵 Openspace — favicon и структура public/ изучены перед созданием новой иконки
+3015 4:21p 🔵 Openspace — директория public/ полностью gitignored как артефакт сборки
+3016 4:22p 🟣 Openspace — создана SVG-фавиконка o(s) с поддержкой тёмной темы
+3017 " 🔴 Openspace .gitignore — исправлен паттерн public/ на /public/ чтобы не игнорировать web/public
+3018 " 🔵 Openspace favicon.svg — верификация рендеринга: 200 OK, текст 29×15px, смещение x=2
+3019 4:23p 🔵 Openspace favicon — изменения не закоммичены, web/public/ untracked
+3020 " 🔵 Openspace orchestrator — архитектура state() и duty() методов
+3021 " 🔵 Openspace orchestrator — save() дебаунсится 200ms, flush() пишет seen+sessions всех агентов
+3022 " 🟣 Openspace orchestrator — per-room выключение участников: поле off[], методы here() и toggle()
+3023 4:24p 🟣 Openspace orchestrator — полная замена this.names → this.here(room) во всех точках таргетинга
+3024 " 🟣 Openspace — новый HTTP endpoint POST /api/presence для управления присутствием агента в комнате
+3025 4:25p 🔵 Openspace — тест per-room presence упал: выключенный агент всё ещё отвечает на тег или дежурным
+3026 " 🔵 Openspace — тест №22 упал из-за BUILTIN-режима: свободный.md явно именует @второй в duty
+3027 4:26p 🔴 Openspace — тест toggle исправлен: проверка через .some() вместо точного счётчика, 26/0
+3028 " 🔵 Openspace фронтенд — UI участников и api.ts перед добавлением presence
+
+Access 242k tokens of past work via get_observations([IDs]) or mem-search skill.
+</claude-mem-context>
