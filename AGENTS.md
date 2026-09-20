@@ -258,7 +258,7 @@ lib/
   agents.js             запуск claude -p и codex exec
   skills.js             что участник умеет руками и какие это флаги CLI
   modes.js              разбор modes/*.md, шаги из текста и обратно
-  roles.js              разбор roles/*.md, оси и полюса
+  roles.js              разбор roles/*.md, пары и домены
   archetypes.js         разбор archetypes/*.md — готовые голоса
   prompt.js             сборка системного промпта участника
   mentions.js           разбор @обращений и ответов на реплику
@@ -268,7 +268,7 @@ lib/
   store.js              лента комнаты, rooms/<комната>.jsonl
   state.js              режим, шаг, пауза, сессии — чтобы комната пережила перезапуск
   config.js             DEFAULTS и openspace.config.json
-roles/                  по файлу на роль: что делает, зона интереса, полюс, домен
+roles/                  по файлу на роль: что делает, зона интереса, оппонент, домен
 archetypes/             по файлу на амплуа: как говорит
 modes/                  по файлу на режим, отложенные — в modes/архив/
 web/src/                клиент: React + Vite + Tailwind 4 + shadcn/ui

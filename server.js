@@ -6,7 +6,7 @@ import { fileURLToPath } from 'node:url';
 import { Store } from './lib/store.js';
 import { Orchestrator } from './lib/orchestrator.js';
 import { loadConfig } from './lib/config.js';
-import { roleOf, listRoles } from './lib/roles.js';
+import { listRoles, rivalOf, roleOf } from './lib/roles.js';
 import { loadArchetype, listArchetypes } from './lib/archetypes.js';
 import { SKILLS, skillsOf } from './lib/skills.js';
 import { BUILTIN, listModes, loadMode, removeMode, saveMode, stepTargets, bodyOf, stepsFrom } from './lib/modes.js';
@@ -88,7 +88,9 @@ const describe = (name, a) => ({
   // Амплуа своё, если выбрано в карточке, иначе то, что объявила роль.
   archetype: a.archetype ?? roleOf(a).archetype,
   archetypeEn: a.archetype ? '' : roleOf(a).archetypeEn,
-  pulls: roleOf(a).pulls,
+  // С кем эта роль спорит: пара считается взаимной, поэтому спрашиваем у общего списка,
+  // а не у самой роли — иначе половина пар была бы видна только с одной стороны.
+  rival: rivalOf(roleOf(a).name),
   icon: a.icon ?? roleOf(a).icon,
   color: a.color ?? null,
   prompt: a.prompt ?? roleOf(a).body,
@@ -245,7 +247,7 @@ const server = http.createServer(async (req, res) => {
           archetype: r.archetype,
           archetypeEn: r.archetypeEn,
           model: r.model,
-          pulls: r.pulls,
+          rival: rivalOf(r.name),
           skills: r.skills,
         })),
         archetypes: listArchetypes().map((x) => ({
