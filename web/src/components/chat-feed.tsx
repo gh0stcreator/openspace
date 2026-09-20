@@ -999,15 +999,20 @@ export function ChatFeed({ messages, user, agents, personas, thinking, since, on
                 {/* Рядом, а не внахлёст: на маленьком кружке нахлёст с обводкой читается
                     как грязь, а не как группа. */}
                 <span className="flex shrink-0 items-center gap-1">
-                  {thinking.map((n) => (
-                    <Face key={n} name={n} icon={getAgent(agents, n)?.icon} color={getAgent(agents, n)?.color} size="sm" />
-                  ))}
+  {thinking.map((n) => {
+                    // Думает тот, кем он в этом режиме вышел: строка «Заступник думает»
+                    // под репликами Ёжика — это про кого-то третьего.
+                    const as = personas?.[n] ?? n
+                    return (
+                      <Face key={n} name={as} icon={getAgent(agents, as)?.icon} color={getAgent(agents, as)?.color} size="sm" />
+                    )
+                  })}
                 </span>
                 <span className="min-w-0">
                   {thinking.map((n, i) => (
                     <React.Fragment key={n}>
                       {i > 0 && (i === thinking.length - 1 ? ` ${t("feed.and")} ` : ", ")}
-                      <Name name={n} onPick={onMention} />
+                      <Name name={personas?.[n] ?? n} onPick={onMention} />
                     </React.Fragment>
                   ))}{" "}
                   {t(thinking.length > 1 ? "feed.thinkingMany" : "feed.thinkingOne")}

@@ -295,6 +295,17 @@ export default function App() {
   const ms = state.modeState
 
 
+  /**
+   * Как участник выглядит сейчас. Ник остаётся его именем в коде — по нему считается
+   * присутствие и состояние хода, — но показываем того, под кем он вышел: в режиме
+   * с персонами в шапке и в списке должны стоять те же лица, что в ленте.
+   */
+  const face = (n: string) => {
+    const a = cfg.agents[n]
+    const p = faces?.[n]
+    return { name: p?.name ?? n, icon: p?.icon || a?.icon, color: p?.color || a?.color }
+  }
+
   const doing = (n: string): "working" | "waiting" | "done" | "idle" => {
     if (thinking.includes(n)) return "working"
     if (!ms || !ms.cast.includes(n)) return "idle"
@@ -330,8 +341,9 @@ export default function App() {
               ряд появляется только когда разговор начался. */}
           {started && (
             <div className="hidden shrink-0 items-center gap-2.5 sm:flex">
-              {Object.entries(cfg.agents).filter(([n]) => here(n)).map(([n, a]) => {
+              {Object.entries(cfg.agents).filter(([n]) => here(n)).map(([n]) => {
                 const at = doing(n)
+                const f = face(n)
                 return (
                   <Tooltip key={n}>
                     <TooltipTrigger asChild>
@@ -345,15 +357,15 @@ export default function App() {
                         )}
                       >
                         <FaceButton
-                          name={n}
-                          icon={a.icon}
-                          color={a.color}
+                          name={f.name}
+                          icon={f.icon}
+                          color={f.color}
                           onPick={(name) => setInsert({ name, nonce: Date.now() })}
                         />
                       </span>
                     </TooltipTrigger>
                     <TooltipContent>
-                      {n} · {t(`feed.status${at[0].toUpperCase()}${at.slice(1)}` as never)}
+                      {f.name} · {t(`feed.status${at[0].toUpperCase()}${at.slice(1)}` as never)}
                     </TooltipContent>
                   </Tooltip>
                 )
@@ -418,9 +430,21 @@ export default function App() {
                         {typo(pick(lang, m.for || m.brief, m.forEn || m.briefEn))}
                       </span>
                       <span className="mt-1 flex flex-wrap items-center gap-1.5">
-                        {m.who?.map((n) => (
-                          <Face key={n} name={n} icon={cfg.agents[n]?.icon} color={cfg.agents[n]?.color} size="sm" />
-                        ))}
+                        {m.who?.map((n) => {
+                          // Карточка обещает состав — значит, показывает и лица: у режима
+                          // с персонами это его персонажи, а не наши ники.
+                          const role = (cfg.agents[n]?.roleName ?? "").toLowerCase()
+                          const side = m.sides?.find((x) => x.roles?.includes(role))
+                          return (
+                            <Face
+                              key={n}
+                              name={side?.label ?? n}
+                              icon={side?.icon || cfg.agents[n]?.icon}
+                              color={side?.color || cfg.agents[n]?.color}
+                              size="sm"
+                            />
+                          )
+                        })}
                       </span>
                       {m.missing.length > 0 && (
                         <span className="text-destructive/90 text-sm">
@@ -516,13 +540,13 @@ export default function App() {
               </Button>
             </PopoverTrigger>
             <PopoverContent align="start" className="w-64 p-2">
-              {Object.entries(cfg.agents).map(([n, a]) => (
+              {Object.entries(cfg.agents).map(([n]) => (
                 <Label
                   key={n}
                   className="hover:bg-accent/50 flex items-center gap-2 rounded-md p-2 font-normal"
                 >
-                  <Face name={n} icon={a.icon} color={a.color} size="sm" />
-                  <span className="flex-1 truncate">{n}</span>
+                  <Face name={face(n).name} icon={face(n).icon} color={face(n).color} size="sm" />
+                  <span className="flex-1 truncate">{face(n).name}</span>
                   <Switch checked={here(n)} onCheckedChange={(v) => void toggle(n, v)} />
                 </Label>
               ))}
