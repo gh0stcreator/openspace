@@ -1,6 +1,6 @@
 import * as React from "react"
 import * as Icons from "lucide-react"
-import { ArrowRight, FileText } from "lucide-react"
+import { ArrowRight, Check, Copy, FileText } from "lucide-react"
 
 import { Bubble, BubbleContent } from "@/components/ui/bubble"
 import {
@@ -446,6 +446,37 @@ export function Quote({
 }
 
 /**
+ * Скопировать реплику. Кнопка проявляется под курсором и на фокусе с клавиатуры: висеть
+ * над каждой репликой ей незачем, а находиться руками — надо. Подтверждение — сама кнопка:
+ * галочка на полторы секунды, без всплывашки поверх разговора.
+ */
+function CopyButton({ text }: { text: string }) {
+  const { t } = useLang()
+  const [done, setDone] = React.useState(false)
+
+  React.useEffect(() => {
+    if (!done) return
+    const id = setTimeout(() => setDone(false), 1500)
+    return () => clearTimeout(id)
+  }, [done])
+
+  return (
+    <button
+      type="button"
+      aria-label={t(done ? "feed.copied" : "feed.copy")}
+      title={t(done ? "feed.copied" : "feed.copy")}
+      className={cn("text-muted-foreground/70 hover:text-foreground on-hover shrink-0", done && "is-done")}
+      onClick={(e) => {
+        e.stopPropagation()
+        void navigator.clipboard?.writeText(text).then(() => setDone(true))
+      }}
+    >
+      {done ? <Check className="size-3.5" /> : <Copy className="size-3.5" />}
+    </button>
+  )
+}
+
+/**
  * Шапка реплики: кто сказал и во что это обошлось. В строке — только «дорого или дёшево»:
  * сколько шёл ход и сколько токенов ушло. Остальное раскрывается на месте, под той же
  * строкой, а не всплывает окном поверх разговора.
@@ -477,6 +508,7 @@ function Head({
       <div className="flex items-baseline gap-2 text-base">
         {name}
         <span className="text-muted-foreground/70 text-sm font-normal tabular-nums">{at}</span>
+        <CopyButton text={msg.text} />
       </div>
     )
   }
@@ -501,6 +533,7 @@ function Head({
             {brief.join(" · ")}
           </button>
         </CollapsibleTrigger>
+        <CopyButton text={msg.text} />
       </div>
       <CollapsibleContent
         className="data-[state=closed]:animate-collapsible-up data-[state=open]:animate-collapsible-down overflow-hidden"
@@ -681,7 +714,7 @@ export function ChatFeed({ messages, user, agents, thinking, onReply, onMention,
                   <MessageGroup key={first.id}>
                     {group.map((m) => (
                       <MessageScrollerItem key={m.id} messageId={m.id} id={`msg-${m.seq}`}>
-                        <Message align="end">
+                        <Message align="end" className="group/msg">
                           <MessageContent className="gap-1">
                             <Bubble variant="secondary" align="end">
                               <BubbleContent
@@ -696,11 +729,12 @@ export function ChatFeed({ messages, user, agents, thinking, onReply, onMention,
                                 <Files files={m.files} />
                               </BubbleContent>
                             </Bubble>
-                            <MessageFooter className="text-muted-foreground/70 font-normal">
+                            <MessageFooter className="text-muted-foreground/70 gap-2 font-normal">
                               {[
                                 new Date(m.ts).toLocaleTimeString("ru", { hour: "2-digit", minute: "2-digit" }),
                                 m.edited ? t("feed.edited") : "",
                               ].filter(Boolean).join(" · ")}
+                              <CopyButton text={m.text} />
                             </MessageFooter>
                           </MessageContent>
                         </Message>
@@ -725,7 +759,7 @@ export function ChatFeed({ messages, user, agents, thinking, onReply, onMention,
                         // Фона нет вовсе: ни в покое, ни под курсором. Серая плашка
                         // под каждой репликой — это снова карточка, от которой уходили,
                         // а что по реплике можно щёлкнуть, говорит курсор.
-                        className="cursor-pointer py-1.5"
+                        className="group/msg cursor-pointer py-1.5"
                       >
                         <MessageAvatar className="-mt-1 self-start bg-transparent">
                           <FaceButton name={m.from} icon={agent?.icon} color={agent?.color} onPick={onMention} />
