@@ -326,9 +326,11 @@ export function SettingsDialog({
           </div>
 
           {/* Я. Как меня зовут, как я выгляжу и на каком языке говорит оболочка. */}
-          <TabsContent value="general" className="min-w-0 flex-1 overflow-y-auto p-6">
-            <h2 className="text-xl font-semibold">{t("settings.general")}</h2>
-            <FieldGroup className="mt-6 max-w-2xl gap-5">
+          <TabsContent value="general" className="pane-fade min-w-0 flex-1 overflow-y-auto p-6">
+            <div className="pane-head">
+              <h2 className="text-xl font-semibold">{t("settings.general")}</h2>
+            </div>
+            <FieldGroup className="max-w-2xl gap-5">
               <Field>
                 <FieldLabel>{t("general.face")}</FieldLabel>
                 <div>
@@ -379,10 +381,10 @@ export function SettingsDialog({
           </TabsContent>
 
           {/* КТО. Состав команды и что каждый умеет. */}
-          <TabsContent value="people" className="min-w-0 flex-1 overflow-y-auto p-6">
+          <TabsContent value="people" className="pane-fade min-w-0 flex-1 overflow-y-auto p-6">
             {/* Действие раздела стоит у заголовка, а не под списком: список длинный,
                 и кнопка под ним прячется за прокруткой ровно тогда, когда нужна. */}
-            <div className="mb-6 flex items-center gap-3">
+            <div className="pane-head flex items-center gap-3">
               <h2 className="text-xl font-semibold">{t("settings.people")}</h2>
               {!hiring && (
                 <Button variant="outline" size="sm" onClick={() => setHiring(true)}>
@@ -485,8 +487,8 @@ export function SettingsDialog({
           </TabsContent>
 
           {/* КАК. Правила поведения поверх участников. */}
-          <TabsContent value="modes" className="min-w-0 flex-1 overflow-y-auto p-6">
-            <div className="mb-6 flex items-center gap-3">
+          <TabsContent value="modes" className="pane-fade min-w-0 flex-1 overflow-y-auto p-6">
+            <div className="pane-head flex items-center gap-3">
               <h2 className="text-xl font-semibold">{t("settings.modes")}</h2>
               <Button variant="outline" size="sm" onClick={() => void copyMode(BLANK)}>
                 <Plus /> {t("mode.new")}
@@ -509,8 +511,10 @@ export function SettingsDialog({
           </TabsContent>
 
           {/* ГДЕ. Общий контекст задачи и то, что пространство помнит. */}
-          <TabsContent value="space" className="min-w-0 flex-1 overflow-y-auto p-6">
-            <h2 className="mb-6 text-xl font-semibold">{t("settings.space")}</h2>
+          <TabsContent value="space" className="pane-fade min-w-0 flex-1 overflow-y-auto p-6">
+            <div className="pane-head">
+              <h2 className="text-xl font-semibold">{t("settings.space")}</h2>
+            </div>
             <FieldGroup className="max-w-2xl gap-5">
               <Field>
                 <FieldLabel htmlFor="laws">{t("space.laws")}</FieldLabel>
