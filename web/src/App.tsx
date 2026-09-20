@@ -18,6 +18,7 @@ import {
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu"
 import { Badge } from "@/components/ui/badge"
+import { ItemContent, ItemDescription, ItemTitle } from "@/components/ui/item"
 import { Label } from "@/components/ui/label"
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover"
 import { Switch } from "@/components/ui/switch"
@@ -545,21 +546,23 @@ export default function App() {
                       name={m.icon}
                       className={cn("mt-0.5 size-4 shrink-0", current ? "text-foreground" : "text-muted-foreground")}
                     />
-                    <div className="flex min-w-0 flex-col gap-0.5">
-                      <span className="flex items-center gap-1.5 font-medium">
+                    {/* Строка списка — компонентами системы: заголовок и подпись
+                        под ним выглядят одинаково здесь, в выборе амплуа и в выборе модели. */}
+                    <ItemContent>
+                      <ItemTitle>
                         {pick(lang, m.title, m.titleEn)}
                         {current && <Check className="size-3.5 shrink-0" />}
-                      </span>
-                      <span className="text-muted-foreground/80 text-sm leading-snug">
+                      </ItemTitle>
+                      <ItemDescription>
                         {typo(pick(lang, m.for || m.brief, m.forEn || m.briefEn))}
-                      </span>
+                      </ItemDescription>
                       {m.missing.length > 0 && (
-                        <span className="text-destructive/90 mt-0.5 flex items-center gap-1 text-sm">
+                        <ItemDescription className="text-destructive/90 mt-0.5 flex items-center gap-1">
                           <TriangleAlert className="size-3.5 shrink-0" />
                           {t("mode.missing", { names: m.missing.join(", ") })}
-                        </span>
+                        </ItemDescription>
                       )}
-                    </div>
+                    </ItemContent>
                   </DropdownMenuItem>
                 )
               })}

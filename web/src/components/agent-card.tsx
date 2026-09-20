@@ -22,6 +22,7 @@ import {
 import { Field, FieldLabel } from "@/components/ui/field"
 import { Label } from "@/components/ui/label"
 import { Input } from "@/components/ui/input"
+import { ItemContent, ItemDescription, ItemTitle } from "@/components/ui/item"
 import {
   Select,
   SelectContent,
@@ -203,18 +204,18 @@ export function AgentCard({ name, agent, settings, autoOpen, onChange, onRename,
               <SelectContent>
                 {custom && (
                   <SelectItem value="—">
-                    <span className="grid gap-0.5">
-                      {t("card.archetypeCustom")}
-                      <span className="text-muted-foreground text-xs">{t("card.archetypeCustomNote")}</span>
-                    </span>
+                    <ItemContent>
+                      <ItemTitle>{t("card.archetypeCustom")}</ItemTitle>
+                      <ItemDescription>{t("card.archetypeCustomNote")}</ItemDescription>
+                    </ItemContent>
                   </SelectItem>
                 )}
                 {settings.archetypes.map((a) => (
                   <SelectItem key={a.name} value={a.name}>
-                    <span className="grid gap-0.5">
-                      {pick(lang, a.title, a.titleEn)}
-                      <span className="text-muted-foreground text-xs">{pick(lang, a.brief, a.briefEn)}</span>
-                    </span>
+                    <ItemContent>
+                      <ItemTitle>{pick(lang, a.title, a.titleEn)}</ItemTitle>
+                      <ItemDescription>{pick(lang, a.brief, a.briefEn)}</ItemDescription>
+                    </ItemContent>
                   </SelectItem>
                 ))}
               </SelectContent>
@@ -260,10 +261,10 @@ export function AgentCard({ name, agent, settings, autoOpen, onChange, onRename,
                       <SelectLabel className="capitalize">{e}</SelectLabel>
                       {(MODELS[e] ?? []).map((m) => (
                         <SelectItem key={`${e}|${m.value}`} value={`${e}|${m.value}`}>
-                          <span className="grid gap-0.5">
-                            {m.label || t("model.default")}
-                            {m.hint && <span className="text-muted-foreground text-xs">{t(m.hint)}</span>}
-                          </span>
+                          <ItemContent>
+                            <ItemTitle>{m.label || t("model.default")}</ItemTitle>
+                            {m.hint && <ItemDescription>{t(m.hint)}</ItemDescription>}
+                          </ItemContent>
                         </SelectItem>
                       ))}
                     </SelectGroup>
