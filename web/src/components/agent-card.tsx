@@ -126,7 +126,7 @@ export function AgentCard({ name, agent, settings, autoOpen, onChange, onRename,
               <FieldLabel>{t("card.role")}</FieldLabel>
               <Select
                 value={agent.roleName}
-                onValueChange={(v) => onChange({ roleName: v, promptCustom: null })}
+                onValueChange={(v) => onChange({ roleName: v })}
               >
                 <SelectTrigger>
                   <SelectValue />
@@ -142,30 +142,9 @@ export function AgentCard({ name, agent, settings, autoOpen, onChange, onRename,
             </Field>
           </div>
 
-          <Field>
-            <div className="flex items-baseline justify-between gap-2">
-              <FieldLabel htmlFor={`prompt-${name}`}>{t("card.prompt")}</FieldLabel>
-              {agent.promptCustom && (
-                <Button
-                  variant="ghost"
-                  size="xs"
-                  className="text-muted-foreground"
-                  onClick={() => onChange({ promptCustom: null })}
-                >
-                  {t("card.promptReset")}
-                </Button>
-              )}
-            </div>
-            <Textarea
-              id={`prompt-${name}`}
-              rows={8}
-              value={agent.promptCustom ?? agent.prompt}
-              placeholder={t("card.promptHint")}
-              className="font-mono text-xs leading-relaxed"
-              onChange={(e) => onChange({ promptCustom: e.target.value })}
-            />
-          </Field>
-
+          {/* Текста роли в карточке нет: роль — файл в roles/, там её и правят.
+              Поле, заменявшее её целиком, стирало характер одной строкой и было
+              третьим способом сказать то же, что закон пространства или новая роль. */}
           <Field>
             <FieldLabel htmlFor={`manner-${name}`}>{t("card.manner")}</FieldLabel>
             <Textarea
@@ -175,7 +154,6 @@ export function AgentCard({ name, agent, settings, autoOpen, onChange, onRename,
               placeholder={t("card.mannerHint")}
               onChange={(e) => onChange({ manner: e.target.value })}
             />
-            
           </Field>
 
           <div className="grid gap-3 border-t pt-4 sm:grid-cols-3">

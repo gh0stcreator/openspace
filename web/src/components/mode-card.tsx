@@ -104,7 +104,6 @@ function Who({
 type Props = {
   mode: FullMode
   participants: string[]
-  roles: { name: string; title: string; titleEn: string }[]
   onChange: (next: FullMode) => void
   onCopy: () => void
   onRemove: () => void
@@ -116,7 +115,6 @@ type Props = {
 export function ModeCard({
   mode,
   participants,
-  roles,
   onChange,
   onCopy,
   onRemove,
@@ -210,7 +208,6 @@ export function ModeCard({
                 placeholder={t("mode.slugHint")}
                 onChange={(e) => patch({ slug: e.target.value.toLowerCase().replace(/[^a-z0-9_]/g, "") })}
               />
-              <FieldDescription>{t("mode.slugNote")}</FieldDescription>
             </Field>
           </div>
 
@@ -233,33 +230,6 @@ export function ModeCard({
               />
             </Field>
           </div>
-
-          <Field>
-            <FieldLabel>{t("mode.needs")}</FieldLabel>
-            <div className="flex flex-wrap gap-2">
-              {roles.map((r) => {
-                const on = mode.needs.some((n) => n.toLowerCase() === r.name.toLowerCase())
-                return (
-                  <Label
-                    key={r.name}
-                    className="flex items-center gap-2 rounded-full border px-3 py-1.5 text-sm font-normal"
-                  >
-                    <Checkbox
-                      checked={on}
-                      onCheckedChange={(v) =>
-                        patch({
-                          needs: v
-                            ? [...mode.needs, r.name]
-                            : mode.needs.filter((n) => n.toLowerCase() !== r.name.toLowerCase()),
-                        })
-                      }
-                    />
-                    {pick(lang, r.title, r.titleEn)}
-                  </Label>
-                )
-              })}
-            </div>
-          </Field>
 
           <div className="grid gap-3">
             <FieldLabel>{t("mode.steps")}</FieldLabel>
