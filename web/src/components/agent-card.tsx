@@ -288,7 +288,7 @@ export function AgentCard({ name, agent, settings, autoOpen, onChange, onRename,
             />
           </Field>
 
-          <div className="border-t pt-4">
+          <div>
             <Field>
               <FieldLabel>{t("card.skills")}</FieldLabel>
               {/* Умения выдают поштучно: выдача и есть разрешение. Прежний «уровень
