@@ -224,7 +224,8 @@ export function Composer({
   // Отвечая на реплику, поле не должно выглядеть так же, как в покое: подсказка
   // называет адресата, иначе единственный признак ответа — цитата, и её проматывают.
   const hint = replyTo
-    ? t("composer.replyTo", { name: replyTo.from })
+    // Имя того, кого видно в ленте: под персоной это она, а не ник участника.
+    ? t("composer.replyTo", { name: replyTo.side?.persona ? replyTo.side.label : replyTo.from })
     : t(`composer.hint.${mode ?? "open"}` as never) || t("composer.placeholder")
 
   return (
@@ -260,7 +261,10 @@ export function Composer({
             реплике, и это состояние, которое видно, а не помнится. Кольцо, а не рамка:
             рамка у группы своя, и два правила цвета спорили бы между собой. */}
         <InputGroup
-            style={toneVars(replyTo ? getAgent(agents, replyTo.from)?.color : null)}
+            // Цвет того, кому отвечают: под персоной это её цвет, а не цвет участника,
+            // который под ней вышел. Иначе кольцо зелёное (Креатор), а имя в цитате
+            // голубое (Крош) — два правила красят одно и то же разным.
+            style={toneVars(replyTo ? (replyTo.side?.color || getAgent(agents, replyTo.from)?.color) : null)}
             className={cn(
               // Радиус больше половины высоты: пока поле в одну строку, это пилюля,
               // а выросло — остаётся крупное скругление, а не капсула на пол-экрана.
