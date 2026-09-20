@@ -472,3 +472,17 @@ test('человек зовёт по имени без собаки — и ег�
   await sleep(200);
   assert.ok(!calls.some((c) => c.who === 'первый'), 'упоминание в прозе сработало как тег');
 });
+
+test('смена умений пересобирает участника: старая сессия помнит старые правила', () => {
+  const { orch, built, config } = setup(['первый']);
+  const before = orch.agents.get('первый').impl;
+
+  // Цвет и характер сессию не трогают.
+  orch.reconfigure({ agents: { первый: { ...config.agents['первый'], color: 'red' } } });
+  assert.equal(orch.agents.get('первый').impl, before, 'цвет стёр память участника');
+
+  // А выданный поиск — трогает: иначе он продолжит говорить «мне не разрешено».
+  orch.reconfigure({ agents: { первый: { ...config.agents['первый'], skills: ['файлы', 'веб'] } } });
+  assert.notEqual(orch.agents.get('первый').impl, before, 'умения сменились, а сессия осталась');
+  assert.equal(built.filter((n) => n === 'первый').length, 2);
+});

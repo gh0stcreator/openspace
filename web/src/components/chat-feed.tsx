@@ -312,6 +312,10 @@ function Rich({
     const re = new RegExp(
       "```(\\w*)\\n?([\\s\\S]*?)```" +
         "|`([^`\\n]+)`" +
+        // Ссылки называем именованными группами: номера здесь плывут от того,
+        // есть ли в комнате участники, а имя не плывёт.
+        "|\\[(?<lt>[^\\]\\n]+)\\]\\((?<lu>[^)\\s]+)\\)" +
+        "|(?<url>https?://[^\\s<>()\\[\\]]+)" +
         "|\\*\\*([^*\\n]+)\\*\\*" +
         "|(^|[\\s(,:;«\"'\\[])@([a-zA-Z0-9_\\-Ѐ-ӿ]+)" +
         (named ? `|(?<![\\p{L}\\p{N}])(${named})(а|у|ом|е|ы|ов|ам|ами|ах)?(?![\\p{L}\\p{N}])` : ""),
@@ -323,7 +327,22 @@ function Rich({
 
     while ((m = re.exec(text))) {
       if (m.index > last) out.push(typo(text.slice(last, m.index)))
-      if (m[2] !== undefined) {
+      const link = m.groups?.lu ?? m.groups?.url
+      if (link) {
+        // Ссылка открывается в новой вкладке: разговор не должен исчезать под источником.
+        out.push(
+          <a
+            key={i++}
+            href={link}
+            target="_blank"
+            rel="noopener noreferrer"
+            className="underline decoration-current/40 underline-offset-2 hover:decoration-current"
+            onClick={(e) => e.stopPropagation()}
+          >
+            {m.groups?.lt ?? link.replace(/^https?:\/\//, "")}
+          </a>
+        )
+      } else if (m[2] !== undefined) {
         out.push(
           <pre key={i++} className="bg-code-surface text-code my-2 overflow-x-auto rounded-md p-3 text-[0.85em]">
             <code>{m[2].replace(/\n$/, "")}</code>
