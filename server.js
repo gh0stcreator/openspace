@@ -165,9 +165,12 @@ const server = http.createServer(async (req, res) => {
     if (url.pathname === '/api/config') {
       // Архивариус — теневой найм: сворачивает ленту в память по вызову оркестратора,
       // а не как собеседник. В шапке, автодополнении @ и списке дежурных его не показываем.
+      // Участник, привязанный к режиму, показывается только пока этот режим идёт: второй
+      // дизайнер по имени Бараш в обычном составе — это не запасной, это спойлер.
       const agents = Object.fromEntries(
         Object.entries(orch.roster)
-          .filter(([, a]) => (a.role ?? '').toLowerCase() !== 'архивариус')
+          .filter(([n, a]) => (a.role ?? '').toLowerCase() !== 'архивариус'
+            && orch.own(n, orch.state(room).mode))
           .map(([name, a]) => [name, describe(name, a)]),
       );
       return json(res, 200, {
@@ -233,8 +236,12 @@ const server = http.createServer(async (req, res) => {
         catchUp: config.catchUp,
         laws: config.laws ?? '',
         freeTalk: config.freeTalk !== false,
+        // Состав в настройках — тот, что работает всегда. Участники режима правятся
+        // вместе с ним: их имена, цвета и голоса объявлены в его файле, а не в карточке.
         agents: Object.fromEntries(
-          Object.entries(orch.roster).map(([name, a]) => [name, describe(name, a)]),
+          Object.entries(orch.roster)
+            .filter(([n]) => orch.own(n, null))
+            .map(([name, a]) => [name, describe(name, a)]),
         ),
         roles: listRoles().map((r) => ({
           name: r.name,
@@ -325,8 +332,12 @@ const server = http.createServer(async (req, res) => {
 
       return json(res, 200, {
         ok: true,
+        // Состав в настройках — тот, что работает всегда. Участники режима правятся
+        // вместе с ним: их имена, цвета и голоса объявлены в его файле, а не в карточке.
         agents: Object.fromEntries(
-          Object.entries(orch.roster).map(([name, a]) => [name, describe(name, a)]),
+          Object.entries(orch.roster)
+            .filter(([n]) => orch.own(n, null))
+            .map(([name, a]) => [name, describe(name, a)]),
         ),
         user: applied.user,
         userColor: applied.userColor ?? '',
