@@ -14,8 +14,6 @@
 
 [Concept](docs/concept.md) · [Architecture](docs/architecture.md) · [Evidence](docs/dynamics.md) · [Changelog](CHANGELOG.md) · [Backlog](docs/todo.md) · [Русский](README.md)
 
-`node >=20` · engines: `claude`, `codex` · `npm test` — 35 tests
-
 Not a chat with several models. A space for one task: you invite the minds it needs, you decide
 how exactly they should work together, and the conversation leaves behind more than a transcript.
 
@@ -36,7 +34,8 @@ cd web && npm install && cd ..
 npm run dev            # localhost:4477
 ```
 
-You need `claude` and `codex` installed and logged in — the product asks for no keys of its own.
+You need `node` 20 or newer and `claude` and `codex` installed and logged in — the product asks
+for no keys of its own.
 
 ---
 
