@@ -56,7 +56,9 @@ export default function App() {
    */
   const take = React.useCallback(
     (prev: Msg[], m: Msg) =>
-      m.kind === "edit"
+      m.kind === "skip"
+        ? prev
+        : m.kind === "edit"
         ? prev.map((x) => (x.seq === m.target ? { ...x, text: m.text, mentions: m.mentions, edited: m.ts } : x))
         : m.kind === "memory-resolved"
           ? prev.map((x) => (x.seq === m.target ? { ...x, status: m.status } : x))
@@ -65,7 +67,9 @@ export default function App() {
             : [...prev, m],
     []
   )
-  const shown = (list: Msg[]) => list.filter((m) => m.kind !== "edit" && m.kind !== "memory-resolved")
+  // Пропущенный ход — запись для счёта, а не событие разговора: на экране его нет.
+  const shown = (list: Msg[]) =>
+    list.filter((m) => m.kind !== "edit" && m.kind !== "memory-resolved" && m.kind !== "skip")
   const [insert, setInsert] = React.useState<{ name: string; nonce: number }>()
 
   /** Выключенные в этой комнате: состав общий, присутствие — своё у каждой. */

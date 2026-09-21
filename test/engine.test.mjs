@@ -542,3 +542,18 @@ test('строка «файл: путь» превращается во влож
   // Наружу из рабочей папки не выпускаем: реплика участника — это команда.
   assert.equal(orch.attach('../../etc/hosts'), null, 'выпустил файл за пределы папки');
 });
+
+test('[skip] оставляет след для счёта, но в разговор не попадает', async () => {
+  const { orch, calls } = setup(['первый', 'второй'], { reply: '[skip]' });
+  orch.post(ROOM, { from: 'Roman', text: '@первый раз' });
+  await sleep(100);
+  orch.post(ROOM, { from: 'Roman', text: '@второй два' });
+  await sleep(100);
+
+  const feed = orch.store.load(ROOM);
+  const skips = feed.filter((m) => m.kind === 'skip');
+  assert.deepEqual(skips.map((m) => m.from), ['первый', 'второй'], 'пропущенный ход не записан');
+  assert.ok(!feed.some((m) => m.kind === 'message' && m.from !== 'Roman'), 'пропуск попал в ленту репликой');
+  const second = calls.find((c) => c.who === 'второй');
+  assert.ok(!second.saw.includes(skips[0].seq), 'чужой пропуск приехал собеседнику в дельте');
+});
