@@ -443,8 +443,19 @@ const server = http.createServer(async (req, res) => {
         icon: now.icon,
         mentions: [],
       });
-      // Режим приводит свой состав, поэтому присутствие возвращаем вместе с ним.
-      return json(res, 200, { mode, off: orch.state(room).off });
+      // Режим приводит свой состав, поэтому вместе с ним возвращаем и присутствие,
+      // и самих участников: у режима с персонами состав другой, и узнать об этом
+      // при следующей перезагрузке страницы — значит показывать чужих до неё.
+      return json(res, 200, {
+        mode,
+        off: orch.state(room).off,
+        agents: Object.fromEntries(
+          Object.entries(orch.roster)
+            .filter(([n, a]) => (a.role ?? '').toLowerCase() !== 'архивариус'
+              && orch.own(n, orch.state(room).mode))
+            .map(([name, a]) => [name, describe(name, a)]),
+        ),
+      });
     }
 
     if (url.pathname === '/api/mode' && req.method === 'GET') {

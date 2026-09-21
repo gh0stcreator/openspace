@@ -241,7 +241,7 @@ export const api = {
       method: "POST",
       headers: { "content-type": "application/json" },
       body: JSON.stringify({ mode }),
-    }).then(json<{ mode: ModeState; off: string[] }>),
+    }).then(json<{ mode: RoomState["modeState"]; off: string[]; agents: Record<string, Agent> }>),
 
   modes: () => fetch("/api/modes").then(json<{ modes: FullMode[] }>),
 

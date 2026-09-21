@@ -85,7 +85,9 @@ export default function App() {
     try {
       const r = await api.setMode(room, m.builtin ? null : m.name)
       setState((st) => ({ ...st, modeState: r.mode }))
-      setCfg((c) => (c ? { ...c, off: r.off } : c))
+      // Состав приходит вместе с режимом: участник, который живёт только в нём,
+      // до этого оставался в списках до следующей перезагрузки страницы.
+      setCfg((c) => (c ? { ...c, off: r.off, agents: r.agents } : c))
     } catch (e) {
       // Сервер отказал — режим остался прежним, и сказать об этом должен экран:
       // молча проглоченный отказ выглядит как «нажал, и ничего не случилось».
