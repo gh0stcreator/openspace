@@ -659,6 +659,10 @@ export default function App() {
           onCleared={() => {
             setMessages([])
             setState({ autoTurns: 0, paused: false })
+            // Знак собран из меток комнаты, а они приходят раз, при открытии страницы.
+            // Сервер их при очистке сбрасывает — клиенту об этом никто не говорит,
+            // и в пустой комнате в шапке висело описание разговора, которого уже нет.
+            setCfg((c) => (c ? { ...c, topic: "", doing: "" } : c))
           }}
         />
         <Toaster position="bottom-center" />
