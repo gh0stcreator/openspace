@@ -160,14 +160,14 @@ export function SettingsDialog({
   React.useEffect(() => {
     if (!open) return
     setError("")
-    api.settings().then((v) => {
+    api.settings(room).then((v) => {
       setS(v)
       setMemory(v.memory ?? 0)
       // Роль по умолчанию — первая из существующих: пустой select выглядит поломанным.
       setHireRole((r) => (v.roles.some((x) => x.name === r) ? r : (v.roles[0]?.name ?? "")))
     })
     api.modes().then((r) => setModes(r.modes))
-  }, [open])
+  }, [open, room])
 
   // Правки текстовых полей не должны бить в сервер на каждую букву.
   const later = React.useRef<Record<string, ReturnType<typeof setTimeout>>>({})

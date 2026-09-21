@@ -120,9 +120,12 @@ export default function App() {
     }
   }
   React.useEffect(() => {
-    api.config().then((c) => {
+    // Комнату из адреса знаем до запроса — с ней и спрашиваем: иначе состав и знак
+    // приходят от комнаты по умолчанию, а лента — от той, что в адресе.
+    const asked = new URLSearchParams(location.search).get("room") || undefined
+    api.config(asked).then((c) => {
       setCfg(c)
-      const target = new URLSearchParams(location.search).get("room") || c.defaultRoom || "general"
+      const target = asked || c.defaultRoom || "general"
       setRoom(target)
       document.title = `open(${target})`
     })

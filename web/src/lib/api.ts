@@ -188,8 +188,13 @@ const json = async <T,>(r: Response): Promise<T> => {
 }
 
 export const api = {
-  config: () => fetch("/api/config").then(json<Config>),
-  settings: () => fetch("/api/settings").then(json<Settings>),
+  // Оба ответа зависят от комнаты: состав, знак и число записей памяти у каждой свои.
+  // Без `room` сервер отвечает за комнату по умолчанию — и вторая комната показывала
+  // чужой состав и чужой счётчик памяти рядом с кнопкой «Стереть», которая бьёт по своей.
+  config: (room?: string) =>
+    fetch(`/api/config${room ? `?room=${encodeURIComponent(room)}` : ""}`).then(json<Config>),
+  settings: (room: string) =>
+    fetch(`/api/settings?room=${encodeURIComponent(room)}`).then(json<Settings>),
 
   history: (room: string, since = 0) =>
     fetch(`/api/messages?room=${encodeURIComponent(room)}&since=${since}`).then(
