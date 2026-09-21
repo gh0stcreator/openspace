@@ -125,6 +125,13 @@ const RU = {
   "space.resetBody":
     "У каждого своя память о разговоре, и она копится. Сброс её стирает: дальше они читают только хвост ленты. Сообщения в чате остаются",
   "space.reset": "Сбросить",
+  "space.memoryTitle": "Стереть память пространства",
+  "space.memoryBody": "Сейчас в ней {n}. Это решения, находки и уроки, которые вы подтверждали кликом: они едут в промпт каждому участнику перед каждым ходом и очисткой чата не стираются. Копия останется в rooms/ с отметкой времени",
+  "space.memoryEmpty": "Пока пусто — стирать нечего",
+  "space.memoryOne": "запись",
+  "space.memoryFew": "записи",
+  "space.memoryMany": "записей",
+  "space.memoryClear": "Стереть",
   "space.clearTitle": "Очистить чат",
   "space.clearBody":
     "Сообщения уйдут из ленты, участники забудут разговор. Файл истории сохранится в rooms/ с отметкой времени",
@@ -315,6 +322,13 @@ const EN: Record<keyof typeof RU, string> = {
   "space.resetBody":
     "Each of them keeps their own memory of the conversation, and it piles up. A reset wipes it: after that they read only the tail of the feed. The messages stay",
   "space.reset": "Reset",
+  "space.memoryTitle": "Erase the space memory",
+  "space.memoryBody": "It holds {n} right now. These are the decisions, findings and lessons you confirmed with a click: they ride in every participant's prompt before every turn, and clearing the feed does not touch them. A copy stays in rooms/ with a timestamp",
+  "space.memoryEmpty": "Empty for now — nothing to erase",
+  "space.memoryOne": "record",
+  "space.memoryFew": "records",
+  "space.memoryMany": "records",
+  "space.memoryClear": "Erase",
   "space.clearTitle": "Clear the feed",
   "space.clearBody":
     "Messages leave the feed and participants forget the conversation. The history file stays in rooms/ with a timestamp",

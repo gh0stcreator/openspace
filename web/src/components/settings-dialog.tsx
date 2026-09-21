@@ -42,7 +42,7 @@ import {
   SelectValue,
 } from "@/components/ui/select"
 import { Switch } from "@/components/ui/switch"
-import { useLang, pick } from "@/lib/i18n"
+import { plural, useLang, pick } from "@/lib/i18n"
 import { api, type Agent, type FullMode, type Settings } from "@/lib/api"
 
 /** Ссылки автора: репозиторий и канал. Пустая строка — ссылка не показывается. */
@@ -153,12 +153,16 @@ export function SettingsDialog({
   const [hireRole, setHireRole] = React.useState("")
   const [hireEngine, setHireEngine] = React.useState("claude")
   const [error, setError] = React.useState("")
+  // Сколько записей в памяти пространства: число приходит с настройками, а после
+  // стирания обнуляется здесь же — перечитывать всё ради одной цифры незачем.
+  const [memory, setMemory] = React.useState(0)
 
   React.useEffect(() => {
     if (!open) return
     setError("")
     api.settings().then((v) => {
       setS(v)
+      setMemory(v.memory ?? 0)
       // Роль по умолчанию — первая из существующих: пустой select выглядит поломанным.
       setHireRole((r) => (v.roles.some((x) => x.name === r) ? r : (v.roles[0]?.name ?? "")))
     })
@@ -578,6 +582,61 @@ export function SettingsDialog({
 
               <FieldSeparator />
 
+              {/* Память пространства в ленте не видна, а едет в промпт каждому перед каждым
+                  ходом и очисткой чата не стирается. Без этого места человек про неё
+                  не знает и не может её стереть. */}
+              <Field orientation="horizontal">
+                <FieldContent>
+                  <FieldLabel>{t("space.memoryTitle")}</FieldLabel>
+                  <FieldDescription>
+                    {memory > 0
+                      ? t("space.memoryBody", {
+                        n: `${memory} ${plural(lang, memory, [
+                          t("space.memoryOne"),
+                          t("space.memoryFew"),
+                          t("space.memoryMany"),
+                        ])}`,
+                      })
+                      : t("space.memoryEmpty")}
+                  </FieldDescription>
+                </FieldContent>
+                <AlertDialog>
+                  <AlertDialogTrigger asChild>
+                    <Button variant="destructive" size="sm" disabled={memory === 0}>
+                      <Trash2 />
+                      {t("space.memoryClear")}
+                    </Button>
+                  </AlertDialogTrigger>
+                  <AlertDialogContent>
+                    <AlertDialogHeader>
+                      <AlertDialogTitle>{t("space.memoryTitle")}</AlertDialogTitle>
+                      <AlertDialogDescription>
+                        {t("space.memoryBody", {
+                          n: `${memory} ${plural(lang, memory, [
+                            t("space.memoryOne"),
+                            t("space.memoryFew"),
+                            t("space.memoryMany"),
+                          ])}`,
+                        })}
+                      </AlertDialogDescription>
+                    </AlertDialogHeader>
+                    <AlertDialogFooter>
+                      <AlertDialogCancel>{t("space.cancel")}</AlertDialogCancel>
+                      <AlertDialogAction
+                        onClick={async () => {
+                          await api.clearMemory(room)
+                          setMemory(0)
+                        }}
+                      >
+                        {t("space.memoryClear")}
+                      </AlertDialogAction>
+                    </AlertDialogFooter>
+                  </AlertDialogContent>
+                </AlertDialog>
+              </Field>
+
+              <FieldSeparator />
+
               <Field orientation="horizontal">
                 <FieldContent>
                   <FieldLabel>{t("space.resetTitle")}</FieldLabel>
@@ -600,7 +659,6 @@ export function SettingsDialog({
                       <AlertDialogAction
                         onClick={async () => {
                           await api.reset(room)
-                          onOpenChange(false)
                         }}
                       >
                         {t("space.reset")}
@@ -633,7 +691,6 @@ export function SettingsDialog({
                         onClick={async () => {
                           await api.clear(room)
                           onCleared()
-                          onOpenChange(false)
                         }}
                       >
                         {t("space.clear")}

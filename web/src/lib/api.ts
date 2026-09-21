@@ -96,6 +96,8 @@ export type Config = {
 export type Settings = Omit<Config, "defaultResponders" | "off" | "rooms"> & {
   catchUp: number
   freeTalk: boolean
+  /** Сколько записей в памяти пространства. В ленте её не видно, а в промпт она едет всем. */
+  memory: number
   laws: string
   roles: {
     name: string
@@ -259,6 +261,9 @@ export const api = {
 
   reset: (room: string) =>
     fetch(`/api/reset?room=${encodeURIComponent(room)}`, { method: "POST" }).then(json),
+
+  clearMemory: (room: string) =>
+    fetch(`/api/memory/clear?room=${encodeURIComponent(room)}`, { method: "POST" }).then(json<{ ok: true }>),
 
   clear: (room: string) =>
     fetch(`/api/clear?room=${encodeURIComponent(room)}`, { method: "POST" }).then(json),

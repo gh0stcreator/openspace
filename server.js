@@ -236,6 +236,9 @@ const server = http.createServer(async (req, res) => {
         catchUp: config.catchUp,
         laws: config.laws ?? '',
         freeTalk: config.freeTalk !== false,
+        // Сколько записей в памяти пространства: без этого числа человек не знает,
+        // что она вообще есть, — в ленте её не видно, а в промпт она едет всем.
+        memory: orch.memory?.active(room).length ?? 0,
         // Состав в настройках — тот, что работает всегда. Участники режима правятся
         // вместе с ним: их имена, цвета и голоса объявлены в его файле, а не в карточке.
         agents: Object.fromEntries(
@@ -475,6 +478,11 @@ const server = http.createServer(async (req, res) => {
       const body = await readBody(req);
       orch.pause(room, body.on !== false);
       return json(res, 200, { state: orch.view(room) });
+    }
+
+    if (url.pathname === '/api/memory/clear' && req.method === 'POST') {
+      orch.memory?.clear(room);
+      return json(res, 200, { ok: true, memory: 0 });
     }
 
     if (url.pathname === '/api/clear' && req.method === 'POST') {

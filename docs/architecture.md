@@ -209,6 +209,7 @@ prompt: что участники делают на этом шаге
 | `POST` | `/api/presence?room=` | `{ name, on }` — кто в этой комнате |
 | `POST` | `/api/memory/confirm?room=` | `{ seq }` — принять предложение архивариуса |
 | `POST` | `/api/memory/reject?room=` | `{ seq }` — отклонить |
+| `POST` | `/api/memory/clear?room=` | Стереть память комнаты; копия ложится рядом с отметкой времени |
 
 ## Чего тут нет
 
