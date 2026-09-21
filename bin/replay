@@ -1,0 +1,118 @@
+#!/usr/bin/env node
+/**
+ * Переиграть момент из ленты: тот же участник, та же лента до той же реплики, нынешний промпт.
+ * Промпт участника правят по случаям — «вчера он ответил не то». Без повтора случая правка
+ * остаётся верой: то ли помогла, то ли момент больше не повторился сам.
+ *
+ *   ./bin/replay rooms/общая.2026-09-21T11-17-36-862Z.jsonl 91 Инженер
+ *   ./bin/replay rooms/лента.jsonl 572 Дизайнер --step прожарка:Удар
+ *   ./bin/replay rooms/лента.jsonl 91 Инженер --dry        # показать промпт, движок не звать
+ *   ./bin/replay --moments rooms/moments.json               # список моментов подряд
+ *
+ * Участник получает то же, что получил бы после начала новой сессии: хвост ленты до указанной
+ * реплики и память пространства. Идёт мимо сервера и мимо ленты. Умений не выдаём вовсе:
+ * переигранный ход читает файлы, но не правит — иначе проверка промпта переписала бы статью.
+ * Файлы при этом сегодняшние, а не те, что были в момент разговора.
+ */
+import fs from 'node:fs';
+import os from 'node:os';
+import path from 'node:path';
+import { fileURLToPath } from 'node:url';
+import { buildAgent } from '../lib/agents.js';
+import { loadConfig } from '../lib/config.js';
+import { loadMode } from '../lib/modes.js';
+import { Memory } from '../lib/memory.js';
+import { Orchestrator } from '../lib/orchestrator.js';
+import { systemPrompt, turnPrompt } from '../lib/prompt.js';
+import { Store } from '../lib/store.js';
+
+const root = path.join(path.dirname(fileURLToPath(import.meta.url)), '..');
+const args = process.argv.slice(2);
+
+const opt = (name, def = null) => {
+  const i = args.indexOf(`--${name}`);
+  if (i === -1) return def;
+  const v = args[i + 1];
+  args.splice(i, 2);
+  return v;
+};
+const flag = (name) => {
+  const i = args.indexOf(`--${name}`);
+  if (i === -1) return false;
+  args.splice(i, 1);
+  return true;
+};
+
+const dry = flag('dry');
+const model = opt('model', 'sonnet');
+const memoryRoom = opt('memory', null);
+const momentsFile = opt('moments');
+const stepArg = opt('step');
+
+const config = loadConfig(root);
+
+const moments = momentsFile
+  ? JSON.parse(fs.readFileSync(path.resolve(momentsFile), 'utf8'))
+  : [{ file: args[0], seq: Number(args[1]), who: args[2], step: stepArg }];
+
+if (!moments[0]?.file || !moments[0]?.seq || !moments[0]?.who) {
+  console.error('нужны лента, номер реплики и участник: ./bin/replay rooms/лента.jsonl 91 Инженер');
+  process.exit(1);
+}
+
+// Слова, которыми участник закрывает живую мысль. Это не оценка ответа — только отметка,
+// на что смотреть первым: «зазор, который уже в тексте» посреди живой мысли она тоже ловит.
+// Читает и решает всё равно человек.
+const DEAF = /уже (есть|в тексте|учтен|покрыт|стоит|лежит|закрыт|сказан)|то же самое другими словами|не новый угол/i;
+
+async function replay({ file, seq, who, step: stepName, note }) {
+  const cfg = config.agents[who];
+  if (!cfg) throw new Error(`в составе нет @${who}`);
+
+  // Лента до нужной реплики — во временной папке, как комната «replay»: хвост собирает
+  // тот же код, что и в живом ходе, а не его копия здесь.
+  const dir = fs.mkdtempSync(path.join(os.tmpdir(), 'openspace-replay-'));
+  const lines = fs.readFileSync(path.resolve(file), 'utf8').split('\n').filter(Boolean)
+    .filter((l) => { try { return JSON.parse(l).seq <= seq; } catch { return false; } });
+  fs.writeFileSync(path.join(dir, 'replay.jsonl'), lines.join('\n') + '\n');
+  const store = new Store(dir);
+  const orch = new Orchestrator({ store, config, log: { error() {} }, build: () => ({ reset() {} }) });
+  const delta = orch.tailFor('replay', seq);
+
+  let step;
+  if (stepName) {
+    const [modeName, name] = stepName.split(':');
+    step = loadMode(modeName).steps.find((s) => s.name.toLowerCase() === name.toLowerCase());
+    if (!step) throw new Error(`в режиме «${modeName}» нет шага «${name}»`);
+  }
+
+  const memory = memoryRoom ? new Memory(path.join(root, 'rooms')).brief(memoryRoom) : '';
+  const ctx = {
+    me: who, roster: config.agents, user: config.user, workdir: config.workdir,
+    laws: config.laws, memory, anew: true, persona: null,
+  };
+
+  const last = delta.at(-1);
+  console.log(`\n${'═'.repeat(72)}\n@${who} · реплика ${seq} · ${path.basename(file)}${stepName ? ` · шаг ${stepName}` : ''}`);
+  if (note) console.log(`Тогда: ${note}`);
+  console.log(`Последнее в хвосте — @${last?.from}: ${String(last?.text ?? '').replace(/\s+/g, ' ').slice(0, 160)}`);
+  console.log(`Хвост: ${delta.length} реплик, ${delta.reduce((n, m) => n + String(m.text ?? '').length, 0)} знаков\n${'─'.repeat(72)}`);
+
+  if (dry) {
+    console.log(systemPrompt({ ...ctx, room: 'replay' }));
+    console.log('─'.repeat(72));
+    console.log(turnPrompt({ delta, history: store.load('replay'), step, ...ctx }));
+    return;
+  }
+
+  const impl = buildAgent(who, { ...cfg, skills: [], model });
+  const started = Date.now();
+  const res = await impl.speak({ room: 'replay', delta, history: store.load('replay'), step, ctx });
+  const secs = Math.round((Date.now() - started) / 1000);
+  const tok = res.meta?.usage?.input_tokens ? `${Math.round(res.meta.usage.input_tokens / 1000)}k вх.` : '';
+  console.log(res.error ? `ошибка: ${res.error}` : res.text);
+  console.log(`${'─'.repeat(72)}\n${secs}с · ${tok} · ${model}${!res.error && DEAF.test(res.text) ? ' · ⚑ в ответе есть «уже есть» — прочитать' : ''}`);
+  fs.rmSync(dir, { recursive: true, force: true });
+}
+
+for (const m of moments) await replay(m);
