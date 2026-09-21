@@ -441,6 +441,8 @@ type Props = {
   user: string
   agents: Record<string, Agent>
   thinking: string[]
+  /** Шаг режима ждёт человека: строка о том, что ход за ним. Пусто — не ждёт. */
+  waiting?: string
   /** Когда начался ход каждого: приходит из состояния комнаты. */
   since?: Record<string, number>
   onReply: (m: Msg) => void
@@ -838,7 +840,7 @@ function FollowMine({ seq }: { seq?: number }) {
   return null
 }
 
-export function ChatFeed({ messages, user, agents, personas, thinking, since, onReply, onMention, onEdit, onConfirmMemory, onRejectMemory }: Props) {
+export function ChatFeed({ messages, user, agents, personas, thinking, waiting, since, onReply, onMention, onEdit, onConfirmMemory, onRejectMemory }: Props) {
   const elapsed = useElapsed(thinking, since)
   const { t } = useLang()
   const known = React.useMemo(() => [...Object.keys(agents), user], [agents, user])
@@ -1024,6 +1026,12 @@ export function ChatFeed({ messages, user, agents, personas, thinking, since, on
                   {spent(Math.max(...thinking.map(elapsed)))}
                 </span>
               </div>
+            )}
+            {/* Шаг режима стоит и ждёт человека. Той же строкой в потоке, что и «думает»:
+                это состояние разговора, а не панель над ним. Без неё вставший режим
+                выглядит как замолчавшая команда, и человек ждёт ответа, которого не будет. */}
+            {thinking.length === 0 && waiting && (
+              <div className="text-muted-foreground px-1 py-1 text-sm">{waiting}</div>
             )}
           </MessageScrollerContent>
         </MessageScrollerViewport>

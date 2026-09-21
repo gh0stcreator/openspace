@@ -328,8 +328,24 @@ export default function App() {
     return { name: p?.name ?? n, icon: p?.icon || a?.icon, color: p?.color || a?.color }
   }
 
-  const doing = (n: string): "working" | "waiting" | "done" | "idle" => {
+  // Режим ждёт слова человека: темы до первого шага или реплики, закрывающей шаг.
+  // Пока кто-то ещё отвечает на этом шаге, ход не у человека — строку не показываем.
+  const yourStep =
+    ms?.waitingUser && !state.busy && ms.pending.length === 0
+      ? ms.stepName
+        ? t("feed.yourStep", { name: ms.stepName })
+        : t("feed.yourTopic")
+      : ""
+
+  const limitedUntil = (n: string) => {
+    const until = state.limited?.[n] ?? 0
+    return until > Date.now() ? until : 0
+  }
+
+  const doing = (n: string): "working" | "waiting" | "done" | "idle" | "limited" => {
     if (thinking.includes(n)) return "working"
+    // Упёрся в лимит — не «свободен»: свободного можно позвать, этого до срока нет.
+    if (limitedUntil(n)) return "limited"
     if (!ms || !ms.cast.includes(n)) return "idle"
     return ms.pending.includes(n) ? "waiting" : "done"
   }
@@ -377,7 +393,7 @@ export default function App() {
                         className={cn(
                           "rounded-full transition-opacity",
                           at === "working" && "breathe",
-                          at === "waiting" && "opacity-40"
+                          (at === "waiting" || at === "limited") && "opacity-40"
                         )}
                       >
                         <FaceButton
@@ -389,7 +405,10 @@ export default function App() {
                       </span>
                     </TooltipTrigger>
                     <TooltipContent>
-                      {f.name} · {t(`feed.status${at[0].toUpperCase()}${at.slice(1)}` as never)}
+                      {f.name} ·{" "}
+                      {t(`feed.status${at[0].toUpperCase()}${at.slice(1)}` as never, {
+                        at: new Date(limitedUntil(n)).toLocaleTimeString(lang, { hour: "2-digit", minute: "2-digit" }),
+                      })}
                     </TooltipContent>
                   </Tooltip>
                 )
@@ -489,6 +508,7 @@ export default function App() {
             agents={cast}
             personas={personas}
             thinking={thinking}
+            waiting={yourStep}
             since={state.thinking}
             onReply={(m) => {
               setEditing(null)

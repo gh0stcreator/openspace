@@ -179,6 +179,8 @@ export type RoomState = {
   busy?: boolean
   /** Кто думает прямо сейчас и с какого мгновения: после перезагрузки взять неоткуда. */
   thinking?: Record<string, number>
+  /** Кто упёрся в лимит подписки и до какого мгновения его не зовут. */
+  limited?: Record<string, number>
   modeState?: ModeState
 }
 

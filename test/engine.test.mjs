@@ -543,6 +543,74 @@ test('строка «файл: путь» превращается во влож
   assert.equal(orch.attach('../../etc/hosts'), null, 'выпустил файл за пределы папки');
 });
 
+const LIMIT_TEXT = "You've hit your weekly limit · resets 3am (Europe/Moscow)";
+
+test('лимит подписки: упёрся один — группу на той же модели больше не зовём', async () => {
+  const { orch, calls } = setup(['первый', 'второй'], { fail: { первый: [LIMIT_TEXT] } });
+  orch.post(ROOM, { from: 'Roman', text: '@первый раз' });
+  await sleep(100);
+  orch.post(ROOM, { from: 'Roman', text: '@второй два' });
+  await sleep(100);
+  orch.post(ROOM, { from: 'Roman', text: '@первый три' });
+  await sleep(100);
+
+  const feed = orch.store.load(ROOM);
+  assert.equal(calls.length, 1, `движок звали после отказа по лимиту: ${JSON.stringify(calls)}`);
+  assert.equal(feed.filter((m) => m.kind === 'error').length, 1, 'ошибка лимита повторилась');
+  // Молчание неотличимо от «думают»: человеку сказали, что команда не ответит, — и один раз.
+  assert.equal(feed.filter((m) => m.kind === 'system' && /лимит/.test(m.text)).length, 1);
+  assert.ok(orch.view(ROOM).limited.второй, 'сосед по модели не помечен в состоянии комнаты');
+});
+
+test('лимит подписки: другая модель отвечает как отвечала', async () => {
+  const { orch, calls, config } = setup(['первый', 'второй'], { fail: { первый: [LIMIT_TEXT] } });
+  orch.reconfigure({
+    agents: {
+      первый: { ...config.agents.первый, model: 'opus' },
+      второй: { ...config.agents.второй, model: 'sonnet' },
+    },
+  });
+  orch.post(ROOM, { from: 'Roman', text: '@первый раз' });
+  await sleep(100);
+  orch.post(ROOM, { from: 'Roman', text: '@первый и @второй два' });
+  await sleep(100);
+
+  assert.deepEqual(calls.map((c) => c.who), ['первый', 'второй']);
+  const notice = orch.store.load(ROOM).filter((m) => m.kind === 'system' && /лимит/.test(m.text));
+  assert.equal(notice.length, 1, 'человеку не сказали, что адресат не ответит');
+  assert.match(notice[0].text, /@первый/);
+});
+
+test('лимит подписки: срок вышел — пробуем снова, и дельта не потеряна', async () => {
+  const { orch, calls } = setup(['первый'], { fail: { первый: [LIMIT_TEXT] } });
+  orch.config.limitCooldownMs = 60;
+  const first = orch.post(ROOM, { from: 'Roman', text: '@первый раз' });
+  await sleep(150);
+  orch.post(ROOM, { from: 'Roman', text: '@первый два' });
+  await sleep(100);
+
+  assert.equal(calls.length, 2, 'после срока участника так и не позвали');
+  assert.ok(calls[1].saw.includes(first.seq), 'реплика, на которой упёрлись в лимит, потеряна');
+});
+
+test('лимит подписки: режим не ждёт того, кто сегодня не ответит', async () => {
+  const { orch, calls, config } = setup(['первый', 'второй', 'третий'], { fail: { второй: [LIMIT_TEXT] } });
+  orch.reconfigure({
+    agents: {
+      первый: { ...config.agents.первый, model: 'opus' },
+      второй: { ...config.agents.второй, model: 'sonnet' },
+      третий: { ...config.agents.третий, model: 'opus' },
+    },
+  });
+  orch.store.append(ROOM, { from: 'Roman', text: 'тема' });
+  orch.startMode(ROOM, 'проба');
+  await sleep(900);
+
+  assert.deepEqual(order(calls), ['А', 'Б', 'В', 'Г'], 'режим встал на участнике без лимита');
+  assert.equal(calls.filter((c) => c.who === 'второй').length, 1, 'упёршегося звали на следующих шагах');
+  assert.equal(orch.store.load(ROOM).filter((m) => m.kind === 'error').length, 1);
+});
+
 test('[skip] оставляет след для счёта, но в разговор не попадает', async () => {
   const { orch, calls } = setup(['первый', 'второй'], { reply: '[skip]' });
   orch.post(ROOM, { from: 'Roman', text: '@первый раз' });
