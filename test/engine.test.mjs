@@ -16,19 +16,22 @@ const { Store } = await import('../lib/store.js');
 const sleep = (ms) => new Promise((r) => setTimeout(r, ms));
 const ROOM = 'r';
 
-function setup(names, { delays = {}, fail = {}, dir = null, stateDir = null, roles = {}, freeTalk = false, reply = null, foldIdleMs = null } = {}) {
+function setup(names, { delays = {}, fail = {}, dir = null, stateDir = null, roles = {}, freeTalk = false, reply = null, foldIdleMs = null, weight = {} } = {}) {
   dir = dir ?? fs.mkdtempSync(path.join(os.tmpdir(), 'openspace-test-'));
   const calls = [];
   const built = [];
+  const resets = [];
   const build = (name) => {
     built.push(name);
     return {
-      reset() {},
-      async speak({ delta, step }) {
-        calls.push({ who: name, step: step?.name ?? null, saw: delta.map((m) => m.seq) });
+      reset() { resets.push(name); },
+      async speak({ delta, step, ctx }) {
+        calls.push({ who: name, step: step?.name ?? null, saw: delta.map((m) => m.seq), anew: !!ctx?.anew });
         await sleep(delays[name] ?? 20);
         if (fail[name]?.length) return { error: fail[name].shift() };
-        return { text: reply ?? `[${name}${step ? ' · ' + step.name : ''}]`, meta: {} };
+        // Вес сессии: сколько входных токенов движок насчитал за ход. По нему решается ротация.
+        const meta = weight[name] ? { usage: { input_tokens: weight[name], output_tokens: 1 }, turns: 1 } : {};
+        return { text: reply ?? `[${name}${step ? ' · ' + step.name : ''}]`, meta };
       },
     };
   };
@@ -45,7 +48,7 @@ function setup(names, { delays = {}, fail = {}, dir = null, stateDir = null, rol
   const orch = new Orchestrator({
     store: new Store(dir), config, build, log: { error() {} }, stateDir,
   });
-  return { orch, calls, built, config, dir };
+  return { orch, calls, built, resets, config, dir };
 }
 
 /** Шаги режима в порядке появления, без повторов подряд и без закрывающего «итога». */
@@ -624,4 +627,78 @@ test('[skip] оставляет след для счёта, но в разгов
   assert.ok(!feed.some((m) => m.kind === 'message' && m.from !== 'Roman'), 'пропуск попал в ленту репликой');
   const second = calls.find((c) => c.who === 'второй');
   assert.ok(!second.saw.includes(skips[0].seq), 'чужой пропуск приехал собеседнику в дельте');
+});
+
+test('сессия перевалила порог — следующий ход начинается заново, с хвостом ленты', async () => {
+  const { orch, calls, resets } = setup(['первый'], { weight: { первый: 200_000 } });
+  const one = orch.post(ROOM, { from: 'Roman', text: '@первый раз' });
+  await sleep(100);
+  assert.deepEqual(resets, [], 'сессию сбросили до того, как она потяжелела');
+  const two = orch.post(ROOM, { from: 'Roman', text: '@первый два' });
+  await sleep(100);
+
+  assert.deepEqual(resets, ['первый'], 'тяжёлая сессия не сброшена');
+  const own = orch.store.load(ROOM).find((m) => m.from === 'первый').seq;
+  // Новая сессия прежнего разговора не помнит: хвост несёт и старую реплику, и собственный ответ.
+  assert.deepEqual(calls[1].saw, [one.seq, own, two.seq]);
+  assert.ok(calls[1].anew && !calls[0].anew, 'участнику не сказали, что сессия началась заново');
+  assert.equal(orch.store.load(ROOM).filter((m) => m.from === 'первый').at(-1).meta.rotated, true);
+});
+
+test('лёгкая сессия живёт, порог 0 ротацию выключает', async () => {
+  const light = setup(['первый'], { weight: { первый: 90_000 } });
+  light.orch.post(ROOM, { from: 'Roman', text: '@первый раз' });
+  await sleep(100);
+  const two = light.orch.post(ROOM, { from: 'Roman', text: '@первый два' });
+  await sleep(100);
+  assert.deepEqual(light.resets, []);
+  assert.deepEqual(light.calls[1].saw, [two.seq], 'без ротации участник получает только дельту');
+
+  const off = setup(['первый'], { weight: { первый: 900_000 } });
+  off.orch.config.rotateAt = 0;
+  off.orch.post(ROOM, { from: 'Roman', text: '@первый раз' });
+  await sleep(100);
+  off.orch.post(ROOM, { from: 'Roman', text: '@первый два' });
+  await sleep(100);
+  assert.deepEqual(off.resets, []);
+});
+
+test('ротация на шаге вслепую не заглядывает за барьер', async () => {
+  const { orch, calls, resets } = setup(['первый', 'второй'], { weight: { первый: 200_000 } });
+  orch.post(ROOM, { from: 'Roman', text: '@первый раз' });
+  await sleep(100);
+  const barrier = orch.store.append(ROOM, { from: 'Roman', text: 'тема шага', mentions: [] }).seq;
+  const beyond = orch.store.append(ROOM, { from: 'второй', text: 'ответ соседа на этот же шаг', mentions: [] }).seq;
+  await orch.turn(ROOM, 'первый', { step: { name: 'Б', hear: false, prompt: 'вслепую' }, upto: barrier });
+
+  assert.deepEqual(resets, ['первый']);
+  const saw = calls.at(-1).saw;
+  assert.ok(saw.includes(barrier) && !saw.includes(beyond), `хвост ушёл за барьер: ${saw}`);
+});
+
+test('хвост после ротации ограничен по знакам, но последние реплики целы', async () => {
+  const { orch, calls } = setup(['первый'], { weight: { первый: 200_000 } });
+  orch.post(ROOM, { from: 'Roman', text: '@первый раз' });
+  await sleep(100);
+  for (let i = 0; i < 8; i += 1) orch.store.append(ROOM, { from: 'Roman', text: 'я'.repeat(12_000), mentions: [] });
+  const last = orch.post(ROOM, { from: 'Roman', text: '@первый и что думаешь?' });
+  await sleep(100);
+
+  const saw = calls.at(-1).saw;
+  assert.ok(saw.includes(last.seq), 'последняя реплика выпала из хвоста');
+  assert.ok(saw.length >= 5 && saw.length < 10, `хвост не урезан по знакам: ${saw.length} реплик`);
+});
+
+test('вес сессии переживает перезапуск: ротация случается первым же ходом', async () => {
+  const dir = fs.mkdtempSync(path.join(os.tmpdir(), 'openspace-rotate-'));
+  const stateDir = path.join(dir, 'state');
+  const first = setup(['первый'], { dir, stateDir, weight: { первый: 200_000 } });
+  first.orch.post(ROOM, { from: 'Roman', text: '@первый раз' });
+  await sleep(100);
+  first.orch.flush(ROOM);
+
+  const second = setup(['первый'], { dir, stateDir });
+  second.orch.post(ROOM, { from: 'Roman', text: '@первый два' });
+  await sleep(100);
+  assert.deepEqual(second.resets, ['первый'], 'после перезапуска тяжёлая сессия пошла на полном контексте');
 });
