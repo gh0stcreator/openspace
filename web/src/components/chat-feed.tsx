@@ -846,13 +846,22 @@ export function ChatFeed({ messages, user, agents, personas, thinking, waiting, 
   const known = React.useMemo(() => [...Object.keys(agents), user], [agents, user])
   const bySeq = React.useMemo(() => new Map(messages.map((m) => [m.seq, m])), [messages])
 
+  // Подряд идущие отметки режима — это переключения, между которыми никто не сказал
+  // ни слова: три строки «включён режим» в начале пустой ленты читаются как история
+  // чужих кликов, а не как разговор. В ленте остаётся последняя — та, в которой сейчас
+  // и работают. Из хранилища при этом не пропадает ничего: там след каждого включения.
+  const shown = React.useMemo(
+    () => messages.filter((m, i) => !(m.kind === "mode" && messages[i + 1]?.kind === "mode")),
+    [messages]
+  )
+
   return (
     <MessageScrollerProvider autoScroll defaultScrollPosition="end">
       <FollowMine seq={messages.findLast((m) => m.from === user)?.seq} />
       <MessageScroller className="min-h-0 flex-1">
         <MessageScrollerViewport className="feed-fade">
           <MessageScrollerContent className="mx-auto w-full max-w-3xl px-4 py-6">
-            {groups(messages).map((group) => {
+            {groups(shown).map((group) => {
               const first = group[0]
 
               // Чем рисовать — решает тип события, а не текст реплики: интерфейс,
