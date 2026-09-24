@@ -9,12 +9,14 @@ import os from 'node:os';
 import path from 'node:path';
 
 // Режимы для тестов свои: рабочие файлы в modes/ правят по живым прогонам.
-process.env.SPACE_MODES_DIR = path.join(import.meta.dirname, 'modes');
+process.env.SPACE_DIR = path.join(import.meta.dirname, 'spaces');
 const { Orchestrator } = await import('../lib/orchestrator.js');
 const { Store } = await import('../lib/store.js');
 
 const sleep = (ms) => new Promise((r) => setTimeout(r, ms));
 const ROOM = 'r';
+// Комната с кругом: в ней первая реплика человека поднимает всех разом, вслепую.
+const CIRCLE = 'проба';
 
 function setup(names, { delays = {}, fail = {}, dir = null, stateDir = null, roles = {}, freeTalk = false, reply = null, foldIdleMs = null, weight = {}, think = null } = {}) {
   dir = dir ?? fs.mkdtempSync(path.join(os.tmpdir(), 'openspace-test-'));
@@ -90,101 +92,57 @@ test('правка карточки не пересобирает участни
   assert.deepEqual(built, ['первый', 'первый']);
 });
 
-test('шаг вслепую: участники не видят ответов друг друга, следующий шаг — видят', async () => {
+test('круг вслепую: участники не видят ответов друг друга', async () => {
   const { orch, calls } = setup(['первый', 'второй', 'третий'], { delays: { второй: 40, третий: 60 } });
-  orch.store.append(ROOM, { from: 'Roman', text: 'тема' });
-  orch.startMode(ROOM, 'проба');
+  orch.post(CIRCLE, { from: 'Roman', text: 'что делаем?' });
   await sleep(900);
-  const blind = calls.filter((c) => c.step === 'Б');
+  const blind = calls.filter((c) => c.step === 'круг');
   const barrier = Math.max(...blind.flatMap((c) => c.saw));
-  const answers = orch.store.load(ROOM).filter((m) => m.text.includes('· Б]')).map((m) => m.seq);
-  assert.equal(blind.length, 3);
-  assert.ok(answers.every((seq) => seq > barrier), 'ответ соседа попал в дельту шага вслепую');
-  const open = calls.filter((c) => c.step === 'В');
-  assert.ok(open.some((c) => answers.some((seq) => c.saw.includes(seq))), 'на шаге со слухом ответы соседей не видны');
-  assert.deepEqual(order(calls), ['А', 'Б', 'В', 'Г']);
+  const answers = orch.store.load(CIRCLE).filter((m) => m.text.includes('· круг]')).map((m) => m.seq);
+  assert.equal(blind.length, 3, 'круг прошли не все');
+  assert.ok(answers.every((seq) => seq > barrier), 'ответ соседа попал в дельту круга');
+  assert.equal(orch.state(CIRCLE).blind, false, 'круг не закончился сам');
 });
 
-test('пауза замораживает шаг, после неё режим идёт дальше', async () => {
-  const { orch, calls } = setup(['первый', 'второй'], { delays: { первый: 60 } });
-  orch.store.append(ROOM, { from: 'Roman', text: 'тема' });
-  orch.startMode(ROOM, 'проба');
+test('пауза замораживает круг, после неё он идёт дальше', async () => {
+  const { orch, calls } = setup(['первый', 'второй', 'третий'], { delays: { первый: 60 } });
+  orch.post(CIRCLE, { from: 'Roman', text: 'что делаем?' });
   await sleep(20);
-  orch.pause(ROOM, true);
+  orch.pause(CIRCLE, true);
   await sleep(300);
-  assert.equal(orch.modeState(ROOM)?.step, 1, 'режим ушёл с первого шага, пока стояла пауза');
-  orch.pause(ROOM, false);
-  await sleep(900);
-  assert.deepEqual(order(calls), ['А', 'Б', 'В', 'Г']);
-});
-
-test('перезапуск режима посреди шага не двигает шаги дважды', async () => {
-  const { orch, calls } = setup(['первый', 'второй'], { delays: { второй: 120 } });
-  orch.store.append(ROOM, { from: 'Roman', text: 'тема' });
-  orch.startMode(ROOM, 'проба');
-  await sleep(80); // идёт шаг Б
-  const mark = calls.length;
-  orch.store.append(ROOM, { from: 'Roman', text: 'тема' });
-  orch.startMode(ROOM, 'проба');
-  await sleep(1500);
-  assert.deepEqual(order(calls.slice(mark)), ['А', 'Б', 'В', 'Г']);
-});
-
-test('занятый участник получает свой шаг, когда освободится', async () => {
-  const { orch, calls } = setup(['первый', 'второй'], { delays: { первый: 150 } });
-  orch.post(ROOM, { from: 'Roman', text: '@первый подумай подольше' });
-  await sleep(30);
-  orch.store.append(ROOM, { from: 'Roman', text: 'тема' });
-  orch.startMode(ROOM, 'проба'); // шаг А — только @первый
-  await sleep(1200);
-  assert.ok(calls.some((c) => c.who === 'первый' && c.step === 'А'), 'шаг А прошёл без участника');
-});
-
-test('шаг со слухом: следующий видит ответ предыдущего на этом же шаге', async () => {
-  const { orch, calls } = setup(['первый', 'второй']);
-  orch.store.append(ROOM, { from: 'Roman', text: 'тема' });
-  orch.startMode(ROOM, 'проба');
-  await sleep(700);
-  const [one, two] = calls.filter((c) => c.step === 'В');
-  const answer = orch.store.load(ROOM).find((m) => m.from === one.who && m.text.includes('· В]'));
-  assert.ok(two.saw.includes(answer.seq), 'второй на шаге В не увидел ответ первого');
-});
-
-test('человек в режиме: реплика с тегом — разговор, шаг стоит; без тега — закрывает шаг', async () => {
-  const { orch, calls } = setup(['первый', 'второй']);
-  orch.store.append(ROOM, { from: 'Roman', text: 'тема' });
-  orch.startMode(ROOM, 'ожидание');
-  // Режим приводит свой состав, а его шаги зовут только первого. Второго возвращаем
-  // руками: разговор с тем, кого режим не звал, — это как раз то, что проверяем.
-  orch.toggle(ROOM, 'второй', true);
-  await sleep(150);
-  assert.equal(orch.modeState(ROOM).step, 1);
-
-  const ask = orch.post(ROOM, { from: 'Roman', text: '@второй, уточни' });
-  await sleep(150);
-  assert.equal(orch.modeState(ROOM).step, 1, 'реплика с тегом сдвинула шаг');
-  assert.ok(calls.some((c) => c.who === 'второй' && c.step === null && c.saw.includes(ask.seq)), 'адресат не ответил');
-
-  orch.post(ROOM, { from: 'Roman', text: 'идём дальше' });
+  const said = calls.length;
   await sleep(200);
-  assert.deepEqual(order(calls.filter((c) => c.step)), ['Вопрос', 'Итог']);
-  assert.equal(orch.modeState(ROOM), null, 'режим не закончился');
+  assert.equal(calls.length, said, 'на паузе кто-то заговорил');
+  orch.pause(CIRCLE, false);
+  await sleep(700);
+  assert.equal(calls.filter((c) => c.step === 'круг').length, 3, 'после паузы круг не доспросил остальных');
 });
 
-test('остановленный режим не оживает: цепочка прежнего запуска ничего не двигает', async () => {
-  const { orch, calls } = setup(['первый', 'второй'], { delays: { первый: 80 } });
-  orch.store.append(ROOM, { from: 'Roman', text: 'тема' });
-  orch.startMode(ROOM, 'проба');
-  await sleep(20);
-  orch.stopMode(ROOM);
-  await sleep(500);
-  assert.deepEqual(order(calls), ['А']);
-  assert.equal(orch.modeState(ROOM), null);
+test('занятый участник получает свой ход в круге, когда освободится', async () => {
+  const { orch, calls } = setup(['первый', 'второй', 'третий'], { delays: { первый: 150 } });
+  orch.post(CIRCLE, { from: 'Roman', text: '@первый подумай подольше' });
+  await sleep(30);
+  orch.post(CIRCLE, { from: 'Roman', text: 'а теперь вопрос всем' });
+  await sleep(1200);
+  assert.ok(calls.some((c) => c.who === 'первый' && c.step === 'круг'), 'круг прошёл без занятого участника');
 });
 
-test('кто может отвечать без тега — это «кто говорит» в файле режима «Открытый»', async () => {
+test('реплика человека посреди круга никого не будит', async () => {
+  const { orch, calls } = setup(['первый', 'второй', 'третий'], { delays: { первый: 120, второй: 120, третий: 120 } });
+  orch.post(CIRCLE, { from: 'Roman', text: 'что делаем?' });
+  await sleep(30);
+  assert.equal(orch.state(CIRCLE).blind, true, 'круг не завёлся');
+  const mark = calls.length;
+  orch.post(CIRCLE, { from: 'Roman', text: '@первый а ты что думаешь?' });
+  await sleep(60);
+  assert.equal(calls.length, mark, 'реплика посреди круга подняла лишний ход');
+  await sleep(900);
+  assert.equal(orch.state(CIRCLE).blind, false, 'круг не закончился');
+});
+
+test('кто отвечает без тега — это дежурные комнаты', async () => {
   const { orch, calls } = setup(['первый', 'второй']);
-  // Файл режима задаёт круг, из которого берут отвечающего; кого именно — решает
+  // Файл комнаты задаёт круг, из которого берут отвечающего; кого именно — решает
   // тема, а если она никого не зацепила, очередь у того, кого дольше не было слышно.
   assert.deepEqual(orch.duty().sort(), ['второй', 'первый']);
   orch.post(ROOM, { from: 'Roman', text: 'вопрос без тега' });
@@ -217,47 +175,26 @@ test('правка реплики: лента показывает новый т
   assert.throws(() => orch.edit(ROOM, 2, 'чужое'), /только свою/);
 });
 
-test('перезапуск: режим продолжается с того же шага, участники помнят прочитанное', async () => {
+test('перезапуск: круг продолжается, участники помнят прочитанное', async () => {
   const dir = fs.mkdtempSync(path.join(os.tmpdir(), 'openspace-state-'));
-  // Участники отвечают медленно: к моменту снимка режим ещё на первом шаге.
-  const first = setup(['первый', 'второй'], {
-    dir, stateDir: dir, delays: { первый: 300, второй: 300 },
+  const first = setup(['первый', 'второй', 'третий'], {
+    dir, stateDir: dir, delays: { первый: 400, второй: 400, третий: 400 },
   });
-  first.orch.store.append(ROOM, { from: 'Roman', text: 'тема' });
-  first.orch.startMode(ROOM, 'проба');
+  first.orch.post(CIRCLE, { from: 'Roman', text: 'что делаем?' });
   await sleep(60);
-  first.orch.pause(ROOM, true);
+  first.orch.pause(CIRCLE, true);
   await sleep(400);
-  first.orch.flush(ROOM);
+  first.orch.flush(CIRCLE);
 
-  const before = first.orch.modeState(ROOM);
-  const seenBefore = first.orch.agents.get('первый').lastSeen.get(ROOM);
-  assert.ok(before, 'режим не запустился');
+  const seenBefore = first.orch.agents.get('первый').lastSeen.get(CIRCLE);
+  assert.equal(first.orch.state(CIRCLE).blind, true, 'круг не завёлся');
 
   // Новый процесс: та же папка, та же лента, ничего в памяти.
-  const second = setup(['первый', 'второй'], { dir, stateDir: dir });
-  const after = second.orch.modeState(ROOM);
+  const second = setup(['первый', 'второй', 'третий'], { dir, stateDir: dir });
 
-  assert.equal(after?.name, before.name, 'режим не пережил перезапуск');
-  assert.equal(after?.step, before.step, 'шаг сбился');
-  assert.equal(second.orch.state(ROOM).paused, true, 'пауза забылась');
-  assert.equal(second.orch.agents.get('первый').lastSeen.get(ROOM), seenBefore, 'прочитанное забылось');
-});
-
-test('режим заканчивает участник репликой, а не служебная строка', async () => {
-  const { orch, calls } = setup(['первый', 'второй']);
-  orch.post(ROOM, { from: 'Roman', text: 'тема' })
-  orch.startMode(ROOM, 'проба');
-  await sleep(1300);
-
-  const feed = orch.store.load(ROOM);
-  assert.equal(orch.modeState(ROOM), null, 'режим не закончился');
-  assert.ok(!feed.some((m) => m.kind === 'system' && /слово за вами|круги/.test(m.text)), 'осталась служебная строка');
-
-  const last = feed.at(-1);
-  assert.equal(last.kind, 'message', 'последнее в ленте — не реплика');
-  assert.equal(last.from, 'первый', 'итог подводит не тот, кто вёл режим');
-  assert.equal(calls.at(-1).step, 'итог');
+  assert.equal(second.orch.state(CIRCLE).blind, true, 'круг не пережил перезапуск');
+  assert.equal(second.orch.state(CIRCLE).paused, true, 'пауза забылась');
+  assert.equal(second.orch.agents.get('первый').lastSeen.get(CIRCLE), seenBefore, 'прочитанное забылось');
 });
 
 test('выключенный в комнате молчит, включённый снова отвечает', async () => {
@@ -279,16 +216,11 @@ test('выключенный в комнате молчит, включённы�
   assert.ok(calls.some((c) => c.who === 'второй'), 'включённый обратно молчит');
 });
 
-test('режим приводит свой состав, а без режима в комнате снова все', async () => {
+test('состав задаёт комната: кого в ней нет, тот в ней и не отвечает', async () => {
   const { orch } = setup(['первый', 'второй']);
-  assert.deepEqual(orch.here(ROOM), ['первый', 'второй']);
-
-  // Шаги «Ожидания» зовут только первого — второму в этом режиме делать нечего.
-  orch.startMode(ROOM, 'ожидание');
-  assert.deepEqual(orch.here(ROOM), ['первый']);
-
-  orch.stopMode(ROOM);
-  assert.deepEqual(orch.here(ROOM), ['первый', 'второй'], 'разговор без режима идёт всей командой');
+  // В общей живут все, в «тихой» — только первый: это написано в файле комнаты.
+  assert.deepEqual(orch.here(ROOM).sort(), ['второй', 'первый']);
+  assert.deepEqual(orch.here('тихая'), ['первый']);
 });
 
 test('тему разбирает тот, чья это зона; без темы — кого дольше не слышно', async () => {
@@ -315,38 +247,22 @@ test('тему разбирает тот, чья это зона; без тем�
   assert.ok(!calls.some((c) => c.who === 'первый'), 'одно слово в простыне увело разговор');
 });
 
-test('перезапуск посреди шага: оборванный шаг доспрашивает тех, кто не успел', async () => {
+test('перезапуск посреди круга: оборванный круг доспрашивает тех, кто не успел', async () => {
   const dir = fs.mkdtempSync(path.join(os.tmpdir(), 'openspace-resume-'));
-  // Первый отвечает медленно: к моменту «падения» шаг ещё ждёт его.
-  const first = setup(['первый', 'второй'], { dir, stateDir: dir, delays: { первый: 400 } });
-  first.orch.store.append(ROOM, { from: 'Roman', text: 'тема' });
-  first.orch.startMode(ROOM, 'проба');
-  await sleep(60);
-  first.orch.flush(ROOM);
-  assert.deepEqual(first.orch.state(ROOM).pending, ['первый'], 'шаг ждёт не того');
+  const first = setup(['первый', 'второй', 'третий'], { dir, stateDir: dir, delays: { первый: 400 } });
+  first.orch.post(CIRCLE, { from: 'Roman', text: 'что делаем?' });
+  await sleep(120);
+  first.orch.flush(CIRCLE);
+  assert.deepEqual(first.orch.state(CIRCLE).pending, ['первый'], 'круг ждёт не того');
 
-  // Новый процесс: очереди нет, на диске осталось «ждём первого».
-  const second = setup(['первый', 'второй'], { dir, stateDir: dir });
-  assert.deepEqual(second.orch.state(ROOM).pending, ['первый'], 'состояние не поднялось');
+  const second = setup(['первый', 'второй', 'третий'], { dir, stateDir: dir });
+  assert.deepEqual(second.orch.state(CIRCLE).pending, ['первый'], 'состояние не поднялось');
   assert.equal(second.calls.length, 0, 'кто-то заговорил сам по себе');
 
   const woken = second.orch.resumeAll();
-  assert.equal(woken.length, 1, 'оборванный шаг не найден');
-  await sleep(200);
+  assert.equal(woken.length, 1, 'оборванный круг не найден');
+  await sleep(300);
   assert.ok(second.calls.some((c) => c.who === 'первый'), 'недоспрошенного так и не позвали');
-});
-
-test('выход из режима возвращает тот состав, что был до него', async () => {
-  const dir = fs.mkdtempSync(path.join(os.tmpdir(), 'openspace-off-'));
-  const { orch } = setup(['первый', 'второй'], { dir, stateDir: dir });
-
-  // Человек убрал второго ещё до режима — это его решение, а не режима.
-  orch.toggle(ROOM, 'второй', false);
-  assert.deepEqual(orch.here(ROOM), ['первый']);
-
-  orch.startMode(ROOM, 'проба');
-  orch.stopMode(ROOM);
-  assert.deepEqual(orch.here(ROOM), ['первый'], 'конец режима включил того, кого убрал человек');
 });
 
 test('цепочка не обрывается молча: ход возвращают человеку', async () => {
@@ -415,29 +331,6 @@ test('кто позвал человека и ждёт — второй раз �
   orch.post(ROOM, { from: 'Roman', text: '@первый берём второе' });
   await sleep(200);
   assert.ok(calls.some((c) => c.who === 'первый'), 'после ответа человека участник не проснулся');
-});
-
-test('затянувшийся вопрос: Ведущий предлагает режим — один раз', async () => {
-  const { orch, calls } = setup(['первый', 'ведущий'], {
-    roles: { ведущий: 'продюсер' }, freeTalk: true,
-  });
-
-  // Счёт вопроса набран: двенадцать ходов, а вопрос не закрыт.
-  orch.post(ROOM, { from: 'Roman', text: 'обсудим' });
-  await sleep(100);
-  const st = orch.state(ROOM);
-  st.round = { from: 1, mode: '', turns: 20, tokens: 0, at: Date.now() };
-
-  calls.length = 0;
-  orch.post(ROOM, { from: 'первый', text: 'по-моему так', mentions: [] });
-  await sleep(250);
-  assert.ok(calls.some((c) => c.step === 'режим'), 'никто не предложил режим на двадцатом ходу');
-
-  // Второй раз за тот же вопрос не зовём: напоминать дважды — то же, от чего ушли.
-  calls.length = 0;
-  orch.post(ROOM, { from: 'первый', text: 'и ещё вот', mentions: [] });
-  await sleep(250);
-  assert.ok(!calls.some((c) => c.step === 'режим'), 'предложил режим второй раз за один вопрос');
 });
 
 test('без темы разговор продолжает собеседник, но не бесконечно', async () => {
@@ -599,22 +492,17 @@ test('лимит подписки: срок вышел — пробуем сно
   assert.ok(calls[1].saw.includes(first.seq), 'реплика, на которой упёрлись в лимит, потеряна');
 });
 
-test('лимит подписки: режим не ждёт того, кто сегодня не ответит', async () => {
-  const { orch, calls, config } = setup(['первый', 'второй', 'третий'], { fail: { второй: [LIMIT_TEXT] } });
-  orch.reconfigure({
-    agents: {
-      первый: { ...config.agents.первый, model: 'opus' },
-      второй: { ...config.agents.второй, model: 'sonnet' },
-      третий: { ...config.agents.третий, model: 'opus' },
-    },
+test('лимит подписки: круг не ждёт того, кто сегодня не отвечает', async () => {
+  const { orch, calls } = setup(['первый', 'второй', 'третий'], {
+    fail: { второй: [LIMIT_TEXT] },
   });
-  orch.store.append(ROOM, { from: 'Roman', text: 'тема' });
-  orch.startMode(ROOM, 'проба');
-  await sleep(900);
+  orch.post(CIRCLE, { from: 'Roman', text: 'что делаем?' });
+  await sleep(400);
+  assert.ok(orch.limited('второй'), 'лимит не запомнился');
 
-  assert.deepEqual(order(calls), ['А', 'Б', 'В', 'Г'], 'режим встал на участнике без лимита');
-  assert.equal(calls.filter((c) => c.who === 'второй').length, 1, 'упёршегося звали на следующих шагах');
-  assert.equal(orch.store.load(ROOM).filter((m) => m.kind === 'error').length, 1);
+  orch.post(CIRCLE, { from: 'Roman', text: 'а теперь другой вопрос' });
+  await sleep(500);
+  assert.equal(calls.filter((c) => c.who === 'второй').length, 1, 'упёршегося в лимит позвали в круг ещё раз');
 });
 
 test('[skip] оставляет след для счёта, но в разговор не попадает', async () => {
@@ -727,7 +615,7 @@ test('в чужой разговор влезают только с пятёрк
   assert.equal(orch.take(ROOM, 'первый'), 'есть что добавить', 'непрозвучавшая мысль осталась в голове');
 });
 
-test('слепой круг: повторившемуся возвращают ход за другой мыслью', async () => {
+test('круг: повторившемуся возвращают ход за другой мыслью', async () => {
   // Движок отвечает так, будто второй повторил первого своими словами.
   const think = async () => [
     'первый | делать надо быстро',
@@ -736,10 +624,9 @@ test('слепой круг: повторившемуся возвращают �
     'Повторы: второй — первый',
   ].join('\n');
   const { orch, calls } = setup(['первый', 'второй', 'третий'], { think });
-  orch.post(ROOM, { from: 'Roman', text: 'что делаем?' });
-  orch.startMode(ROOM, 'проба');
-  await sleep(700);
-  const слепые = calls.filter((c) => c.step === 'Б');
-  assert.equal(слепые.filter((c) => c.who === 'второй').length, 2, `повторившемуся ход не вернули: ${JSON.stringify(calls.map((c) => `${c.who}:${c.step}`))}`);
-  assert.equal(слепые.filter((c) => c.who === 'третий').length, 1, 'у того, кто не повторился, лишнего хода быть не должно');
+  orch.post(CIRCLE, { from: 'Roman', text: 'что делаем?' });
+  await sleep(900);
+  const круг = calls.filter((c) => c.step === 'круг');
+  assert.equal(круг.filter((c) => c.who === 'второй').length, 2, 'повторившемуся ход не вернули');
+  assert.equal(круг.filter((c) => c.who === 'третий').length, 1, 'у того, кто не повторился, лишнего хода быть не должно');
 });

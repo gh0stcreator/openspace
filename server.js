@@ -9,7 +9,7 @@ import { loadConfig } from './lib/config.js';
 import { roleOf, listRoles } from './lib/roles.js';
 import { loadArchetype, listArchetypes } from './lib/archetypes.js';
 import { SKILLS, skillsOf } from './lib/skills.js';
-import { BUILTIN, listModes, loadMode, removeMode, saveMode, stepTargets, bodyOf, stepsFrom } from './lib/modes.js';
+import { BUILTIN, listSpaces, loadSpace, pick, removeSpace, saveSpace } from './lib/spaces.js';
 
 const root = path.dirname(fileURLToPath(import.meta.url));
 
@@ -42,16 +42,14 @@ function saveConfig(cfg) {
   fs.writeFileSync(configFile, JSON.stringify({ ...onDisk, ...rest }, null, 2) + '\n');
 }
 
-/** Полное описание режима — для редактора: со всеми шагами и текстами. */
-// Шаги едут клиенту и разобранными, и текстом: правят их одним полем, как голос
-// участника, а полоса «сколько шагов, где вслепую» считается по разобранным.
-const full = (m) => ({ ...short(m), steps: m.steps, source: bodyOf(m.steps) });
+/** Полное описание комнаты — для редактора: со всеми текстами. */
+const full = (m) => ({ ...short(m), laws: m.laws, circle: m.circle, cast: m.cast, duty: m.duty, tune: m.tune });
 
 const short = (m) => {
   const present = orch.names.map((n) => n.toLowerCase());
   return {
     name: m.name,
-    // Клиенту незачем знать русское имя файла встроенного режима.
+    // Клиенту незачем знать русское имя файла общей комнаты.
     builtin: m.name === BUILTIN,
     title: m.title,
     titleEn: m.titleEn,
@@ -60,25 +58,25 @@ const short = (m) => {
     for: m.for,
     forEn: m.forEn,
     icon: m.icon,
+    // Цвет — единственный опознавательный знак комнаты: им красится знак и акценты.
     color: m.color,
     slug: m.slug,
     short: m.short,
     shortEn: m.shortEn,
-    rubric: m.rubric,
-    rubricEn: m.rubricEn,
-    // Состав, который режим приведёт в комнату: выбрали режим — остались эти.
-    // У «Открытого» сценария нет, там разговор идёт всей командой.
-    who: m.name === BUILTIN ? orch.names : orch.cast(m),
+    // Кто здесь живёт: зашли в комнату — разговариваете с этими.
+    who: pick(m.cast, orch.names, orch.roster),
     needs: m.needs,
-    // Кого режим просит, а в команде нет: выбирая режим, это стоит знать сразу.
+    // Кого комната просит, а в команде нет: выбирая, куда зайти, это стоит знать сразу.
     missing: m.needs.filter((n) => !present.includes(n.toLowerCase())),
-    // Кто в режиме за что: лента подписывает этим реплики, а карточка — состав.
+    // Кто в комнате за что: лента подписывает этим реплики, а карточка — состав.
     sides: m.sides ?? [],
-    // Без регламента: шагов не двигает. Клиенту это и порядок в списке, и черта перед ним.
+    // Заводится ли здесь круг: первый ответ на вопрос все дают, не видя друг друга.
+    circle: !!m.circle,
+    // Без регламента: круг не заводится. Клиенту это и порядок в списке, и черта перед ним.
     talk: !!m.talk,
-    steps: m.steps.map((st) => ({ name: st.name, who: st.who, hear: st.hear })),
   };
 };
+
 
 const describe = (name, a) => ({
   label: a.label ?? name,
@@ -165,12 +163,12 @@ const server = http.createServer(async (req, res) => {
     if (url.pathname === '/api/config') {
       // Архивариус — теневой найм: сворачивает ленту в память по вызову оркестратора,
       // а не как собеседник. В шапке, автодополнении @ и списке дежурных его не показываем.
-      // Участник, привязанный к режиму, показывается только пока этот режим идёт: второй
-      // дизайнер по имени Бараш в обычном составе — это не запасной, это спойлер.
+      // Остальные — состав этой комнаты: кто здесь живёт, тот здесь и показывается.
+      const lives = new Set(orch.here(room));
       const agents = Object.fromEntries(
         Object.entries(orch.roster)
           .filter(([n, a]) => (a.role ?? '').toLowerCase() !== 'архивариус'
-            && orch.own(n, orch.state(room).mode))
+            && (lives.has(n) || orch.state(room).off.includes(n)))
           .map(([name, a]) => [name, describe(name, a)]),
       );
       return json(res, 200, {
@@ -180,17 +178,18 @@ const server = http.createServer(async (req, res) => {
         workdir: config.workdir,
         maxAutoTurns: config.maxAutoTurns,
         defaultRoom: config.defaultRoom ?? 'general',
-        // Дежурные не хранятся отдельно: это «кто говорит» на шаге режима «Открытый».
+        // Дежурные — поле комнаты: кто отвечает человеку, когда он не назвал никого.
         defaultResponders: orch.duty(room),
         // Кого выключили в этой комнате: состав общий, присутствие — своё у каждой.
         off: orch.state(room).off,
-        // Знак комнаты: чем заняты и над чем. Левую половину в режиме держит сам режим.
+        // Знак комнаты: чем заняты и над чем. Левую половину держит сама комната.
         topic: orch.state(room).topic ?? '',
         doing: orch.state(room).doing ?? '',
         agents,
-        rooms: store.listRooms().length ? store.listRooms() : ['general'],
-        modes: listModes().map(short),
-        roomTitles: config.roomTitles || {},
+        // Комнаты этой машины: между ними и ходит человек. Описанные файлом — впереди,
+        // старые ленты без файла в список не идут: они история, а не место.
+        spaces: listSpaces().map(short),
+        space: short(loadSpace(room)),
       });
     }
 
@@ -239,12 +238,10 @@ const server = http.createServer(async (req, res) => {
         // Сколько записей в памяти пространства: без этого числа человек не знает,
         // что она вообще есть, — в ленте её не видно, а в промпт она едет всем.
         memory: orch.memory?.active(room).length ?? 0,
-        // Состав в настройках — тот, что работает всегда. Участники режима правятся
-        // вместе с ним: их имена, цвета и голоса объявлены в его файле, а не в карточке.
+        // Состав в настройках — вся команда целиком: кто в какой комнате живёт,
+        // решает файл комнаты, а карточка описывает человека, а не его место.
         agents: Object.fromEntries(
-          Object.entries(orch.roster)
-            .filter(([n]) => orch.own(n, null))
-            .map(([name, a]) => [name, describe(name, a)]),
+          Object.entries(orch.roster).map(([name, a]) => [name, describe(name, a)]),
         ),
         roles: listRoles().map((r) => ({
           name: r.name,
@@ -335,12 +332,10 @@ const server = http.createServer(async (req, res) => {
 
       return json(res, 200, {
         ok: true,
-        // Состав в настройках — тот, что работает всегда. Участники режима правятся
-        // вместе с ним: их имена, цвета и голоса объявлены в его файле, а не в карточке.
+        // Состав в настройках — вся команда целиком: кто в какой комнате живёт,
+        // решает файл комнаты, а карточка описывает человека, а не его место.
         agents: Object.fromEntries(
-          Object.entries(orch.roster)
-            .filter(([n]) => orch.own(n, null))
-            .map(([name, a]) => [name, describe(name, a)]),
+          Object.entries(orch.roster).map(([name, a]) => [name, describe(name, a)]),
         ),
         user: applied.user,
         userColor: applied.userColor ?? '',
@@ -406,63 +401,22 @@ const server = http.createServer(async (req, res) => {
       return json(res, 200, { message: msg });
     }
 
-    if (url.pathname === '/api/modes' && req.method === 'GET') {
-      return json(res, 200, { modes: listModes().map(full) });
+    if (url.pathname === '/api/spaces' && req.method === 'GET') {
+      return json(res, 200, { spaces: listSpaces().map(full) });
     }
 
-    if (url.pathname === '/api/modes' && req.method === 'POST') {
+    if (url.pathname === '/api/spaces' && req.method === 'POST') {
       const body = await readBody(req);
       try {
-        // Текст — источник правды, если он пришёл: разбор его и есть сохранение.
-        const steps = typeof body.source === 'string' ? stepsFrom(body.source) : body.steps;
-        if (typeof body.source === 'string' && !steps.length) {
-          return json(res, 400, { error: 'в тексте нет ни одного шага: шаг начинается строкой «## имя»' });
-        }
-        return json(res, 200, { mode: full(saveMode({ ...body, steps })) });
+        return json(res, 200, { space: full(saveSpace(body)) });
       } catch (e) {
         return json(res, 400, { error: e.message });
       }
     }
 
-    if (url.pathname === '/api/modes' && req.method === 'DELETE') {
+    if (url.pathname === '/api/spaces' && req.method === 'DELETE') {
       const name = url.searchParams.get('name');
-      return json(res, 200, { ok: removeMode(name) });
-    }
-
-    if (url.pathname === '/api/mode' && req.method === 'POST') {
-      const body = await readBody(req);
-      const mode = body.mode
-        ? orch.startMode(room, body.mode)
-        : orch.stopMode(room);
-      // Один тихий след в ленте: как теперь работаем. Пишем только по действию
-      // человека — внутри режима шаги сменяются сами, и комментировать их незачем.
-      const now = mode ? loadMode(mode.name) : loadMode(BUILTIN);
-      store.append(room, {
-        from: 'system',
-        kind: 'mode',
-        text: now.title,
-        // Знак кладём в саму отметку: иначе лента опознавала бы режим по тексту,
-        // а от переименования такое опознание ломается молча.
-        icon: now.icon,
-        mentions: [],
-      });
-      // Режим приводит свой состав, поэтому вместе с ним возвращаем и присутствие,
-      // и самих участников: у режима с персонами состав другой, и узнать об этом
-      // при следующей перезагрузке страницы — значит показывать чужих до неё.
-      return json(res, 200, {
-        mode,
-        off: orch.state(room).off,
-        agents: Object.fromEntries(
-          Object.entries(orch.roster)
-            .filter(([n, a]) => (a.role ?? '').toLowerCase() !== 'архивариус'
-              && orch.own(n, orch.state(room).mode))
-            .map(([name, a]) => [name, describe(name, a)]),
-        ),
-      });
-    }
-
-    if (url.pathname === '/api/mode' && req.method === 'GET') {
-      return json(res, 200, { mode: orch.modeState(room), modes: listModes().map(short) });
+      return json(res, 200, { ok: removeSpace(name) });
     }
 
     if (url.pathname === '/api/presence' && req.method === 'POST') {
