@@ -16,7 +16,7 @@ const { Store } = await import('../lib/store.js');
 const sleep = (ms) => new Promise((r) => setTimeout(r, ms));
 const ROOM = 'r';
 
-function setup(names, { delays = {}, fail = {}, dir = null, stateDir = null, roles = {}, freeTalk = false, reply = null, foldIdleMs = null, weight = {} } = {}) {
+function setup(names, { delays = {}, fail = {}, dir = null, stateDir = null, roles = {}, freeTalk = false, reply = null, foldIdleMs = null, weight = {}, think = null } = {}) {
   dir = dir ?? fs.mkdtempSync(path.join(os.tmpdir(), 'openspace-test-'));
   const calls = [];
   const built = [];
@@ -47,6 +47,9 @@ function setup(names, { delays = {}, fail = {}, dir = null, stateDir = null, rol
   };
   const orch = new Orchestrator({
     store: new Store(dir), config, build, log: { error() {} }, stateDir,
+    // Короткие вопросы движку в тестах не задаём: пусто — значит «никто не отозвался»
+    // и «повторов нет», а проверяем разбор ответа отдельно, подставляя его руками.
+    think: think ?? (async () => ''),
   });
   return { orch, calls, built, resets, config, dir };
 }
@@ -722,4 +725,21 @@ test('в чужой разговор влезают только с пятёрк
   const mind = [{ name: 'первый', score: 4, thought: 'есть что добавить' }];
   assert.deepEqual(orch.speaks(ROOM, mind, 5), [], 'четвёрка не перебивает адресованную другому реплику');
   assert.equal(orch.take(ROOM, 'первый'), 'есть что добавить', 'непрозвучавшая мысль осталась в голове');
+});
+
+test('слепой круг: повторившемуся возвращают ход за другой мыслью', async () => {
+  // Движок отвечает так, будто второй повторил первого своими словами.
+  const think = async () => [
+    'первый | делать надо быстро',
+    'второй | быстрота важнее всего',
+    'третий | важна не скорость, а порядок',
+    'Повторы: второй — первый',
+  ].join('\n');
+  const { orch, calls } = setup(['первый', 'второй', 'третий'], { think });
+  orch.post(ROOM, { from: 'Roman', text: 'что делаем?' });
+  orch.startMode(ROOM, 'проба');
+  await sleep(700);
+  const слепые = calls.filter((c) => c.step === 'Б');
+  assert.equal(слепые.filter((c) => c.who === 'второй').length, 2, `повторившемуся ход не вернули: ${JSON.stringify(calls.map((c) => `${c.who}:${c.step}`))}`);
+  assert.equal(слепые.filter((c) => c.who === 'третий').length, 1, 'у того, кто не повторился, лишнего хода быть не должно');
 });
