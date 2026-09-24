@@ -254,6 +254,21 @@ export default function App() {
     return out
   }, [cfg?.agents, faces])
 
+  /**
+   * Кого предлагать человеку в подсказке «@». Здесь, в отличие от `cast`, настоящих ников
+   * у переименованных нет: в Смешариках человек выбирает из семерых круглых, а не из
+   * четырнадцати имён, половина которых — те же самые участники под рабочими никами.
+   */
+  const picks = React.useMemo(() => {
+    const out: Record<string, Agent> = {}
+    for (const [nick, a] of Object.entries(cfg?.agents ?? {})) {
+      const p = faces?.[nick]
+      if (p) out[p.name] = { ...a, icon: p.icon || a.icon, color: p.color || a.color }
+      else out[nick] = a
+    }
+    return out
+  }, [cfg?.agents, faces])
+
   if (!cfg || !ready) {
     return (
       <div className="bg-background flex h-dvh flex-col">
@@ -547,7 +562,7 @@ export default function App() {
 
         <Composer
           room={room}
-          agents={cast}
+          agents={picks}
           onError={local}
           onSent={(m) => setMessages((prev) => take(prev, m))}
           replyTo={replyTo}
