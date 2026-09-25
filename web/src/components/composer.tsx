@@ -370,6 +370,7 @@ export function Composer({
               className="rounded-full"
               disabled={!canSend}
               onClick={() => void send()}
+              aria-label={t("composer.send")}
             >
               <ArrowUp />
             </InputGroupButton>

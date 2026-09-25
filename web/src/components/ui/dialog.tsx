@@ -3,6 +3,7 @@ import { cn } from "cn"
 import { Dialog as DialogPrimitive } from "radix-ui"
 
 import { Button } from "@/components/ui/button"
+import { useLang } from "@/lib/i18n"
 import { XIcon } from "lucide-react"
 
 function Dialog({
@@ -53,6 +54,10 @@ function DialogContent({
 }: React.ComponentProps<typeof DialogPrimitive.Content> & {
   showCloseButton?: boolean
 }) {
+  // Крестик живёт во всех диалогах сразу — настройки, карточка участника, карточка
+  // комнаты, — и подпись для скринридера была в нём одна на всех и по-английски.
+  const { t } = useLang()
+  const close = t("ui.close")
   return (
     <DialogPortal>
       <DialogOverlay />
@@ -74,7 +79,7 @@ function DialogContent({
             >
               <XIcon
               />
-              <span className="sr-only">Close</span>
+              <span className="sr-only">{close}</span>
             </Button>
           </DialogPrimitive.Close>
         )}

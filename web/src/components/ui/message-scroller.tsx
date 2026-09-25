@@ -10,6 +10,7 @@ import {
 import { cn } from "cn"
 
 import { Button } from "@/components/ui/button"
+import { useLang } from "@/lib/i18n"
 import { ArrowDownIcon } from "lucide-react"
 
 function MessageScrollerProvider(
@@ -91,6 +92,9 @@ function MessageScrollerButton({
   ...props
 }: React.ComponentProps<typeof MessageScrollerPrimitive.Button> &
   Pick<React.ComponentProps<typeof Button>, "variant" | "size">) {
+  // Кнопка «к последнему сообщению» в ленте: видно только стрелку, и для скринридера
+  // она была подписана по-английски — в русском интерфейсе.
+  const { t } = useLang()
   return (
     <MessageScrollerPrimitive.Button
       data-slot="message-scroller-button"
@@ -110,7 +114,7 @@ function MessageScrollerButton({
           <ArrowDownIcon
           />
           <span className="sr-only">
-            {direction === "end" ? "Scroll to end" : "Scroll to start"}
+            {direction === "end" ? t("ui.toEnd") : t("ui.toStart")}
           </span>
         </>
       )}

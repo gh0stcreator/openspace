@@ -749,6 +749,32 @@ test('скрытая мысль: в ленту не идёт, возвращае
   assert.ok(чужие.every((c) => !c.minds.length), 'чужое невысказанное уехало не тому');
 });
 
+test('движок разлогинен: в ленте по-русски, с командой, и без повторов', async () => {
+  const { saysAuth, saysLimit } = await import('../lib/orchestrator.js');
+  assert.ok(saysAuth('Failed to authenticate: OAuth session expired and could not be refreshed'));
+  assert.ok(saysAuth('Not logged in · Run /login'));
+  assert.ok(!saysAuth('You have hit your usage limit'), 'лимит — это не отказ входа');
+  assert.ok(!saysLimit('Failed to authenticate'), 'отказ входа — это не лимит');
+
+  const { orch } = setup(['первый', 'второй'], {
+    fail: { первый: ['Failed to authenticate: OAuth session expired and could not be refreshed'] },
+  });
+  orch.post(ROOM, { from: 'Roman', text: 'начали, @первый' });
+  await sleep(300);
+
+  const беда = orch.store.load(ROOM).filter((m) => m.kind === 'error');
+  assert.equal(беда.length, 1, 'отказ движка не попал в ленту');
+  assert.ok(!/OAuth|authenticate/i.test(беда[0].text), 'английский текст движка остался в ленте');
+  assert.match(беда[0].text, /claude auth login/, 'не сказано, как чинить');
+  assert.match(беда[0].text, /@первый/, 'не сказано, кто молчит');
+
+  // Второй ход того же участника: молчит и ленту не засоряет — пока человек логинится,
+  // одна и та же ошибка на каждую реплику превратила бы комнату в простыню.
+  orch.post(ROOM, { from: 'Roman', text: 'ещё раз, @первый' });
+  await sleep(300);
+  assert.equal(orch.store.load(ROOM).filter((m) => m.kind === 'error').length, 1, 'ошибка повторилась');
+});
+
 test('уверенность: путь по циклам и сумма, которой не может быть', async () => {
   const { sure, drift } = await import('../lib/orchestrator.js');
   assert.equal(sure('решение\nуверенность: 60%'), 60);
