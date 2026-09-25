@@ -35,6 +35,9 @@ import { useLang, pick, plural } from "@/lib/i18n"
 import { typo } from "@/lib/typo"
 import { api, listen, type Agent, type Config, type Msg, type RoomState } from "@/lib/api"
 
+/** Знак вкладки: слева комната, в скобках предмет разговора. Тот же, что в шапке. */
+const sign = (slug?: string, topic?: string) => `${slug || "open"}(${topic || "space"})`
+
 export default function App() {
   const { lang, t } = useLang()
   const [cfg, setCfg] = React.useState<Config | null>(null)
@@ -131,7 +134,7 @@ export default function App() {
       const target = asked || c.defaultRoom || "общая"
       setRoom(target)
       // Заголовок вкладки — тот же знак, что в шапке: комната слева, предмет в скобках.
-      document.title = `${c.space?.slug ?? "open"}(${c.topic || "space"})`
+      document.title = sign(c.space?.slug, c.topic)
     })
   }, [room])
 
@@ -203,21 +206,22 @@ export default function App() {
     const last = mentions.at(-1)
     if (!last || !document.hidden || notified.current === last.id) return
     notified.current = last.id
-    document.title = `(${unread.length}) open(${room})`
+    document.title = `(${unread.length}) ${sign(cfg?.space?.slug, cfg?.topic)}`
     if (Notification.permission === "granted") {
       new Notification(t("notify.calls", { name: last.from }), {
         body: last.text.slice(0, 160),
         tag: last.id,
       })
     }
-  }, [mentions, unread.length, room, t])
+  }, [mentions, unread.length, room, cfg?.space?.slug, cfg?.topic, t])
 
   React.useEffect(() => {
-    const onShow = () => !document.hidden && (document.title = `open(${room})`)
+    // Возвращаемся во вкладку — заголовок снова тот же знак, что в шапке.
+    const onShow = () => !document.hidden && (document.title = sign(cfg?.space?.slug, cfg?.topic))
     document.addEventListener("visibilitychange", onShow)
     if (Notification.permission === "default") void Notification.requestPermission()
     return () => document.removeEventListener("visibilitychange", onShow)
-  }, [room])
+  }, [room, cfg?.space?.slug, cfg?.topic])
 
   // Esc — самый частый жест, когда разговор разогнался.
   React.useEffect(() => {
