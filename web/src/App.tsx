@@ -3,6 +3,8 @@ import {
   AtSign,
   Check,
   ChevronDown,
+  ChevronLeft,
+  ChevronRight,
   Settings,
   TriangleAlert,
   Users,
@@ -18,7 +20,6 @@ import {
   DropdownMenuSeparator,
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu"
-import { Badge } from "@/components/ui/badge"
 import { ItemContent, ItemDescription, ItemTitle } from "@/components/ui/item"
 import { Label } from "@/components/ui/label"
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover"
@@ -319,6 +320,14 @@ export default function App() {
   const started = messages.some((m) => m.kind === "message")
   // Комната, в которой человек сейчас: из неё берём и знак, и цвет.
   const now = cfg.space ?? cfg.spaces?.find((m) => m.name === room)
+  // Что листается стрелками на пустом экране: рабочие комнаты, по кругу. Комнаты
+  // с персонами сюда не идут — туда заходят нарочно, списком, а не пролистнув мимо.
+  const flipTo = (cfg.spaces ?? []).filter((m) => !(m.sides ?? []).some((x) => x.color))
+  const flip = (step: number) => {
+    const i = flipTo.findIndex((m) => m.name === room)
+    const next = flipTo[((i < 0 ? 0 : i) + step + flipTo.length) % flipTo.length]
+    if (next) go(next.name)
+  }
 
   /**
    * Чем участник занят. «Ждёт» существует только пока идёт круг: вне его очереди нет,
@@ -378,7 +387,7 @@ export default function App() {
           единственный опознавательный знак места, и по нему видно, где ты, раньше,
           чем прочитано название. У опенспейса цвета нет: общее место и есть фон. */}
       <div
-        className="bg-background flex h-dvh flex-col"
+        className={cn("bg-background flex h-dvh flex-col", now?.color && "room-tint")}
         style={now?.color ? toneVars(now.color) : undefined}
       >
         <header className="flex h-14 shrink-0 items-center gap-3 px-4">
@@ -469,19 +478,45 @@ export default function App() {
         </header>
 
         {!started ? (
-          /* Пустая комната показывает не «здесь тихо», а куда можно пойти: карточка
-             на комнату. Та, в которой человек сейчас, в том же ряду и помечена. */
-          <div className="feed-fade min-h-0 flex-1 overflow-y-auto">
-            {/* Воздух сверху и снизу нужен только когда карточки не влезают и список
-                скроллится. Шесть на пустой экран — это ещё и предложение, а не список,
-                поэтому в обрез: лишние два десятка пикселей включали полосу прокрутки
-                при том, что на экране всё видно. */}
-            <div className="mx-auto flex min-h-full w-full max-w-3xl flex-col justify-center px-4 py-3">
-              {/* Чем встречает пустая комната: куда ты попал, зачем сюда ходят и как здесь
-                  идёт разговор. Уклад берём из файла самой комнаты — второй текст про то же
-                  разошёлся бы с первым в первый же день. */}
-              {now && (
-                <div className="mb-6 flex gap-4">
+          /* Пустая комната не говорит «здесь тихо»: она рассказывает, куда ты попал,
+             зачем сюда ходят и как здесь идёт разговор. Комнаты листаются стрелками —
+             это и выбор, и знакомство разом, вместо списка из шести плиток. */
+          <div className="relative min-h-0 flex-1 overflow-hidden">
+            {/* Имя комнаты во всю ширину: узнаётся раньше, чем прочитано название. */}
+            <span
+              aria-hidden
+              className="pointer-events-none absolute inset-0 flex select-none items-center justify-center overflow-hidden"
+            >
+              <span
+                className={cn("font-mono text-[30vw] leading-none", now?.color ? "tone-name" : "text-foreground")}
+                style={{ ...(now?.color ? toneVars(now.color) : {}), opacity: 0.05 }}
+              >
+                {now?.slug}
+              </span>
+            </span>
+
+            {flipTo.length > 1 && (
+              <>
+                <button
+                  className="text-muted-foreground hover:text-foreground absolute top-1/2 left-2 z-10 -translate-y-1/2 rounded-full p-2 transition-colors"
+                  aria-label={t("space.prev")}
+                  onClick={() => flip(-1)}
+                >
+                  <ChevronLeft className="size-6" />
+                </button>
+                <button
+                  className="text-muted-foreground hover:text-foreground absolute top-1/2 right-2 z-10 -translate-y-1/2 rounded-full p-2 transition-colors"
+                  aria-label={t("space.next")}
+                  onClick={() => flip(1)}
+                >
+                  <ChevronRight className="size-6" />
+                </button>
+              </>
+            )}
+
+            {now && (
+              <div className="relative flex h-full items-center justify-center px-12">
+                <div className="flex w-full max-w-2xl gap-4">
                   <span
                     className={cn(
                       "flex size-12 shrink-0 items-center justify-center rounded-full",
@@ -504,70 +539,29 @@ export default function App() {
                     <p className="text-muted-foreground text-sm">
                       {typo(t(`space.flow.${now.flow}` as never) || "")}
                     </p>
+                    <span className="mt-2 flex flex-wrap items-center gap-1.5">
+                      {now.faces?.map((f) => {
+                        const side = now.sides?.find((x) => x.roles?.includes(f.roleName.toLowerCase()))
+                        return (
+                          <Face
+                            key={f.name}
+                            name={side?.label ?? f.name}
+                            icon={side?.icon || f.icon}
+                            color={side?.color || f.color}
+                            size="sm"
+                          />
+                        )
+                      })}
+                    </span>
+                    {now.missing?.length > 0 && (
+                      <span className="text-destructive/90 text-sm">
+                        {t("space.missing", { names: now.missing.join(", ") })}
+                      </span>
+                    )}
                   </div>
                 </div>
-              )}
-              <div className="grid gap-2 sm:grid-cols-2">
-              {/* Комнаты с персонами в сетку не идут: там не работают, и плитка рядом
-                  с рабочими читается как ещё один приём. Зайти в них можно списком.
-                  Нынешняя комната тоже не идёт: она описана выше, целым абзацем. */}
-              {cfg.spaces?.filter((m) => m.name !== room && !(m.sides ?? []).some((x) => x.color)).map((m) => {
-                const current = m.name === room
-                return (
-                  <button
-                    key={m.name}
-                    aria-current={current || undefined}
-                    className={cn(
-                      "flex gap-3 rounded-lg border p-3 text-left transition-colors",
-                      current ? "bg-accent/40" : "hover:bg-accent/40"
-                    )}
-                    onClick={() => go(m.name)}
-                  >
-                    {/* Кружок красится цветом комнаты: он и есть её опознавательный знак. */}
-                    <span
-                      className={cn(
-                        "flex size-10 shrink-0 items-center justify-center rounded-full",
-                        m.color ? "tone-face" : "bg-muted text-muted-foreground"
-                      )}
-                      style={m.color ? toneVars(m.color) : undefined}
-                    >
-                      <Icon name={m.icon} className="size-5" />
-                    </span>
-                    <span className="grid min-w-0 gap-0.5">
-                      <span className="flex items-center gap-2 font-medium">
-                        {pick(lang, m.title, m.titleEn)}
-                        {current && <Badge variant="secondary">{t("space.current")}</Badge>}
-                      </span>
-                      <span className="text-muted-foreground text-sm">
-                        {typo(pick(lang, m.for || m.brief, m.forEn || m.briefEn))}
-                      </span>
-                      <span className="mt-1 flex flex-wrap items-center gap-1.5">
-                        {m.faces?.map((f) => {
-                          // Карточка обещает состав — значит, показывает и лица: у комнаты
-                          // с персонами это её персонажи, а не наши ники.
-                          const side = m.sides?.find((x) => x.roles?.includes(f.roleName.toLowerCase()))
-                          return (
-                            <Face
-                              key={f.name}
-                              name={side?.label ?? f.name}
-                              icon={side?.icon || f.icon}
-                              color={side?.color || f.color}
-                              size="sm"
-                            />
-                          )
-                        })}
-                      </span>
-                      {m.missing.length > 0 && (
-                        <span className="text-destructive/90 text-sm">
-                          {t("space.missing", { names: m.missing.join(", ") })}
-                        </span>
-                      )}
-                    </span>
-                  </button>
-                )
-                })}
               </div>
-            </div>
+            )}
           </div>
         ) : (
           <ChatFeed
