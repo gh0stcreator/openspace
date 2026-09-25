@@ -353,7 +353,11 @@ export default function App() {
 
   // Идёт круг: все отвечают разом и не видят друг друга. Строка нужна, чтобы тишина
   // в несколько ходов читалась как работа, а не как «сломалось».
-  const yourStep = ms?.blind && ms.pending.length ? t("feed.blind") : ""
+  // Что сейчас происходит в комнате: круг вслепую или фаза комнаты встреч. Строка нужна,
+  // чтобы тишина в несколько ходов читалась как работа, а не как «сломалось».
+  const yourStep = ms?.act
+    ? (ms.cycle ? t("feed.cycle", { n: ms.cycle, all: ms.cycles }) : t(`feed.act.${ms.act}` as never))
+    : (ms?.blind && ms.pending.length ? t("feed.blind") : "")
 
   const limitedUntil = (n: string) => {
     const until = state.limited?.[n] ?? 0
@@ -641,7 +645,9 @@ export default function App() {
                 {now ? pick(lang, now.short, now.shortEn) : room}
                 {/* Идёт круг — об этом говорит строка в ленте, а здесь одно слово:
                     в строке управления место есть только для имени комнаты. */}
-                {ms?.blind && <span className="text-muted-foreground/70">· {t("space.blind")}</span>}
+                {ms?.act
+                  ? <span className="text-muted-foreground/70">· {ms.act}{ms.cycle ? ` ${ms.cycle}/${ms.cycles}` : ""}</span>
+                  : ms?.blind && <span className="text-muted-foreground/70">· {t("space.blind")}</span>}
                 <ChevronDown className="size-3.5" />
               </Button>
             </DropdownMenuTrigger>

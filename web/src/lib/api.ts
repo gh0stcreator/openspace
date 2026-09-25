@@ -175,6 +175,10 @@ export type CircleState = {
   pending: string[]
   /** Идёт ли круг: пока идёт, участники отвечают, не видя друг друга. */
   blind: boolean
+  /** Комната встреч: какая фаза идёт и какой цикл из скольких. Пусто — обычная комната. */
+  act: string
+  cycle: number
+  cycles: number
   /** Кем участники выходят в этой комнате: ник → персона. Пусто — выходят собой. */
   personas: Record<string, { name: string; labelEn: string; icon: string; color: string }>
 } | null

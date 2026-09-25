@@ -693,3 +693,68 @@ test('разговор не при всех: чужая пара в дельту
   const виден = orch.store.load(ROOM).find((m) => m.text === 'моя идея').seq;
   assert.ok(!ход.saw.includes(виден), 'чужая парная реплика доехала до постороннего');
 });
+
+test('расписание встреч: каждый встречается с каждым ровно один раз', async () => {
+  const { meetings } = await import('../lib/spaces.js');
+  for (const n of [3, 4, 5, 6]) {
+    const names = Array.from({ length: n }, (_, i) => `у${i}`);
+    const plan = meetings(names);
+    const пары = plan.flat().map(([a, b]) => [a, b].sort().join('·'));
+    assert.equal(new Set(пары).size, пары.length, `${n}: кто-то встретился дважды`);
+    assert.equal(пары.length, (n * (n - 1)) / 2, `${n}: встретились не все`);
+    for (const цикл of plan) {
+      const занят = цикл.flat();
+      assert.equal(new Set(занят).size, занят.length, `${n}: кто-то в цикле занят дважды`);
+    }
+  }
+});
+
+test('бюллетень: за себя нельзя, прогноз отдельно, счёт по расхождению', async () => {
+  const { parseVote, tallyVotes } = await import('../lib/orchestrator.js');
+  const names = ['Инженер', 'Скептик', 'Креатор'];
+  const b = parseVote('за: Скептик, Креатор\nпрогноз: Инженер\nпочему: у Скептика единственный сценарий сбоя', names);
+  assert.deepEqual(b.for, ['Скептик', 'Креатор']);
+  assert.deepEqual(b.guess, ['Инженер']);
+  assert.match(b.why, /сценарий сбоя/);
+
+  const итог = tallyVotes([
+    ['А', { for: ['Скептик', 'Креатор'], guess: ['Инженер'] }],
+    ['Б', { for: ['Скептик'], guess: ['Инженер'] }],
+  ]);
+  assert.equal(итог[0].name, 'Скептик', 'порядок не по голосам');
+  assert.equal(итог[0].surprise, 2, 'расхождение голоса и прогноза посчитано неверно');
+  assert.equal(итог.find((r) => r.name === 'Инженер').surprise, -2, 'ожидаемого, но невыбранного не видно');
+});
+
+test('чёрная комната: круг втайне, встречи попарно, защита при всех, оценка вслепую', async () => {
+  // Движок на каждый вопрос отвечает «да»: позиции считаются изменившимися, и круговой
+  // турнир проходит целиком, а не останавливается после первого цикла.
+  const { orch, calls } = setup(['первый', 'второй', 'третий', 'четвёртый'], { think: async () => 'да' });
+  orch.post('чёрная', { from: 'Roman', text: 'что делаем?' });
+  await sleep(4000);
+
+  const feed = orch.store.load('чёрная').filter((m) => m.kind === 'message' && m.from !== 'Roman');
+  const шаги = calls.map((c) => c.step);
+  assert.ok(шаги.includes('круг'), 'круга не было');
+  assert.ok(шаги.includes('встреча'), 'встреч не было');
+  assert.ok(шаги.includes('пересборка'), 'пересборки не было');
+  assert.ok(шаги.includes('защита'), 'защиты не было');
+  assert.ok(шаги.includes('оценка'), 'оценки не было');
+
+  const круг = feed.filter((m) => m.text.includes('· круг]'));
+  assert.equal(круг.length, 4, 'в круге ответили не все');
+  assert.ok(круг.every((m) => m.only?.length === 1), 'ответ круга увидел кто-то, кроме автора');
+
+  const встречи = feed.filter((m) => m.text.includes('· встреча]'));
+  assert.ok(встречи.every((m) => m.only?.length === 2), 'разговор пары видят не двое');
+  // Три цикла по две пары, по четыре реплики на встречу.
+  assert.equal(встречи.length, 24, `встреч прошло не столько: ${встречи.length}`);
+
+  const защита = feed.filter((m) => m.text.includes('· защита]'));
+  assert.equal(защита.length, 4, 'защищались не все');
+  assert.ok(защита.every((m) => !m.only), 'защита прошла не при всех');
+
+  const оценка = feed.filter((m) => m.text.includes('· оценка]'));
+  assert.ok(оценка.every((m) => m.only?.length === 1), 'оценку видели чужие');
+  assert.equal(orch.state('чёрная').act, '', 'протокол не закрылся');
+});
