@@ -45,6 +45,14 @@ function saveConfig(cfg) {
 /** Полное описание комнаты — для редактора: со всеми текстами. */
 const full = (m) => ({ ...short(m), laws: m.laws, circle: m.circle, cast: m.cast, duty: m.duty, tune: m.tune });
 
+/** Кто в этой комнате правда говорит: без теневого найма и без молчунов по роли. */
+const живые = (m) => pick(m.cast, orch.names, orch.roster).filter((n) => {
+  const роль = roleOf(orch.roster[n] ?? {});
+  if ((orch.roster[n]?.role ?? '').toLowerCase() === 'архивариус') return false;
+  // В комнате без регламента молчун по роли не участвует: его туда не зовут.
+  return m.talk ? роль.chats !== false : true;
+});
+
 const short = (m) => {
   const present = orch.names.map((n) => n.toLowerCase());
   return {
@@ -63,12 +71,15 @@ const short = (m) => {
     slug: m.slug,
     short: m.short,
     shortEn: m.shortEn,
-    // Кто здесь живёт: зашли в комнату — разговариваете с этими.
-    who: pick(m.cast, orch.names, orch.roster),
+    // Кто здесь живёт: зашли в комнату — разговариваете с этими. Именно разговариваете:
+    // архивариус в комнате числится, но он теневой найм, а участник с пометкой «не болтает»
+    // в комнату без регламента не зовётся вовсе. Карточка, обещавшая восьмерых там, где
+    // говорить могут шестеро, врала дважды.
+    who: живые(m),
     // И как они выглядят. Состав в карточке — свой у каждой комнаты, а `agents` ниже
     // отдаёт только тех, кто живёт в текущей: без этих лиц чужие комнаты рисовались
     // серыми роботами — знак «участника не нашли».
-    faces: pick(m.cast, orch.names, orch.roster).map((n) => ({
+    faces: живые(m).map((n) => ({
       name: n,
       icon: orch.roster[n]?.icon ?? roleOf(orch.roster[n] ?? {}).icon,
       color: orch.roster[n]?.color ?? null,
