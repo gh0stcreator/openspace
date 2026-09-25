@@ -680,6 +680,15 @@ function Head({
         onPick={onMention}
         className="font-semibold"
       />
+      {/* Разговор не при всех: человек видит его целиком, остальные участники — нет,
+          и это должно быть видно, иначе читаешь парную встречу как общую реплику. */}
+      {msg.only?.length ? (
+        <span className="bg-muted text-muted-foreground rounded-full px-2 py-0.5 text-xs font-medium">
+          {msg.only.filter((n) => n !== msg.from).length
+            ? t("feed.aside", { names: msg.only.filter((n) => n !== msg.from).join(", ") })
+            : t("feed.alone")}
+        </span>
+      ) : null}
       {msg.side && !msg.side.persona && (
         <span className="bg-muted text-muted-foreground rounded-full px-2 py-0.5 text-xs font-medium">
           {as}

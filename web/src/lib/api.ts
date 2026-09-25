@@ -4,6 +4,8 @@ export type Msg = {
   room: string
   from: string
   kind: "message" | "system" | "error" | "edit" | "mode" | "skip" | "memory-proposal" | "memory-resolved"
+  /** Разговор не при всех: кто эту реплику видит. Пусто — видят все. Человек видит всегда. */
+  only?: string[]
   /** Событие правки: какую реплику и на что. Сама реплика после правки несёт `edited`. */
   target?: number
   edited?: number
