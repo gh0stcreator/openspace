@@ -131,7 +131,7 @@ export default function App() {
     const asked = room || new URLSearchParams(location.search).get("room") || undefined
     api.config(asked).then((c) => {
       setCfg(c)
-      const target = asked || c.defaultRoom || "общая"
+      const target = asked || c.defaultRoom || "опенспейс"
       setRoom(target)
       // Заголовок вкладки — тот же знак, что в шапке: комната слева, предмет в скобках.
       document.title = sign(c.space?.slug, c.topic)

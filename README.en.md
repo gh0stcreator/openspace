@@ -229,7 +229,7 @@ green(launch)             looking for a move nobody expects
 | The obvious answer won't do; you need moves nobody expects | 🟢 Green |
 | Improving one thing spoils another, and you need to find what fights what | 🟣 Violet |
 | You need to separate what is known from what everyone assumes is known | ⚪ White |
-| Just a conversation | Common |
+| Just a conversation | Openspace |
 
 Each room has its own cast, its own way of working and its own readiness to speak up.
 You pick a room from the cards on the empty screen or the list in the bar under the composer;

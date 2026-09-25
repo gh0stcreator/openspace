@@ -21,7 +21,7 @@ const RU = {
   "theme.system": "Системная",
 
   "space.label": "Комната",
-  "space.open": "Общая",
+  "space.open": "Опенспейс",
   "space.missing": "нет в команде: {names}",
   "space.blind": "вслепую",
   "space.circle": "Первый круг: каждый отвечает, не видя чужих ответов",
@@ -207,7 +207,7 @@ const EN: Record<keyof typeof RU, string> = {
   "theme.system": "System",
 
   "space.label": "Room",
-  "space.open": "Common",
+  "space.open": "Openspace",
   "space.missing": "missing from the team: {names}",
   "space.blind": "blind",
   "space.circle": "First round: everyone answers without seeing the others",
