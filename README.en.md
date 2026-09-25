@@ -222,14 +222,13 @@ green(launch)             looking for a move nobody expects
 
 ## Which room to go to
 
-| Situation | Room |
+| What you need | Room |
 | --- | --- |
-| The obvious answer won't do; you need moves nobody expects | 🟢 Green |
-| Something finished needs roasting: where it tears, what was missed | 🔴 Red |
-| Code, design, build the thing itself | 🔵 Blue |
-| Understand something, think it through, learn — no decision at the end | 🟣 Violet |
-| You need specific people for one specific task | ⚪ White |
-| Just a conversation | Openspace |
+| Come up with different options and moves nobody expects | 🟢 Green |
+| Test an idea or a decision for strength | 🔴 Red |
+| Take a task all the way to a finished result | 🔵 Blue |
+| Look into a subject and put the whole picture together | 🟣 Violet |
+| Talk a question over with no approach chosen in advance | Openspace |
 
 Each room has its own cast, its own way of working and its own readiness to speak up.
 You pick a room from the cards on the empty screen or the list in the bar under the composer;
