@@ -29,7 +29,7 @@ function setup(names, { delays = {}, fail = {}, dir = null, stateDir = null, rol
     return {
       reset() { resets.push(name); },
       async speak({ delta, step, ctx }) {
-        calls.push({ who: name, step: step?.name ?? null, saw: delta.map((m) => m.seq), anew: !!ctx?.anew });
+        calls.push({ who: name, step: step?.name ?? null, saw: delta.map((m) => m.seq), anew: !!ctx?.anew, minds: ctx?.minds ?? [] });
         await sleep(delays[name] ?? 20);
         if (fail[name]?.length) return { error: fail[name].shift() };
         // Вес сессии: сколько входных токенов движок насчитал за ход. По нему решается ротация.
@@ -724,6 +724,52 @@ test('бюллетень: за себя нельзя, прогноз отдел�
   assert.equal(итог[0].name, 'Скептик', 'порядок не по голосам');
   assert.equal(итог[0].surprise, 2, 'расхождение голоса и прогноза посчитано неверно');
   assert.equal(итог.find((r) => r.name === 'Инженер').surprise, -2, 'ожидаемого, но невыбранного не видно');
+});
+
+test('скрытая мысль: в ленту не идёт, возвращается только автору', async () => {
+  const { aside } = await import('../lib/orchestrator.js');
+  assert.deepEqual(aside('вслух\n[про себя] а мне не нравится'), { text: 'вслух', aside: 'а мне не нравится' });
+  assert.deepEqual(aside('(про себя): тихо'), { text: '', aside: 'тихо' }, 'реплика из одной скрытой строки — это молчание');
+  assert.deepEqual(aside('просто текст').aside, '', 'пустая скрытая строка не выдумывается');
+
+  const { orch, calls } = setup(['первый', 'второй'], { reply: 'вслух\n[про себя] я промолчал про сроки' });
+  orch.post(ROOM, { from: 'Roman', text: 'начали, @первый' });
+  await sleep(300);
+
+  const лента = orch.store.load(ROOM).filter((m) => m.kind === 'message');
+  assert.ok(лента.length > 1, 'никто не ответил');
+  assert.ok(!лента.some((m) => /про себя|промолчал про сроки/.test(m.text)), 'скрытая строка утекла в ленту');
+  assert.deepEqual(orch.minds(ROOM, 'первый'), ['я промолчал про сроки']);
+
+  orch.post(ROOM, { from: 'Roman', text: 'и дальше, @первый' });
+  await sleep(300);
+  const свои = calls.filter((c) => c.who === 'первый');
+  assert.ok(свои.at(-1).minds.includes('я промолчал про сроки'), 'своё невысказанное к нему не вернулось');
+  const чужие = calls.filter((c) => c.who === 'второй');
+  assert.ok(чужие.every((c) => !c.minds.length), 'чужое невысказанное уехало не тому');
+});
+
+test('уверенность: путь по циклам и сумма, которой не может быть', async () => {
+  const { sure, drift } = await import('../lib/orchestrator.js');
+  assert.equal(sure('решение\nуверенность: 60%'), 60);
+  assert.equal(sure('Уверенность 5'), 5);
+  assert.equal(sure('уверенность: 140%'), null, 'процент больше ста — не число, а описка');
+  assert.equal(sure('ничего не поменялось'), null);
+
+  // Каждый после встреч уверен сильнее прежнего: узнать это разом нельзя — лучшим
+  // окажется одно решение, и вероятность в комнате не прибавляется, а перекладывается.
+  const вверх = drift([['А', [60, 75]], ['Б', [50, 60]]]);
+  assert.match(вверх, /60 → 75%/, 'пути не видно');
+  assert.match(вверх, /больше ста в сумме быть не может/, 'рост суммы не назван');
+
+  const вниз = drift([['А', [60, 30]], ['Б', [50, 40]]]);
+  assert.match(вниз, /не выросла/);
+  assert.doesNotMatch(вниз, /окопался/);
+
+  const стоял = drift([['А', [40, 40, 40]], ['Б', [30, 20]]]);
+  assert.match(стоял, /@А: 40%/, 'повтор подряд не свёрнут');
+  assert.match(стоял, /Не сдвинул число ни разу: @А/);
+  assert.equal(drift([['А', [40]]]), '', 'одному участнику сравнивать себя не с кем');
 });
 
 test('чёрная комната: круг втайне, встречи попарно, защита при всех, оценка вслепую', async () => {

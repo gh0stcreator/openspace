@@ -254,6 +254,11 @@ cd web && npm run build      # разовая сборка, тип-чек вхо
 - **Хук после раннего возврата роняет всё окно.** `if (!cfg) return <Скелет/>` и `React.useEffect`
   ниже — порядок хуков скачет между рендерами, и падает не компонент, а приложение: чёрный
   экран вместо настроек. Все хуки стоят до любого `return`, включая памятки и подписки.
+- **Скрытая строка не попадает в ленту никогда.** Реплика, законченная строкой
+  «[про себя] …», теряет её до того, как станет сообщением: `aside()` режет текст
+  в `speakTurn` раньше `post()`. Невысказанное лежит в состоянии комнаты и едет
+  в промпт одному своему автору. Никакого «почти приватно» здесь нет: если строка
+  может утечь к собеседнику, скрытого мышления нет вовсе.
 - **Сервер держит состояние в памяти.** Правка в `lib/` или `server.js` видна только после
   перезапуска `npm run dev`; правка в `web/src/` — сразу.
 
@@ -262,7 +267,7 @@ cd web && npm run build      # разовая сборка, тип-чек вхо
 ```
 server.js               HTTP, SSE, REST — один файл, без фреймворка
 lib/
-  orchestrator.js       кого будить и когда; круг и внутренние мысли
+  orchestrator.js       кого будить и когда; круг, внутренние мысли, скрытое мышление
   agents.js             запуск claude -p и codex exec
   skills.js             что участник умеет руками и какие это флаги CLI
   spaces.js             разбор spaces/*.md: состав, динамика, круг, уклад
@@ -278,7 +283,7 @@ lib/
   config.js             DEFAULTS и openspace.config.json
 roles/                  по файлу на роль: что делает, зона интереса, черта, домен
 archetypes/             по файлу на амплуа: как говорит
-spaces/                 по файлу на комнату: красная, синяя, зелёная, фиолетовая, белая
+spaces/                 по файлу на комнату: опенспейс, красная, синяя, зелёная, фиолетовая, чёрная
 web/src/                клиент: React + Vite + Tailwind 4 + shadcn/ui
 web/public/             фавиконка и знаки — исходники, не сборка
 test/                   движок и разбор файлов на заглушках, `npm test`
@@ -293,3 +298,82 @@ CHANGELOG.md            что менялось в продукте и поче�
 **Комната** — файл `spaces/<имя>.md`, формат в [spaces/README.md](spaces/README.md), либо
 прямо в интерфейсе: Настройки → Комнаты. Редактор пишет тот же файл.
 **Компонент** — `npx shadcn@latest add <имя>` в `web/`, потом использовать как есть.
+
+
+<claude-mem-context>
+# Memory Context
+
+# [openspace] recent context, 2026-09-24 5:58pm GMT+3
+
+Legend: 🎯session 🔴bugfix 🟣feature 🔄refactor ✅change 🔵discovery ⚖️decision
+Format: ID TIME TYPE TITLE
+Fetch details: get_observations([IDs]) | Search: mem-search skill
+
+Stats: 50 obs (18,431t read) | 1,940,980t work | 99% savings
+
+### Sep 19, 2026
+S654 openspace — режимы: критерии отбора, восстановление «Шести шляп» и «Премортема», исследование Методотеки (Sep 19 at 1:23 PM)
+S655 Openspace READMEs updated to reference docs/dynamics.md literature review (Sep 19 at 1:30 PM)
+S656 Prostranstvo — коллективные числительные для счётчика участников (Sep 19 at 1:51 PM)
+S657 Prostranstvo settings General tab — visual layout verified via browser screenshot (Sep 19 at 2:03 PM)
+S659 Openspace settings dialog — убрать лишние подписи под полями и упростить подпись автора (Sep 19 at 3:11 PM)
+S660 Openspace — исправить отступы справа, позиционирование и цвет названия модели в панели участников (Sep 19 at 3:14 PM)
+S663 Openspace brief spec — 5 wording edits tightened, then committed as 94dbc49 (Sep 19 at 4:10 PM)
+### Sep 20, 2026
+3029 12:04a ⚖️ Memory architecture design discussion for collaborative space
+3030 " 🔵 Mode Card Participant Faces Are Unreadable Without Hover
+3031 " 🔵 Open Mode Card Duplicates Participant Count
+3032 " ⚖️ Mode Card Face Labels Require Height Trade-off Decision
+### Sep 21, 2026
+3099 6:46p ⚖️ Product Challenge Review — Architecture, Dialogs, Characters
+3100 6:47p ⚖️ Product Challenge Review Initiated
+3101 " 🔵 open(space) Multi-Agent Chat — Room Transcript Architecture Mapped
+3102 6:49p ⚖️ Product Challenge Review — Architecture, Dialogs, Characters
+3103 6:52p ⚖️ Product Challenge Review — Architecture, Dialogs, and Character Design Audit Initiated
+3104 " 🔵 open(space) Продукт — Статистика реплик: длина, стоимость, ожидание
+3105 " 🔵 open(space) — Матрица упоминаний: агенты говорят с Roman, а не друг с другом
+3106 " 🔵 open(space) — Архитектура памяти: JSON per-room, 4 items в «общая», 0 в других
+3107 " 🔵 open(space) — Ревью продукта: поведение участников в комнате «разбор» (режим Противоречие)
+3108 7:03p 🔵 Prostranstvo — полный анализ транскриптов комнат: паттерны, стоимость, боль
+3109 7:26p 🔵 Openspace — структура RoomState и ModeState в клиенте
+3110 " 🔴 Openspace — баг комнат: config и settings не передавали room в запросе
+3111 " 🔴 Openspace — settings-dialog передаёт room в api.settings() и useEffect
+3112 " 🔵 Openspace — статистика ошибок в логах комнат: 27 лимитов, 2 таймаута
+3113 7:27p 🔵 Openspace — тест-харнесс engine.test.mjs: 31 тест, заглушки без LLM-вызовов
+3114 " 🟣 Openspace — предохранитель лимитов подписки в оркестраторе
+3115 7:28p 🔴 Openspace — предохранитель лимитов: нет дублей на параллельном шаге вслепую
+3116 " 🟣 Openspace — 4 теста предохранителя лимитов, все 48 тестов проходят
+3117 7:29p 🔵 Openspace — «ход за вами»: строка feed.yourTurn есть, waitingUser в UI не используется
+3118 " 🔵 Openspace — UI-ограничение: «ход за вами» нельзя делать полосой над лентой
+3119 7:30p 🟣 Openspace — клиент показывает статус «лимит подписки» на аватарке участника
+3120 " 🟣 Openspace — «ход за вами»: строка в потоке ленты при ожидании режима
+3121 7:31p 🟣 Openspace — учёт skip: пропущенный ход записывается в ленту как kind='skip'
+3122 " 🔴 Openspace — режим «Дебаты»: шаг «Тезис» теперь ждёт подтверждения человека
+3123 " ✅ Openspace — глава «Быстрые правки» завершена: 49 тестов, клиент собран
+3124 7:32p 🔵 Openspace — QA в браузере: api/config с room и «ждёт вашего слова» работают вживую
+3125 7:33p 🔵 Openspace — баг комнат подтверждён данными: разные комнаты возвращают разный счётчик памяти
+3126 " ✅ Openspace — CHANGELOG.md обновлён записями от 21 сентября 2026
+3127 " 🔵 Openspace — тест в staged-снимке упал: частичное стейджирование skip создало несогласованное состояние
+3128 7:34p 🔵 Openspace — staged-снимок: 2 падения — свёртка и skip, 45 тестов вместо 49
+3129 " 🔵 Openspace — корень падения теста свёртки: skip-записи учитываются в счётчике FOLD_AFTER
+3130 7:35p 🔵 Openspace — skip-тест в staged-снимке: append-ханк не попал в индекс, skip-записи не пишутся
+3131 " 🔵 Openspace — skip-ханк применён в неверный контекст: код оказался в archive() вместо speakTurn()
+3132 7:46p 🔵 Humanizer skill — AI-signs catalogue structure mapped
+3133 7:48p 🔵 Openspace Logo component — sign grammar and hover animation mechanics
+3134 " 🟣 Openspace — «Задача пространства» (brief) spec written
+3135 7:49p ✅ Openspace brief spec — 5 wording edits tightened, then committed as 94dbc49
+S664 Упрощение спецификации для фичи «Над чем работаем» — поле контекста задачи в Prostranstvo (Sep 21 at 7:49 PM)
+S665 Роман отклонил «задачу пространства» (бриф-поле) — удалить сущность и зафиксировать правило (Sep 21 at 7:51 PM)
+3136 7:54p ⚖️ open(space) — отклонена «задача пространства» (бриф-поле)
+3137 8:02p 🔵 Openspace Session Log Analysis — Friction Moments Identified Across Five Key Sequences
+3138 8:07p 🟣 bin/replay First Run — Five Friction Moments Replayed with Updated Sonnet Prompt
+3139 " 🔵 Openspace Инженер Role Behavioral Constraints — Full Prompt Rules Confirmed
+3140 8:08p 🔵 Session Log Sequences 300–331 — HR/Culture Section Debate and DEAF Pattern Concentration
+3141 8:09p ✅ lib/prompt.js — Two Prompt Rules Rewritten + Owner-Spoke-Last Nudge Added
+3142 8:12p 🔵 Replay Iteration 2 — Prompt Change Partially Fixed DEAF Pattern, Two Cases Still Trigger ⚑
+3143 8:13p 🟣 Two Commits Landed — bin/replay Tool and Prompt "Author's Measure" Rule Shipped
+3144 8:14p ✅ Project Plan Memory Updated — bin/replay Results Recorded in openspace-challenge-review-plan.md
+S666 Project Plan Memory Updated — bin/replay Results Recorded in openspace-challenge-review-plan.md (Sep 21 at 8:14 PM)
+
+Access 1941k tokens of past work via get_observations([IDs]) or mem-search skill.
+</claude-mem-context>
