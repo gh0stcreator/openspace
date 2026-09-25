@@ -18,6 +18,8 @@ const sleep = (ms) => new Promise((r) => setTimeout(r, ms));
 const ROOM = 'r';
 // Комната с кругом: в ней первая реплика человека поднимает всех разом, вслепую.
 const CIRCLE = 'проба';
+// Комната без регламента: в ней ходы идут как в разговоре, а не по очереди дежурных.
+const TALK = 'трёп';
 
 function setup(names, { delays = {}, fail = {}, dir = null, stateDir = null, roles = {}, freeTalk = false, reply = null, foldIdleMs = null, weight = {}, think = null, thinkAs = null, minds = null } = {}) {
   dir = dir ?? fs.mkdtempSync(path.join(os.tmpdir(), 'openspace-test-'));
@@ -751,6 +753,21 @@ test('скрытая мысль: в ленту не идёт, возвращае
   assert.ok(свои.at(-1).minds.includes('я промолчал про сроки'), 'своё невысказанное к нему не вернулось');
   const чужие = calls.filter((c) => c.who === 'второй');
   assert.ok(чужие.every((c) => !c.minds.length), 'чужое невысказанное уехало не тому');
+});
+
+test('внутренние мысли работают в разговорной комнате, а не мимо неё', async () => {
+  // Регрессия переезда на комнаты: помощник переписали на приём имени комнаты, а все
+  // пять вызовов остались со состоянием. Объект превращался в «objectObject», файла
+  // такого нет, и весь механизм внутренних мыслей молча не работал нигде.
+  const { orch } = setup(['первый', 'второй'], {
+    think: async () => 'второй | задело | лень | 5 | вот это мимо',
+    minds: () => '5 | вот это мимо',
+    freeTalk: true,
+  });
+  orch.post(TALK, { from: 'Roman', text: 'что думаете?' });
+  await sleep(900);
+  const кто = orch.store.load(TALK).filter((m) => m.kind === 'message' && m.from !== 'Roman');
+  assert.ok(кто.length, 'в разговорной комнате никто не отозвался');
 });
 
 test('своя мысль своей головой: спрашивают не всех и не общую модель', async () => {
