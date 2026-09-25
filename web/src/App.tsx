@@ -477,8 +477,41 @@ export default function App() {
                 поэтому в обрез: лишние два десятка пикселей включали полосу прокрутки
                 при том, что на экране всё видно. */}
             <div className="mx-auto flex min-h-full w-full max-w-3xl flex-col justify-center px-4 py-3">
+              {/* Чем встречает пустая комната: куда ты попал, зачем сюда ходят и как здесь
+                  идёт разговор. Уклад берём из файла самой комнаты — второй текст про то же
+                  разошёлся бы с первым в первый же день. */}
+              {now && (
+                <div className="mb-6 flex gap-4">
+                  <span
+                    className={cn(
+                      "flex size-12 shrink-0 items-center justify-center rounded-full",
+                      now.color ? "tone-face" : "bg-muted text-muted-foreground"
+                    )}
+                    style={now.color ? toneVars(now.color) : undefined}
+                  >
+                    <Icon name={now.icon} className="size-6" />
+                  </span>
+                  <div className="grid min-w-0 gap-1.5">
+                    <h1 className="text-xl font-medium">
+                      {t("space.hello", { name: pick(lang, now.title, now.titleEn) })}
+                    </h1>
+                    <p className="text-muted-foreground">
+                      {typo(pick(lang, now.for || now.brief, now.forEn || now.briefEn))}
+                    </p>
+                    {now.laws && (
+                      <p className="text-muted-foreground text-sm">{typo(now.laws.split("\n\n")[0])}</p>
+                    )}
+                    <p className="text-muted-foreground text-sm">
+                      {typo(t(`space.flow.${now.flow}` as never) || "")}
+                    </p>
+                  </div>
+                </div>
+              )}
               <div className="grid gap-2 sm:grid-cols-2">
-              {cfg.spaces?.map((m) => {
+              {/* Комнаты с персонами в сетку не идут: там не работают, и плитка рядом
+                  с рабочими читается как ещё один приём. Зайти в них можно списком.
+                  Нынешняя комната тоже не идёт: она описана выше, целым абзацем. */}
+              {cfg.spaces?.filter((m) => m.name !== room && !(m.sides ?? []).some((x) => x.color)).map((m) => {
                 const current = m.name === room
                 return (
                   <button
@@ -509,17 +542,16 @@ export default function App() {
                         {typo(pick(lang, m.for || m.brief, m.forEn || m.briefEn))}
                       </span>
                       <span className="mt-1 flex flex-wrap items-center gap-1.5">
-                        {m.who?.map((n) => {
+                        {m.faces?.map((f) => {
                           // Карточка обещает состав — значит, показывает и лица: у комнаты
                           // с персонами это её персонажи, а не наши ники.
-                          const role = (cfg.agents[n]?.roleName ?? "").toLowerCase()
-                          const side = m.sides?.find((x) => x.roles?.includes(role))
+                          const side = m.sides?.find((x) => x.roles?.includes(f.roleName.toLowerCase()))
                           return (
                             <Face
-                              key={n}
-                              name={side?.label ?? n}
-                              icon={side?.icon || cfg.agents[n]?.icon}
-                              color={side?.color || cfg.agents[n]?.color}
+                              key={f.name}
+                              name={side?.label ?? f.name}
+                              icon={side?.icon || f.icon}
+                              color={side?.color || f.color}
                               size="sm"
                             />
                           )

@@ -137,6 +137,8 @@ export type Space = {
   forEn: string
   /** Кто здесь живёт. */
   who: string[]
+  /** И как они выглядят: знак, цвет и роль. Состав чужой комнаты по `agents` не нарисовать. */
+  faces: { name: string; icon: string; color: string | null; roleName: string }[]
   needs: string[]
   missing: string[]
   icon: string
@@ -148,12 +150,16 @@ export type Space = {
   circle: boolean
   /** Без регламента: круг не заводится, ходы идут как в разговоре. */
   talk: boolean
+  /** Уклад комнаты: её законы своими словами. Им же встречают зашедшего в пустую комнату. */
+  laws: string
+  /** Как здесь идёт разговор: разговор, круг, встречи или очередь. */
+  flow: string
 }
 
 /** Комната целиком — с текстами: их правит редактор комнат. */
 // В коротком описании `circle` — «есть ли здесь круг», в полном — само задание круга:
 // карточке комнаты нужен текст, а списку — только признак.
-export type FullSpace = Omit<Space, "circle"> & {
+export type FullSpace = Omit<Space, "circle" | "flow" | "laws"> & {
   laws: string
   circle: string
   cast: string

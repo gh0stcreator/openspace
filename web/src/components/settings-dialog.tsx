@@ -95,6 +95,7 @@ const BLANK: FullSpace = {
   title: "Новая комната",
   titleEn: "",
   who: [],
+  faces: [],
   short: "Новая",
   shortEn: "",
   slug: "custom",

@@ -166,6 +166,11 @@ const RU = {
   "model.haiku": "Самая быстрая, для простого",
 
   "space.current": "Вы здесь",
+  "space.hello": "Вы в комнате {name}",
+  "space.flow.разговор": "Разговора по правилам здесь нет: отвечает тот, кого задело, и отвечать не обязан никто",
+  "space.flow.круг": "Первый ответ на ваш вопрос дают все сразу и не видя друг друга — потом говорят при всех",
+  "space.flow.встречи": "Каждый решает сам, потом все сходятся парами наедине, и только в конце видят всех",
+  "space.flow.очередь": "Отвечают по очереди: кто нужен по теме, того и будят",
   "space.new": "Создать комнату",
   "space.slug": "Имя в знаке",
   "space.slugHint": "red",
@@ -344,6 +349,11 @@ const EN: Record<keyof typeof RU, string> = {
   "model.haiku": "Fastest, for simple things",
 
   "space.current": "You are here",
+  "space.hello": "You are in the {name} room",
+  "space.flow.разговор": "There are no rules of order here: whoever is struck by it answers, and nobody has to",
+  "space.flow.круг": "Everyone answers your question at once without seeing each other, and only then speak openly",
+  "space.flow.встречи": "Each one decides alone, then they meet in pairs one on one, and see everyone only at the end",
+  "space.flow.очередь": "They answer in turn: whoever the topic needs gets woken",
   "space.new": "New room",
   "space.slug": "Name in the mark",
   "space.slugHint": "red",
