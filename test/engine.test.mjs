@@ -19,11 +19,12 @@ const ROOM = 'r';
 // Комната с кругом: в ней первая реплика человека поднимает всех разом, вслепую.
 const CIRCLE = 'проба';
 
-function setup(names, { delays = {}, fail = {}, dir = null, stateDir = null, roles = {}, freeTalk = false, reply = null, foldIdleMs = null, weight = {}, think = null } = {}) {
+function setup(names, { delays = {}, fail = {}, dir = null, stateDir = null, roles = {}, freeTalk = false, reply = null, foldIdleMs = null, weight = {}, think = null, thinkAs = null, minds = null } = {}) {
   dir = dir ?? fs.mkdtempSync(path.join(os.tmpdir(), 'openspace-test-'));
   const calls = [];
   const built = [];
   const resets = [];
+  const asked = [];
   const build = (name) => {
     built.push(name);
     return {
@@ -53,8 +54,11 @@ function setup(names, { delays = {}, fail = {}, dir = null, stateDir = null, rol
     // Короткие вопросы движку в тестах не задаём: пусто — значит «никто не отозвался»
     // и «повторов нет», а проверяем разбор ответа отдельно, подставляя его руками.
     think: think ?? (async () => ''),
+    // Своя мысль своей моделью поднимает настоящий claude или codex. В тестах — заглушка,
+    // и она же запоминает, кого вообще спросили: спрашивать всех подряд дорого.
+    thinkAs: thinkAs ?? (async (cfg) => { asked.push(cfg); return minds?.(cfg) ?? ''; }),
   });
-  return { orch, calls, built, resets, config, dir };
+  return { orch, calls, built, resets, config, dir, asked };
 }
 
 /** Шаги режима в порядке появления, без повторов подряд и без закрывающего «итога». */
@@ -747,6 +751,42 @@ test('скрытая мысль: в ленту не идёт, возвращае
   assert.ok(свои.at(-1).minds.includes('я промолчал про сроки'), 'своё невысказанное к нему не вернулось');
   const чужие = calls.filter((c) => c.who === 'второй');
   assert.ok(чужие.every((c) => !c.minds.length), 'чужое невысказанное уехало не тому');
+});
+
+test('своя мысль своей головой: спрашивают не всех и не общую модель', async () => {
+  const общий = async () => [
+    'первый | задело | лень | 4 | общая мысль первого',
+    'второй | задело | лень | 4 | общая мысль второго',
+    'третий | мимо | нечего | 2 | общая мысль третьего',
+  ].join('\n');
+
+  const { orch, asked } = setup(['первый', 'второй', 'третий'], {
+    think: общий,
+    minds: () => '5 | своя мысль',
+  });
+  const мысли = await orch.thoughts(ROOM, 'что делаем?');
+
+  // Спрашивают только тех, чья мысль и так не пропадёт, и не больше двух разом.
+  assert.equal(asked.length, 2, 'своей головой думали не двое');
+  const свои = мысли.filter((m) => m.thought === 'своя мысль').map((m) => m.name).sort();
+  assert.deepEqual(свои, ['второй', 'первый'], 'своя мысль досталась не тем');
+  assert.equal(мысли.find((m) => m.name === 'первый').score, 5, 'балл своей головы не взяли');
+
+  // Кого не спрашивали — остался с общей мыслью, и это нормально: она всё равно забудется.
+  assert.equal(мысли.find((m) => m.name === 'третий').thought, 'общая мысль третьего');
+
+  // Движок не ответил или ответил не по форме — остаёмся с тем, что было.
+  const { orch: молчун } = setup(['первый', 'второй'], { think: общий, minds: () => 'извините, не понял' });
+  const запасные = await молчун.thoughts(ROOM, 'что делаем?');
+  assert.equal(запасные.find((m) => m.name === 'первый').thought, 'общая мысль первого');
+  assert.equal(запасные.find((m) => m.name === 'первый').score, 4, 'балл сбился на пустом ответе');
+
+  // Ноль в настройке возвращает прежнее поведение: думает одна общая голова.
+  const { orch: дёшево, asked: молчали } = setup(['первый', 'второй'], { think: общий, minds: () => '5 | своя мысль' });
+  дёшево.config.ownMinds = 0;
+  const общие = await дёшево.thoughts(ROOM, 'что делаем?');
+  assert.equal(молчали.length, 0, 'при нуле всё равно спросили движки');
+  assert.equal(общие.find((m) => m.name === 'первый').thought, 'общая мысль первого');
 });
 
 test('движок разлогинен: в ленте по-русски, с командой, и без повторов', async () => {
