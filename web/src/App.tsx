@@ -484,12 +484,13 @@ export default function App() {
           <div className="relative min-h-0 flex-1 overflow-hidden">
             {/* Имя комнаты во всю ширину: узнаётся раньше, чем прочитано название. */}
             <span
+              key={`знак-${room}`}
               aria-hidden
-              className="pointer-events-none absolute inset-0 flex select-none items-center justify-center overflow-hidden"
+              className="animate-in fade-in pointer-events-none absolute inset-0 flex select-none items-center justify-center overflow-hidden duration-700"
             >
               <span
-                className={cn("font-mono text-[30vw] leading-none", now?.color ? "tone-name" : "text-foreground")}
-                style={{ ...(now?.color ? toneVars(now.color) : {}), opacity: 0.05 }}
+                className={cn("font-mono text-[46vw] leading-none", now?.color ? "tone-name" : "text-foreground")}
+                style={{ ...(now?.color ? toneVars(now.color) : {}), opacity: 0.07, filter: "blur(18px)" }}
               >
                 {now?.slug}
               </span>
@@ -516,7 +517,7 @@ export default function App() {
 
             {now && (
               <div className="relative flex h-full items-center justify-center px-12">
-                <div className="flex w-full max-w-2xl gap-4">
+                <div key={`комната-${room}`} className="animate-in fade-in slide-in-from-bottom-2 flex w-full max-w-2xl gap-4 duration-500">
                   <span
                     className={cn(
                       "flex size-12 shrink-0 items-center justify-center rounded-full",
