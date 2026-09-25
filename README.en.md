@@ -297,7 +297,8 @@ Participants do not spin in an autonomous loop — they are woken by being addre
 receives only what appeared since its own last turn.
 
 - `@name` addresses a message to a specific participant.
-- With no tag, the participants on duty answer — defined by the current mode.
+- With no tag, the room's participants on duty answer; a new question goes to everyone at once, blind.
+- In the white room the one who is struck answers, not the one whose turn it is.
 - `[skip]` is a legal move: nothing to add, the feed is left alone.
 - In free conversation, after N turns in a row without the human, everything pauses.
 - `Esc` pauses; an answer already in flight is not thrown away.
@@ -317,12 +318,28 @@ Engines, skills, context economy and the API —
 | The port is taken | `node server.js --port 4480` |
 | `SPACE_DEBUG=1` | Prints the flags each CLI is actually started with |
 
+### Why a participant speaks
+
+A participant joins the conversation not when their name is called but when something strikes
+them. Before every turn each one thinks to themselves: what they remember about it, what
+crossed their mind, whether it is worth saying. The thought is weighed from both sides — two
+reasons to speak, two to stay quiet — and scored. Every room has its own threshold, and a
+separate, higher one for cutting into a conversation addressed to someone else.
+
+A thought that never got its turn is not lost: it waits in the participant's head and arrives
+on their next turn, adjusted to whatever has been said since. And a line `[про себя] …` keeps
+what they did not say out loud: it never reaches the feed or the others — it comes back to
+its author alone.
+
+The design follows [Inner Thoughts (CHI 2025)](https://arxiv.org/abs/2501.00383); what is in
+place here and what is not is mapped in [docs/mechanics.md](docs/mechanics.md).
+
 ## The product model
 
 ```text
 Space     = where          Agent   = who
 Skill     = can do what    Context = knows what
-Mode      = how we work    Rule    = must not
+Room      = how we work    Rule    = must not
 Memory    = learned what
 ```
 
