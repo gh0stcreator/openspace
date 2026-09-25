@@ -33,7 +33,7 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
 import { Textarea } from "@/components/ui/textarea"
 import { AgentCard } from "@/components/agent-card"
 import { FacePicker } from "@/components/face-picker"
-import { ModeCard } from "@/components/mode-card"
+import { SpaceCard } from "@/components/space-card"
 import {
   Select,
   SelectContent,
@@ -43,7 +43,7 @@ import {
 } from "@/components/ui/select"
 import { Switch } from "@/components/ui/switch"
 import { plural, useLang, pick } from "@/lib/i18n"
-import { api, type Agent, type FullMode, type Settings } from "@/lib/api"
+import { api, type Agent, type FullSpace, type Settings } from "@/lib/api"
 
 /** Ссылки автора: репозиторий и канал. Пустая строка — ссылка не показывается. */
 const AUTHOR = {
@@ -90,14 +90,12 @@ const NAV = [
 ].join(" ")
 
 /** Заготовка нового режима: один шаг-разговор, дальше человек правит его текстом. */
-const BLANK: FullMode = {
-  name: "новый-режим",
-  title: "Новый режим",
+const BLANK: FullSpace = {
+  name: "новая-комната",
+  title: "Новая комната",
   titleEn: "",
-  rubric: "",
-  rubricEn: "",
   who: [],
-  short: "Новый",
+  short: "Новая",
   shortEn: "",
   slug: "custom",
   color: "",
@@ -105,25 +103,29 @@ const BLANK: FullMode = {
   briefEn: "",
   for: "",
   forEn: "",
-  icon: "list-ordered",
+  icon: "message-circle",
   needs: [],
   missing: [],
   sides: [],
   talk: false,
   builtin: false,
-  steps: [{ name: "разговор", who: "все", hear: true, until: "все ответят", prompt: "" }],
-  source: "",
+  cast: "все",
+  duty: "",
+  tune: "",
+  circle: "",
+  laws: "",
 }
 
 type Props = {
   open: boolean
   onOpenChange: (v: boolean) => void
   onApplied: (s: Partial<Settings> & { agents: Record<string, Agent> }) => void
-  onModes: (modes: FullMode[]) => void
+  onSpaces: (spaces: FullSpace[]) => void
   onCleared: () => void
   room: string
   user: string
-  currentMode?: string
+  /** Комната, в которой человек сейчас: её карточка помечена. */
+  space?: string
 }
 
 /**
@@ -135,16 +137,16 @@ export function SettingsDialog({
   open,
   onOpenChange,
   onApplied,
-  onModes,
+  onSpaces,
   onCleared,
   room,
   user,
-  currentMode,
+  space,
 }: Props) {
   const { lang, setLang, t } = useLang()
   const { theme, setTheme } = useTheme()
   const [s, setS] = React.useState<Settings | null>(null)
-  const [modes, setModes] = React.useState<FullMode[]>([])
+  const [modes, setModes] = React.useState<FullSpace[]>([])
   const [hiring, setHiring] = React.useState(false)
   // Созданный участник — заготовка: всё остальное настраивают в его карточке, и она
   // открывается сразу, чтобы не искать его в списке.
@@ -166,7 +168,7 @@ export function SettingsDialog({
       // Роль по умолчанию — первая из существующих: пустой select выглядит поломанным.
       setHireRole((r) => (v.roles.some((x) => x.name === r) ? r : (v.roles[0]?.name ?? "")))
     })
-    api.modes().then((r) => setModes(r.modes))
+    api.spaces().then((r) => setModes(r.spaces))
   }, [open, room])
 
   // Правки текстовых полей не должны бить в сервер на каждую букву.
@@ -209,34 +211,34 @@ export function SettingsDialog({
 
   const patch = (next: Partial<Settings>) => void apply({ ...s!, ...next })
 
-  async function saveMode(next: FullMode) {
+  async function saveMode(next: FullSpace) {
     setModes((prev) => prev.map((m) => (m.name === next.name ? next : m)))
-    defer(`mode-${next.name}`, () => {
+    defer(`space-${next.name}`, () => {
       void api
-        .saveMode(next)
-        .then(() => api.modes())
+        .saveSpace(next)
+        .then(() => api.spaces())
         .then((r) => {
-          setModes(r.modes)
-          onModes(r.modes)
+          setModes(r.spaces)
+          onSpaces(r.spaces)
         })
         .catch((e) => setError((e as Error).message))
     })
   }
 
-  async function copyMode(m: FullMode) {
+  async function copyMode(m: FullSpace) {
     let name = `${m.name}-копия`
     for (let i = 2; modes.some((x) => x.name === name); i++) name = `${m.name}-копия-${i}`
-    await api.saveMode({ ...m, name, title: `${m.title} (копия)`, slug: `${m.slug}2` })
-    const r = await api.modes()
-    setModes(r.modes)
-    onModes(r.modes)
+    await api.saveSpace({ ...m, name, title: `${m.title} (копия)`, slug: `${m.slug}2` })
+    const r = await api.spaces()
+    setModes(r.spaces)
+    onSpaces(r.spaces)
   }
 
-  async function dropMode(m: FullMode) {
-    await api.removeMode(m.name)
-    const r = await api.modes()
-    setModes(r.modes)
-    onModes(r.modes)
+  async function dropMode(m: FullSpace) {
+    await api.removeSpace(m.name)
+    const r = await api.spaces()
+    setModes(r.spaces)
+    onSpaces(r.spaces)
   }
 
   function hire() {
@@ -295,8 +297,8 @@ export function SettingsDialog({
               <TabsTrigger value="people" className={NAV}>
                 <Users /> {t("settings.people")}
               </TabsTrigger>
-              <TabsTrigger value="modes" className={NAV}>
-                <MessageCircle /> {t("settings.modes")}
+              <TabsTrigger value="spaces" className={NAV}>
+                <MessageCircle /> {t("settings.spaces")}
               </TabsTrigger>
               <TabsTrigger value="space" className={NAV}>
                 <Layers /> {t("settings.space")}
@@ -491,11 +493,11 @@ export function SettingsDialog({
           </TabsContent>
 
           {/* КАК. Правила поведения поверх участников. */}
-          <TabsContent value="modes" className="pane-fade min-w-0 flex-1 overflow-y-auto p-6">
+          <TabsContent value="spaces" className="pane-fade min-w-0 flex-1 overflow-y-auto p-6">
             <div className="pane-head flex items-center gap-3">
-              <h2 className="text-xl font-semibold">{t("settings.modes")}</h2>
+              <h2 className="text-xl font-semibold">{t("settings.spaces")}</h2>
               <Button variant="outline" size="sm" onClick={() => void copyMode(BLANK)}>
-                <Plus /> {t("mode.new")}
+                <Plus /> {t("space.new")}
               </Button>
             </div>
             <div className="max-w-2xl divide-y">
@@ -505,12 +507,12 @@ export function SettingsDialog({
                     порядок работы, и в общем списке читаются как ещё один рабочий приём. */}
                 {m.talk && !modes[i - 1]?.talk && (
                   <div className="text-muted-foreground border-t-0 pt-8 pb-2 text-sm">
-                    {t(modes.filter((x) => x.talk).length > 1 ? "mode.specialMany" : "mode.special")}
+                    {t(modes.filter((x) => x.talk).length > 1 ? "space.specialMany" : "space.special")}
                   </div>
                 )}
-                <ModeCard
+                <SpaceCard
                   mode={m}
-                  current={currentMode ? currentMode === m.name : m.builtin}
+                  current={space === m.name}
                   fixed={m.builtin}
                   onChange={saveMode}
                   onCopy={() => void copyMode(m)}

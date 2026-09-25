@@ -80,20 +80,20 @@ export type Config = {
   workdir: string
   maxAutoTurns: number
   defaultRoom: string
-  // Дежурные: их считает сервер из режима «Открытый», отдельной настройки нет.
+  /** Дежурные комнаты: кто отвечает человеку, когда он не назвал никого. */
   defaultResponders: string[]
   /** Кого выключили в этой комнате. Состав общий, присутствие — своё у каждой комнаты. */
   off: string[]
-  /** Комнаты этой машины: знак листает их под курсором. */
-  rooms: string[]
-  /** Знак комнаты: чем заняты и над чем. Левую половину в режиме держит сам режим. */
+  /** Знак комнаты: чем заняты и над чем. Левую половину держит сама комната. */
   topic: string
   doing: string
-  modes: Mode[]
+  /** Комнаты этой машины и та, в которой человек сейчас. */
+  spaces: (Space | FullSpace)[]
+  space: Space
   agents: Record<string, Agent>
 }
 
-export type Settings = Omit<Config, "defaultResponders" | "off" | "rooms"> & {
+export type Settings = Omit<Config, "defaultResponders" | "off" | "spaces" | "space"> & {
   catchUp: number
   freeTalk: boolean
   /** Сколько записей в памяти пространства. В ленте её не видно, а в промпт она едет всем. */
@@ -118,9 +118,9 @@ export type Settings = Omit<Config, "defaultResponders" | "off" | "rooms"> & {
   icons: Record<string, string>
 }
 
-export type Mode = {
+export type Space = {
   name: string
-  /** Встроенный «Открытый»: его нельзя удалить, а выбрать его — значит закончить режим. */
+  /** Общая комната: её нельзя удалить, в ней разговаривают без задачи. */
   builtin: boolean
   slug: string
   short: string
@@ -131,45 +131,48 @@ export type Mode = {
   briefEn: string
   for: string
   forEn: string
-  /** Рубрика: к какой работе режим относится. */
-  rubric: string
-  rubricEn: string
-  /** Кто говорит в режиме. Пустой массив — говорят все. */
+  /** Кто здесь живёт. */
   who: string[]
   needs: string[]
   missing: string[]
   icon: string
-  /** Цвет режима из палитры участников. Пусто — без цвета. */
+  /** Цвет комнаты — её единственный опознавательный знак. Пусто — у общей. */
   color: string
-  /** Стороны режима: подпись, знак и роли, которые её занимают. */
+  /** Должности комнаты: подпись, знак и роли, которые её занимают. */
   sides: Side[]
-  /** Без регламента: шагов не двигает, ходы идут как в открытом разговоре. */
+  /** Заводится ли здесь круг: первый ответ на вопрос дают все и не видя друг друга. */
+  circle: boolean
+  /** Без регламента: круг не заводится, ходы идут как в разговоре. */
   talk: boolean
-  steps: { name: string; who: string; hear: boolean }[]
 }
 
-/** Режим целиком — с шагами: их правит редактор режимов. */
-export type Step = { name: string; who: string; hear: boolean; until: string; prompt: string }
-/** Шаги текстом — то, что человек правит одним полем. Сервер разбирает его обратно. */
-export type FullMode = Omit<Mode, "steps"> & { steps: Step[]; source: string }
+/** Комната целиком — с текстами: их правит редактор комнат. */
+// В коротком описании `circle` — «есть ли здесь круг», в полном — само задание круга:
+// карточке комнаты нужен текст, а списку — только признак.
+export type FullSpace = Omit<Space, "circle"> & {
+  laws: string
+  circle: string
+  cast: string
+  duty: string
+  tune: string
+}
 
-export type ModeState = {
+export type CircleState = {
   name: string
   slug: string
   short: string
   shortEn: string
   title: string
   titleEn: string
-  step: number
-  steps: number
-  stepName: string
-  /** Кого шаг зовёт и кого ещё не дождался: из этого складывается «ждёт» и «ответил». */
+  color: string
+  icon: string
+  /** Кто здесь живёт и кого круг ещё не дождался: из этого «ждёт» и «ответил». */
   cast: string[]
   pending: string[]
-  /** Кем участники выходят в этом режиме: ник → персона. Пусто — выходят собой. */
+  /** Идёт ли круг: пока идёт, участники отвечают, не видя друг друга. */
+  blind: boolean
+  /** Кем участники выходят в этой комнате: ник → персона. Пусто — выходят собой. */
   personas: Record<string, { name: string; labelEn: string; icon: string; color: string }>
-  hear: boolean
-  waitingUser: boolean
 } | null
 
 /** `busy` — кто-то отвечает или стоит в очереди. Пусто и не занято — ход за человеком. */
@@ -181,7 +184,7 @@ export type RoomState = {
   thinking?: Record<string, number>
   /** Кто упёрся в лимит подписки и до какого мгновения его не зовут. */
   limited?: Record<string, number>
-  modeState?: ModeState
+  modeState?: CircleState
 }
 
 const json = async <T,>(r: Response): Promise<T> => {
@@ -245,24 +248,17 @@ export const api = {
       body: JSON.stringify({ on }),
     }).then(json<{ state: RoomState }>),
 
-  setMode: (room: string, mode: string | null) =>
-    fetch(`/api/mode?room=${encodeURIComponent(room)}`, {
+  spaces: () => fetch("/api/spaces").then(json<{ spaces: FullSpace[] }>),
+
+  saveSpace: (space: Partial<FullSpace> & { name: string }) =>
+    fetch("/api/spaces", {
       method: "POST",
-      headers: { "content-type": "application/json" },
-      body: JSON.stringify({ mode }),
-    }).then(json<{ mode: RoomState["modeState"]; off: string[]; agents: Record<string, Agent> }>),
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify(space),
+    }).then(json<{ space: FullSpace }>),
 
-  modes: () => fetch("/api/modes").then(json<{ modes: FullMode[] }>),
-
-  saveMode: (mode: Partial<FullMode> & { name: string }) =>
-    fetch("/api/modes", {
-      method: "POST",
-      headers: { "content-type": "application/json" },
-      body: JSON.stringify(mode),
-    }).then(json<{ mode: FullMode }>),
-
-  removeMode: (name: string) =>
-    fetch(`/api/modes?name=${encodeURIComponent(name)}`, { method: "DELETE" }).then(
+  removeSpace: (name: string) =>
+    fetch(`/api/spaces?name=${encodeURIComponent(name)}`, { method: "DELETE" }).then(
       json<{ ok: boolean }>
     ),
 

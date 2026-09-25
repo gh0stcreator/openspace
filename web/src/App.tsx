@@ -26,7 +26,7 @@ import { Switch } from "@/components/ui/switch"
 import { Skeleton } from "@/components/ui/skeleton"
 import { Toaster } from "@/components/ui/sonner"
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip"
-import { ChatFeed, Face, FaceButton, Icon } from "@/components/chat-feed"
+import { ChatFeed, Face, FaceButton, Icon, toneVars } from "@/components/chat-feed"
 import { Composer } from "@/components/composer"
 import { Logo } from "@/components/logo"
 import { SettingsDialog } from "@/components/settings-dialog"
@@ -84,19 +84,17 @@ export default function App() {
     setCfg((c) => (c ? { ...c, off: Object.keys(c.agents).filter((n) => !names.includes(n)) } : c))
   }
 
-  /** Режим приводит свой состав: вместе с ним меняется и кто в комнате. */
-  const switchMode = async (m: { name: string; builtin: boolean }) => {
-    try {
-      const r = await api.setMode(room, m.builtin ? null : m.name)
-      setState((st) => ({ ...st, modeState: r.mode }))
-      // Состав приходит вместе с режимом: участник, который живёт только в нём,
-      // до этого оставался в списках до следующей перезагрузки страницы.
-      setCfg((c) => (c ? { ...c, off: r.off, agents: r.agents } : c))
-    } catch (e) {
-      // Сервер отказал — режим остался прежним, и сказать об этом должен экран:
-      // молча проглоченный отказ выглядит как «нажал, и ничего не случилось».
-      toast.error((e as Error).message)
-    }
+  /**
+   * Перейти в другую комнату. Всё остальное делают уже существующие эффекты: подписка
+   * на ленту, состав, знак и счётчик памяти у каждой комнаты свои и приезжают по room.
+   * Адрес меняем сразу: комната — это место, и на него должна вести ссылка.
+   */
+  const go = (name: string) => {
+    if (name === room) return
+    history.pushState(null, "", `?room=${encodeURIComponent(name)}`)
+    setReplyTo(null)
+    setEditing(null)
+    setRoom(name)
   }
 
   const local = React.useCallback((text: string) => toast.error(text), [])
@@ -125,15 +123,17 @@ export default function App() {
   }
   React.useEffect(() => {
     // Комнату из адреса знаем до запроса — с ней и спрашиваем: иначе состав и знак
-    // приходят от комнаты по умолчанию, а лента — от той, что в адресе.
-    const asked = new URLSearchParams(location.search).get("room") || undefined
+    // приходят от комнаты по умолчанию, а лента — от той, что в адресе. Дальше этот же
+    // запрос повторяется на каждый переход: у каждой комнаты свой состав и свой знак.
+    const asked = room || new URLSearchParams(location.search).get("room") || undefined
     api.config(asked).then((c) => {
       setCfg(c)
-      const target = asked || c.defaultRoom || "general"
+      const target = asked || c.defaultRoom || "общая"
       setRoom(target)
-      document.title = `open(${target})`
+      // Заголовок вкладки — тот же знак, что в шапке: комната слева, предмет в скобках.
+      document.title = `${c.space?.slug ?? "open"}(${c.topic || "space"})`
     })
-  }, [])
+  }, [room])
 
   React.useEffect(() => {
     if (!room) return
@@ -172,7 +172,11 @@ export default function App() {
    * Непрочитанные обращения. Прочитанным считаем то, что было на экране, пока лента
    * стояла внизу: счётчик гаснет сам, без отдельного действия.
    */
-  const [readUpto, setReadUpto] = React.useState(() => Number(localStorage.getItem("read-upto") ?? 0))
+  // Счётчик свой у каждой комнаты: общий врал сразу после перехода.
+  const [readUpto, setReadUpto] = React.useState(0)
+  React.useEffect(() => {
+    setReadUpto(Number(localStorage.getItem(`read-upto:${room}`) ?? 0))
+  }, [room])
   const mentions = React.useMemo(
     () => (cfg ? messages.filter((m) => m.from !== cfg.user && m.mentions?.includes(cfg.user)) : []),
     [messages, cfg]
@@ -182,10 +186,10 @@ export default function App() {
   const markRead = React.useCallback((seq: number) => {
     setReadUpto((prev) => {
       const next = Math.max(prev, seq)
-      localStorage.setItem("read-upto", String(next))
+      localStorage.setItem(`read-upto:${room}`, String(next))
       return next
     })
-  }, [])
+  }, [room])
 
   React.useEffect(() => {
     if (document.hidden || !messages.length) return
@@ -230,12 +234,12 @@ export default function App() {
   // знак пересоздавал подписку на наведение, и её уборка сносила таймеры прямо
   // посреди показа. Считаем до раннего возврата: хук не может стоять за условием.
   const tones = React.useMemo(
-    () => Object.fromEntries((cfg?.modes ?? []).map((m) => [m.slug, m.color])),
-    [cfg?.modes]
+    () => Object.fromEntries((cfg?.spaces ?? []).map((m) => [m.slug, m.color])),
+    [cfg?.spaces]
   )
 
   /**
-   * Кем участники выходят в этом режиме. `personas` — ник → имя персонажа, `cast` — состав
+   * Кем участники выходят в этой комнате. `personas` — ник → имя персонажа, `cast` — состав
    * для ленты и подсказок: в нём и ники, и имена персонажей, поэтому «@Крош» опознаётся
    * так же, как «@Креатор», и красится его цветом. Тоже до раннего возврата: хук за условием
    * — это чёрный экран на всё приложение, и мы это уже проходили.
@@ -309,13 +313,13 @@ export default function App() {
   // Комната считается пустой, пока в ней нет ни одной реплики: служебные строки
   // вроде «поставлено на паузу» разговором не являются.
   const started = messages.some((m) => m.kind === "message")
-  // Текущий режим целиком: из него берём и знак, и цвет.
-  const now = cfg.modes?.find((m) => (state.modeState ? m.name === state.modeState.name : m.builtin))
+  // Комната, в которой человек сейчас: из неё берём и знак, и цвет.
+  const now = cfg.space ?? cfg.spaces?.find((m) => m.name === room)
 
   /**
-   * Чем участник занят. Всё, кроме «работает», существует только внутри режима: вне его
-   * очереди нет, и «ждёт» было бы догадкой. Состав шага и те, кого он ещё не дождался,
-   * приходят от оркестратора — интерфейс их не вычисляет.
+   * Чем участник занят. «Ждёт» существует только пока идёт круг: вне его очереди нет,
+   * и ожидание было бы догадкой. Состав круга и те, кого он ещё не дождался, приходят
+   * от оркестратора — интерфейс их не вычисляет.
    */
   const ms = state.modeState
 
@@ -343,14 +347,9 @@ export default function App() {
     return { name: p?.name ?? n, icon: p?.icon || a?.icon, color: p?.color || a?.color }
   }
 
-  // Режим ждёт слова человека: темы до первого шага или реплики, закрывающей шаг.
-  // Пока кто-то ещё отвечает на этом шаге, ход не у человека — строку не показываем.
-  const yourStep =
-    ms?.waitingUser && !state.busy && ms.pending.length === 0
-      ? ms.stepName
-        ? t("feed.yourStep", { name: ms.stepName })
-        : t("feed.yourTopic")
-      : ""
+  // Идёт круг: все отвечают разом и не видят друг друга. Строка нужна, чтобы тишина
+  // в несколько ходов читалась как работа, а не как «сломалось».
+  const yourStep = ms?.blind && ms.pending.length ? t("feed.blind") : ""
 
   const limitedUntil = (n: string) => {
     const until = state.limited?.[n] ?? 0
@@ -374,15 +373,15 @@ export default function App() {
               меняет длину знака. */}
           <div className="flex min-w-0 flex-1 basis-0 justify-start">
             <a href="/" className="min-w-0">
-              {/* В скобках — предмет разговора по-английски, а не имя комнаты латиницей:
-                  «проверка» превращалась в proverka, и знак говорил о комнате не больше,
-                  чем её название. Пока предмет не назван — space. */}
+              {/* Слева — комната, в скобках — предмет разговора по-английски. Имя комнаты
+                  латиницей не транслитерируется: «красная» это red, а не krasnaya.
+                  Пока предмет не назван — space. */}
               <Logo
                 subject={cfg.topic || "space"}
-                mode={state.modeState?.slug ?? (cfg.doing || "open")}
+                mode={now?.slug ?? (cfg.doing || "open")}
                 color={live ? now?.color : null}
                 colors={tones}
-                // У режима с персонами цвет не один: знак красится их цветами по буквам.
+                // У комнаты с персонами цвет не один: знак красится их цветами по буквам.
                 letters={live ? now?.sides?.map((x) => x.color).filter(Boolean) as string[] : undefined}
                 className={`transition-colors ${
                   live ? "hover:text-muted-foreground" : "text-destructive"
@@ -455,8 +454,8 @@ export default function App() {
         </header>
 
         {!started ? (
-          /* Пустая комната показывает не «здесь тихо», а способы работы: карточка на режим.
-             «Открытый» выбран с самого начала, поэтому он в том же ряду и помечен как текущий. */
+          /* Пустая комната показывает не «здесь тихо», а куда можно пойти: карточка
+             на комнату. Та, в которой человек сейчас, в том же ряду и помечена. */
           <div className="feed-fade min-h-0 flex-1 overflow-y-auto">
             {/* Воздух сверху и снизу нужен только когда карточки не влезают и список
                 скроллится. Шесть на пустой экран — это ещё и предложение, а не список,
@@ -464,8 +463,8 @@ export default function App() {
                 при том, что на экране всё видно. */}
             <div className="mx-auto flex min-h-full w-full max-w-3xl flex-col justify-center px-4 py-3">
               <div className="grid gap-2 sm:grid-cols-2">
-              {cfg.modes?.map((m) => {
-                const current = state.modeState ? state.modeState.name === m.name : m.builtin
+              {cfg.spaces?.map((m) => {
+                const current = m.name === room
                 return (
                   <button
                     key={m.name}
@@ -474,23 +473,30 @@ export default function App() {
                       "flex gap-3 rounded-lg border p-3 text-left transition-colors",
                       current ? "bg-accent/40" : "hover:bg-accent/40"
                     )}
-                    onClick={() => void switchMode(m)}
+                    onClick={() => go(m.name)}
                   >
-                    <span className="bg-muted text-muted-foreground flex size-10 shrink-0 items-center justify-center rounded-full">
+                    {/* Кружок красится цветом комнаты: он и есть её опознавательный знак. */}
+                    <span
+                      className={cn(
+                        "flex size-10 shrink-0 items-center justify-center rounded-full",
+                        m.color ? "tone-face" : "bg-muted text-muted-foreground"
+                      )}
+                      style={m.color ? toneVars(m.color) : undefined}
+                    >
                       <Icon name={m.icon} className="size-5" />
                     </span>
                     <span className="grid min-w-0 gap-0.5">
                       <span className="flex items-center gap-2 font-medium">
                         {pick(lang, m.title, m.titleEn)}
-                        {current && <Badge variant="secondary">{t("mode.current")}</Badge>}
+                        {current && <Badge variant="secondary">{t("space.current")}</Badge>}
                       </span>
                       <span className="text-muted-foreground text-sm">
                         {typo(pick(lang, m.for || m.brief, m.forEn || m.briefEn))}
                       </span>
                       <span className="mt-1 flex flex-wrap items-center gap-1.5">
                         {m.who?.map((n) => {
-                          // Карточка обещает состав — значит, показывает и лица: у режима
-                          // с персонами это его персонажи, а не наши ники.
+                          // Карточка обещает состав — значит, показывает и лица: у комнаты
+                          // с персонами это её персонажи, а не наши ники.
                           const role = (cfg.agents[n]?.roleName ?? "").toLowerCase()
                           const side = m.sides?.find((x) => x.roles?.includes(role))
                           return (
@@ -506,7 +512,7 @@ export default function App() {
                       </span>
                       {m.missing.length > 0 && (
                         <span className="text-destructive/90 text-sm">
-                          {t("mode.missing", { names: m.missing.join(", ") })}
+                          {t("space.missing", { names: m.missing.join(", ") })}
                         </span>
                       )}
                     </span>
@@ -618,52 +624,43 @@ export default function App() {
                 variant="ghost"
                 size="sm"
                 className="ml-auto gap-1.5 font-normal"
-                /* Что за шаг и видят ли участники друг друга — подсказкой: нужно это
-                   раз в режим, а места в строке нет. */
-                title={
-                  state.modeState?.stepName
-                    ? t(state.modeState.hear ? "mode.step" : "mode.blind", {
-                        n: state.modeState.step,
-                        all: state.modeState.steps,
-                        name: state.modeState.stepName,
-                      })
-                    : undefined
-                }
+                /* Для чего эта комната — подсказкой: читают это раз, а места в строке нет. */
+                title={now ? typo(pick(lang, now.for || now.brief, now.forEn || now.briefEn)) : undefined}
               >
                 <Icon name={now?.icon ?? "message-circle"} className="size-4" />
-                {state.modeState ? pick(lang, state.modeState.short, state.modeState.shortEn) : t("mode.open")}
-                {/* Где мы внутри режима. Имя шага, а не его номер: «3/3» не говорит
-                    ничего, а «Починка» — говорит. Номер остался в подсказке. */}
-                {state.modeState?.stepName && (
-                  <span className="text-muted-foreground/70">· {state.modeState.stepName}</span>
-                )}
+                {now ? pick(lang, now.short, now.shortEn) : room}
+                {/* Идёт круг — об этом говорит строка в ленте, а здесь одно слово:
+                    в строке управления место есть только для имени комнаты. */}
+                {ms?.blind && <span className="text-muted-foreground/70">· {t("space.blind")}</span>}
                 <ChevronDown className="size-3.5" />
               </Button>
             </DropdownMenuTrigger>
             {/* Ширина по триггеру здесь мала: у пунктов две строки. */}
             <DropdownMenuContent align="end" className="w-80">
-              <DropdownMenuLabel>{t("mode.label")}</DropdownMenuLabel>
-              {cfg.modes?.map((m, i) => {
-                const current = state.modeState ? state.modeState.name === m.name : m.builtin
-                // Режимы без регламента идут последними и отделены чертой: они не про
-                // порядок работы, и в одном ряду со «Штабом» читаются как ещё один приём.
-                const apart = m.talk && !cfg.modes[i - 1]?.talk
+              <DropdownMenuLabel>{t("space.label")}</DropdownMenuLabel>
+              {cfg.spaces?.map((m, i) => {
+                const current = m.name === room
+                // Комнаты без регламента идут последними и отделены чертой: в них не
+                // работают, и в одном ряду с рабочими они читались бы как ещё один приём.
+                const apart = m.talk && !cfg.spaces[i - 1]?.talk
                 return (
                   <React.Fragment key={`${m.name}-wrap`}>
                   {apart && <DropdownMenuSeparator />}
                   {apart && (
                     <DropdownMenuLabel className="text-muted-foreground font-normal">
-                      {t(cfg.modes.filter((x) => x.talk).length > 1 ? "mode.specialMany" : "mode.special")}
+                      {t(cfg.spaces.filter((x) => x.talk).length > 1 ? "space.specialMany" : "space.special")}
                     </DropdownMenuLabel>
                   )}
                   <DropdownMenuItem
                     key={m.name}
                     className={cn("items-start gap-3 py-2", current && "bg-accent/60")}
-                    onClick={() => void switchMode(m)}
+                    onClick={() => go(m.name)}
                   >
+                    {/* Знак комнаты в её цвете: по цвету её и узнают. */}
                     <Icon
                       name={m.icon}
-                      className={cn("mt-0.5 size-4 shrink-0", current ? "text-foreground" : "text-muted-foreground")}
+                      className={cn("mt-0.5 size-4 shrink-0", m.color ? "tone-name" : (current ? "text-foreground" : "text-muted-foreground"))}
+                      style={m.color ? toneVars(m.color) : undefined}
                     />
                     {/* Строка списка — компонентами системы: заголовок и подпись
                         под ним выглядят одинаково здесь, в выборе амплуа и в выборе модели. */}
@@ -678,7 +675,7 @@ export default function App() {
                       {m.missing.length > 0 && (
                         <ItemDescription className="text-destructive/90 mt-0.5 flex items-center gap-1">
                           <TriangleAlert className="size-3.5 shrink-0" />
-                          {t("mode.missing", { names: m.missing.join(", ") })}
+                          {t("space.missing", { names: m.missing.join(", ") })}
                         </ItemDescription>
                       )}
                     </ItemContent>
@@ -695,9 +692,11 @@ export default function App() {
           onOpenChange={setSettingsOpen}
           room={room}
           user={cfg.user}
-          currentMode={state.modeState?.name}
+          space={room}
           onApplied={(s) => setCfg({ ...cfg, ...s } as Config)}
-          onModes={(modes) => setCfg({ ...cfg, modes })}
+          // Редактор комнат отдаёт их целиком, с текстами; в шапке и на карточках нужна
+          // короткая половина — лишние поля просто не читаются.
+          onSpaces={(spaces) => setCfg({ ...cfg, spaces })}
           onCleared={() => {
             setMessages([])
             setState({ autoTurns: 0, paused: false })

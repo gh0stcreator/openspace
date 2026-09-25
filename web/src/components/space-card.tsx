@@ -31,28 +31,28 @@ import { Textarea } from "@/components/ui/textarea"
 
 import { typo } from "@/lib/typo"
 import { useLang, pick } from "@/lib/i18n"
-import type { FullMode } from "@/lib/api"
+import type { FullSpace } from "@/lib/api"
 
 /**
- * Режим — правила поведения над участниками: кто говорит на шаге, слышат ли они
- * друг друга и чем шаг закрывается. Участники отвечают на вопрос «кто», режим —
- * на вопрос «как мы сейчас работаем».
+ * Комната — место и тип работы разом: кто здесь живёт, как здесь принято работать
+ * и с каким заданием все отвечают на первый вопрос. Участники отвечают на вопрос
+ * «кто», комната — на вопрос «где мы и что здесь делают».
  *
- * Шаблон один на все режимы, включая встроенный «Открытый»: разница между ними —
- * в содержании шагов, а не в устройстве карточки.
+ * Шаблон один на все комнаты, включая общую: разница между ними — в составе, укладе
+ * и круге, а не в устройстве карточки.
  */
 
 type Props = {
-  mode: FullMode
-  onChange: (next: FullMode) => void
+  mode: FullSpace
+  onChange: (next: FullSpace) => void
   onCopy: () => void
   onRemove: () => void
-  /** Встроенный режим можно править и дублировать, но не удалять. */
+  /** Общую комнату можно править и дублировать, но не удалять. */
   fixed?: boolean
   current?: boolean
 }
 
-export function ModeCard({
+export function SpaceCard({
   mode,
   onChange,
   onCopy,
@@ -62,12 +62,11 @@ export function ModeCard({
 }: Props) {
   const { lang, t } = useLang()
   const [open, setOpen] = React.useState(false)
-  /** Раскрыт один шаг за раз: иначе полоса снова превращается в четыре формы подряд. */
-  /** Текст шагов правится локально и уезжает на сервер, когда поле теряет фокус:
-   *  разбор на каждую букву ломал бы шаг ровно посередине набора. */
-  const [draft, setDraft] = React.useState(mode.source)
-  React.useEffect(() => setDraft(mode.source), [mode.source])
-  const patch = (p: Partial<FullMode>) => onChange({ ...mode, ...p })
+  /** Уклад правится локально и уезжает на сервер, когда поле теряет фокус:
+   *  сохранение на каждую букву переписывало бы файл комнаты посреди набора. */
+  const [draft, setDraft] = React.useState(mode.laws)
+  React.useEffect(() => setDraft(mode.laws), [mode.laws])
+  const patch = (p: Partial<FullSpace>) => onChange({ ...mode, ...p })
 
   return (
     <Collapsible open={open} onOpenChange={setOpen} asChild>
@@ -89,7 +88,7 @@ export function ModeCard({
           </div>
         </button>
 
-        {current && <Badge variant="secondary">{t("mode.current")}</Badge>}
+        {current && <Badge variant="secondary">{t("space.current")}</Badge>}
 
         <DropdownMenu>
           <DropdownMenuTrigger asChild>
@@ -116,8 +115,8 @@ export function ModeCard({
                 </AlertDialogTrigger>
                 <AlertDialogContent>
                   <AlertDialogHeader>
-                    <AlertDialogTitle>{t("mode.deleteTitle", { name: mode.title })}</AlertDialogTitle>
-                    <AlertDialogDescription>{t("mode.deleteBody")}</AlertDialogDescription>
+                    <AlertDialogTitle>{t("space.deleteTitle", { name: mode.title })}</AlertDialogTitle>
+                    <AlertDialogDescription>{t("space.deleteBody")}</AlertDialogDescription>
                   </AlertDialogHeader>
                   <AlertDialogFooter>
                     <AlertDialogCancel>{t("space.cancel")}</AlertDialogCancel>
@@ -135,34 +134,87 @@ export function ModeCard({
       {/* Раскрытие анимируем компонентом системы: карточка не прыгает. */}
       <CollapsibleContent className="data-[state=closed]:animate-collapsible-up data-[state=open]:animate-collapsible-down overflow-hidden">
         <div className="grid gap-5 pt-1 pb-4">
-          {/* Шаги — одним полем, как голос участника: разные поля на имя, состав, слух
-              и текст прятали главное и заставляли собирать режим по частям. Текст —
-              источник правды, сервер разбирает его обратно в шаги. */}
-          <Field>
+          {/* Что делает комнату комнатой: кто здесь живёт, с каким заданием отвечают
+              на первый вопрос и как здесь принято работать. Три коротких поля вместо
+              полотна шагов: устройство разговора больше не нужно держать в голове. */}
+          <div className="grid gap-3 sm:grid-cols-2">
+            <Field>
               <Tooltip>
                 <TooltipTrigger asChild>
-                  <FieldLabel htmlFor={`steps-${mode.name}`} className="cursor-help">
-                    {t("mode.steps")}
+                  <FieldLabel htmlFor={`cast-${mode.name}`} className="cursor-help">
+                    {t("space.cast")}
                   </FieldLabel>
                 </TooltipTrigger>
-                {/* Разметку шагов объясняем по наведению: тем, кто её уже знает,
-                    абзац под полем мешает, а нужен он ровно один раз. */}
-                <TooltipContent className="max-w-80">{t("mode.stepsNote")}</TooltipContent>
+                <TooltipContent className="max-w-80">{t("space.castNote")}</TooltipContent>
               </Tooltip>
+              <Input
+                id={`cast-${mode.name}`}
+                value={mode.cast}
+                placeholder={t("space.castHint")}
+                className="font-mono text-xs"
+                onChange={(e) => patch({ cast: e.target.value })}
+              />
+            </Field>
+            <Field>
+              <Tooltip>
+                <TooltipTrigger asChild>
+                  <FieldLabel htmlFor={`duty-${mode.name}`} className="cursor-help">
+                    {t("space.duty")}
+                  </FieldLabel>
+                </TooltipTrigger>
+                <TooltipContent className="max-w-80">{t("space.dutyNote")}</TooltipContent>
+              </Tooltip>
+              <Input
+                id={`duty-${mode.name}`}
+                value={mode.duty}
+                placeholder={t("space.dutyHint")}
+                className="font-mono text-xs"
+                onChange={(e) => patch({ duty: e.target.value })}
+              />
+            </Field>
+          </div>
+
+          <Field>
+            <Tooltip>
+              <TooltipTrigger asChild>
+                <FieldLabel htmlFor={`circle-${mode.name}`} className="cursor-help">
+                  {t("space.circleField")}
+                </FieldLabel>
+              </TooltipTrigger>
+              <TooltipContent className="max-w-80">{t("space.circleNote")}</TooltipContent>
+            </Tooltip>
             <Textarea
-              id={`steps-${mode.name}`}
-              rows={12}
+              id={`circle-${mode.name}`}
+              rows={3}
+              value={mode.circle}
+              placeholder={t("space.circleHint")}
+              className="text-xs leading-relaxed"
+              onChange={(e) => patch({ circle: e.target.value })}
+            />
+          </Field>
+
+          <Field>
+            <Tooltip>
+              <TooltipTrigger asChild>
+                <FieldLabel htmlFor={`laws-${mode.name}`} className="cursor-help">
+                  {t("space.order")}
+                </FieldLabel>
+              </TooltipTrigger>
+              <TooltipContent className="max-w-80">{t("space.orderNote")}</TooltipContent>
+            </Tooltip>
+            <Textarea
+              id={`laws-${mode.name}`}
+              rows={6}
               value={draft}
-              placeholder={t("mode.stepsHint")}
-              className="max-h-72 font-mono text-xs leading-relaxed"
+              className="max-h-56 text-xs leading-relaxed"
               onChange={(e) => setDraft(e.target.value)}
-              onBlur={() => draft !== mode.source && patch({ source: draft })}
+              onBlur={() => draft !== mode.laws && patch({ laws: draft })}
             />
           </Field>
 
           <div className="grid gap-3 sm:grid-cols-[1fr_1.4fr_auto]">
             <Field>
-              <FieldLabel htmlFor={`title-${mode.name}`}>{t("mode.name")}</FieldLabel>
+              <FieldLabel htmlFor={`title-${mode.name}`}>{t("space.name")}</FieldLabel>
               <Input
                 id={`title-${mode.name}`}
                 value={mode.title}
@@ -170,32 +222,32 @@ export function ModeCard({
               />
             </Field>
             <Field>
-              <FieldLabel htmlFor={`for-${mode.name}`}>{t("mode.for")}</FieldLabel>
+              <FieldLabel htmlFor={`for-${mode.name}`}>{t("space.for")}</FieldLabel>
               <Input
                 id={`for-${mode.name}`}
                 value={mode.for}
-                placeholder={t("mode.forHint")}
+                placeholder={t("space.forHint")}
                 onChange={(e) => patch({ for: e.target.value })}
               />
             </Field>
             <Field className="sm:w-28">
-              <FieldLabel htmlFor={`slug-${mode.name}`}>{t("mode.slug")}</FieldLabel>
+              <FieldLabel htmlFor={`slug-${mode.name}`}>{t("space.slug")}</FieldLabel>
               <Input
                 id={`slug-${mode.name}`}
                 value={mode.slug}
-                placeholder={t("mode.slugHint")}
+                placeholder={t("space.slugHint")}
                 className="font-mono"
                 onChange={(e) => patch({ slug: e.target.value.toLowerCase().replace(/[^a-z0-9_]/g, "") })}
               />
             </Field>
           </div>
 
-          {/* Режим без регламента: шаги не двигаются, ходы идут как в открытом разговоре.
-              Нужен там, где режим меняет не порядок ходов, а то, кем участники в нём выходят. */}
+          {/* Комната без регламента: круг в ней не заводится, ходы идут как в общей.
+              Нужна там, где важно не как работают, а кем участники выходят. */}
           <Label className="hover:bg-accent/50 -mx-2 flex items-center gap-3 rounded-md p-2 font-normal">
             <span className="grid flex-1 gap-0.5">
-              <span className="font-medium">{t("mode.talk")}</span>
-              <span className="text-muted-foreground text-sm">{t("mode.talkHint")}</span>
+              <span className="font-medium">{t("space.talk")}</span>
+              <span className="text-muted-foreground text-sm">{t("space.talkHint")}</span>
             </span>
             <Switch checked={mode.talk} onCheckedChange={(v) => patch({ talk: v })} />
           </Label>
