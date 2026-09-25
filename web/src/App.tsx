@@ -378,7 +378,7 @@ export default function App() {
           единственный опознавательный знак места, и по нему видно, где ты, раньше,
           чем прочитано название. У опенспейса цвета нет: общее место и есть фон. */}
       <div
-        className={cn("bg-background flex h-dvh flex-col", now?.color && "room-tint")}
+        className="bg-background flex h-dvh flex-col"
         style={now?.color ? toneVars(now.color) : undefined}
       >
         <header className="flex h-14 shrink-0 items-center gap-3 px-4">

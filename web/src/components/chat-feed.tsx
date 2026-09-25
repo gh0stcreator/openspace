@@ -43,6 +43,8 @@ export function toneVars(color?: string | null): React.CSSProperties {
   return {
     "--h": `var(--tone-${known ? color : "blue"})`,
     "--c": known ? `var(--chroma-${color})` : "0",
+    // Множитель светлоты: он есть только у белой и чёрной, остальных разводит тон.
+    "--l": known ? `var(--light-${color}, 1)` : "1",
   } as React.CSSProperties
 }
 
