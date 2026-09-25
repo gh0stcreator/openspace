@@ -387,8 +387,7 @@ export default function App() {
           единственный опознавательный знак места, и по нему видно, где ты, раньше,
           чем прочитано название. У опенспейса цвета нет: общее место и есть фон. */}
       <div
-        className={cn("bg-background flex h-dvh flex-col", now?.color && "room-tint")}
-        style={now?.color ? toneVars(now.color) : undefined}
+        className="bg-background flex h-dvh flex-col"
       >
         <header className="flex h-14 shrink-0 items-center gap-3 px-4">
           {/* Знак и профиль забирают по половине свободного места. Иначе ряд аватарок
@@ -483,18 +482,6 @@ export default function App() {
              это и выбор, и знакомство разом, вместо списка из шести плиток. */
           <div className="relative min-h-0 flex-1 overflow-hidden">
             {/* Имя комнаты во всю ширину: узнаётся раньше, чем прочитано название. */}
-            <span
-              key={`знак-${room}`}
-              aria-hidden
-              className="animate-in fade-in pointer-events-none absolute inset-0 flex select-none items-center justify-center overflow-hidden duration-700"
-            >
-              <span
-                className={cn("font-mono text-[46vw] leading-none", now?.color ? "tone-name" : "text-foreground")}
-                style={{ ...(now?.color ? toneVars(now.color) : {}), opacity: 0.07, filter: "blur(18px)" }}
-              >
-                {now?.slug}
-              </span>
-            </span>
 
             {flipTo.length > 1 && (
               <>
