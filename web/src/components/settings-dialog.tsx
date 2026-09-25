@@ -158,6 +158,8 @@ export function SettingsDialog({
   // Сколько записей в памяти пространства: число приходит с настройками, а после
   // стирания обнуляется здесь же — перечитывать всё ради одной цифры незачем.
   const [memory, setMemory] = React.useState(0)
+  // Сколько записей знает всё пространство: они едут и в соседние комнаты.
+  const [shared, setShared] = React.useState(0)
 
   React.useEffect(() => {
     if (!open) return
@@ -165,6 +167,7 @@ export function SettingsDialog({
     api.settings(room).then((v) => {
       setS(v)
       setMemory(v.memory ?? 0)
+      setShared(v.memoryShared ?? 0)
       // Роль по умолчанию — первая из существующих: пустой select выглядит поломанным.
       setHireRole((r) => (v.roles.some((x) => x.name === r) ? r : (v.roles[0]?.name ?? "")))
     })
@@ -598,6 +601,7 @@ export function SettingsDialog({
                           t("space.memoryFew"),
                           t("space.memoryMany"),
                         ])}`,
+                        shared,
                       })
                       : t("space.memoryEmpty")}
                   </FieldDescription>
@@ -619,6 +623,7 @@ export function SettingsDialog({
                             t("space.memoryFew"),
                             t("space.memoryMany"),
                           ])}`,
+                          shared,
                         })}
                       </AlertDialogDescription>
                     </AlertDialogHeader>

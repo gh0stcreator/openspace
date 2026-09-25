@@ -8,10 +8,11 @@ import fs from 'node:fs';
 import os from 'node:os';
 import path from 'node:path';
 
-// Режимы для тестов свои: рабочие файлы в modes/ правят по живым прогонам.
+// Комнаты для тестов свои: рабочие файлы в spaces/ правят по живым прогонам.
 process.env.SPACE_DIR = path.join(import.meta.dirname, 'spaces');
 const { Orchestrator } = await import('../lib/orchestrator.js');
 const { Store } = await import('../lib/store.js');
+const { Memory } = await import('../lib/memory.js');
 
 const sleep = (ms) => new Promise((r) => setTimeout(r, ms));
 const ROOM = 'r';
@@ -171,6 +172,7 @@ test('правка реплики: лента показывает новый т
 
   // Перечитываем файл с нуля: правка должна пережить перезапуск, старая строка — остаться.
   const { Store } = await import('../lib/store.js');
+const { Memory } = await import('../lib/memory.js');
   const fresh = new Store(config.workdir).load(ROOM);
   assert.equal(fresh.find((m) => m.seq === msg.seq).text, '@первый выглядит грязно');
   const raw = fs.readFileSync(path.join(config.workdir, `${ROOM}.jsonl`), 'utf8');
@@ -633,4 +635,49 @@ test('круг: повторившемуся возвращают ход за д
   const круг = calls.filter((c) => c.step === 'круг');
   assert.equal(круг.filter((c) => c.who === 'второй').length, 2, 'повторившемуся ход не вернули');
   assert.equal(круг.filter((c) => c.who === 'третий').length, 1, 'у того, кто не повторился, лишнего хода быть не должно');
+});
+
+test('память по присутствию: своё — с подробностями, чужое — со слов', () => {
+  const dir = fs.mkdtempSync(path.join(os.tmpdir(), 'openspace-memory-'));
+  const mem = new Memory(dir);
+  mem.commit('красная', [{ action: 'добавить', kind: 'решение', text: 'публикуем модель отдельно', level: 'деталь' }],
+    'Архивариус', { where: 'красная', saw: ['Roman', 'Скептик'], span: [1, 9] });
+
+  const был = mem.brief('красная', { me: 'Скептик', tail: 'модель', seq: 10 });
+  assert.match(был.text, /ПРИ ТЕБЕ/);
+  assert.equal(был.told, false, 'тому, кто был, нечего знать со слов');
+
+  const небыл = mem.brief('красная', { me: 'Инженер', tail: 'модель', seq: 10 });
+  assert.match(небыл.text, /СО СЛОВ/);
+  assert.equal(небыл.told, true, 'отсутствовавший не получил пометки «со слов»');
+  assert.doesNotMatch(небыл.text, /ПРИ ТЕБЕ/, 'чужая запись попала в свой раздел');
+});
+
+test('память пространства: «главное» едет в другие комнаты, «деталь» остаётся дома', () => {
+  const dir = fs.mkdtempSync(path.join(os.tmpdir(), 'openspace-shared-'));
+  const mem = new Memory(dir);
+  const ctx = { saw: ['Roman'], span: [1, 5] };
+  mem.commit('красная', [
+    { action: 'добавить', kind: 'ограничение', text: 'сроки двигать нельзя', level: 'главное' },
+    { action: 'добавить', kind: 'находка', text: 'парсер спотыкается на переносах', level: 'деталь' },
+  ], 'Архивариус', { ...ctx, where: 'красная' });
+
+  const синяя = mem.brief('синяя', { me: 'Инженер', tail: 'сроки и парсер', seq: 6 });
+  assert.match(синяя.text, /сроки двигать нельзя/, '«главное» не доехало до соседней комнаты');
+  assert.doesNotMatch(синяя.text, /парсер/, '«деталь» уехала в чужую комнату');
+  assert.match(синяя.text, /\(красная\)/, 'не сказано, где это было');
+});
+
+test('память: решение не выпадает по затуханию, находка — выпадает', () => {
+  const dir = fs.mkdtempSync(path.join(os.tmpdir(), 'openspace-fade-'));
+  const mem = new Memory(dir);
+  mem.commit('r', [
+    { action: 'добавить', kind: 'решение', text: 'домены различаем по владельцу' },
+    { action: 'добавить', kind: 'находка', text: 'у шрифта плывёт базовая линия' },
+  ], 'Архивариус', { where: 'r', saw: ['Roman', 'Инженер'], span: [1, 2] });
+
+  // Разговор ушёл далеко и совсем о другом: обязательство остаётся, находка тускнеет.
+  const поздно = mem.brief('r', { me: 'Инженер', tail: 'обсуждаем цену подписки', seq: 400 });
+  assert.match(поздно.text, /домены различаем/, 'решение забыли');
+  assert.doesNotMatch(поздно.text, /базовая линия/, 'находка пережила три сотни реплик не о ней');
 });

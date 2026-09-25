@@ -98,6 +98,8 @@ export type Settings = Omit<Config, "defaultResponders" | "off" | "spaces" | "sp
   freeTalk: boolean
   /** Сколько записей в памяти пространства. В ленте её не видно, а в промпт она едет всем. */
   memory: number
+  /** Сколько из них помечено «главным»: эти знает всё пространство. */
+  memoryShared: number
   laws: string
   roles: {
     name: string
