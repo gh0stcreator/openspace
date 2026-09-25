@@ -25,7 +25,6 @@ const RU = {
   "space.blind": "вслепую",
   "space.circle": "Первый круг: каждый отвечает, не видя чужих ответов",
 
-  "empty.title": "Здесь пока тихо",
 
   "bar.people": "{n} {word}",
   "bar.peopleOne": "участник",
@@ -205,7 +204,6 @@ const EN: Record<keyof typeof RU, string> = {
   "space.blind": "blind",
   "space.circle": "First round: everyone answers without seeing the others",
 
-  "empty.title": "Quiet in here",
 
   "bar.people": "{n} {word}",
   "bar.peopleOne": "participant",
