@@ -224,11 +224,11 @@ green(launch)             looking for a move nobody expects
 
 | Situation | Room |
 | --- | --- |
-| Something finished needs stress-testing: where it tears, what was missed | 🔴 Red |
-| Something has to be written, rewritten or built | 🔵 Blue |
 | The obvious answer won't do; you need moves nobody expects | 🟢 Green |
-| Improving one thing spoils another, and you need to find what fights what | 🟣 Violet |
-| You need to separate what is known from what everyone assumes is known | ⚪ White |
+| Something finished needs roasting: where it tears, what was missed | 🔴 Red |
+| Code, design, build the thing itself | 🔵 Blue |
+| Understand something, think it through, learn — no decision at the end | 🟣 Violet |
+| You need specific people for one specific task | ⚪ White |
 | Just a conversation | Openspace |
 
 Each room has its own cast, its own way of working and its own readiness to speak up.
