@@ -354,6 +354,7 @@ export function Composer({
           <InputGroupTextarea
             ref={ref}
             rows={1}
+            aria-label={t("composer.label")}
             value={text}
             placeholder={hint}
             className="composer-field max-h-40 min-h-9 py-2"

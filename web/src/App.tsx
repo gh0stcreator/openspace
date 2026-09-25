@@ -3,14 +3,13 @@ import {
   AtSign,
   Check,
   ChevronDown,
-  ChevronLeft,
-  ChevronRight,
   Settings,
   TriangleAlert,
   Users,
 } from "lucide-react"
 import { toast } from "sonner"
 
+import { Badge } from "@/components/ui/badge"
 import { Button } from "@/components/ui/button"
 import {
   DropdownMenu,
@@ -295,11 +294,11 @@ export default function App() {
           </div>
         </header>
 
-        <div className="mx-auto w-full max-w-3xl flex-1 space-y-6 px-4 py-6">
+        <div className="mx-auto flex w-full max-w-3xl flex-1 flex-col gap-6 px-4 py-6">
           {[70, 45, 85].map((w, i) => (
             <div key={i} className="flex items-end gap-2">
               <Skeleton className="size-8 shrink-0 rounded-full" />
-              <div className="min-w-0 flex-1 space-y-1.5">
+              <div className="flex min-w-0 flex-1 flex-col gap-1.5">
                 <Skeleton className="h-3 w-20" />
                 <Skeleton className="h-16 rounded-xl" style={{ width: `${w}%` }} />
               </div>
@@ -320,14 +319,6 @@ export default function App() {
   const started = messages.some((m) => m.kind === "message")
   // Комната, в которой человек сейчас: из неё берём и знак, и цвет.
   const now = cfg.space ?? cfg.spaces?.find((m) => m.name === room)
-  // Что листается стрелками на пустом экране: рабочие комнаты, по кругу. Комнаты
-  // с персонами сюда не идут — туда заходят нарочно, списком, а не пролистнув мимо.
-  const flipTo = (cfg.spaces ?? []).filter((m) => !(m.sides ?? []).some((x) => x.color))
-  const flip = (step: number) => {
-    const i = flipTo.findIndex((m) => m.name === room)
-    const next = flipTo[((i < 0 ? 0 : i) + step + flipTo.length) % flipTo.length]
-    if (next) go(next.name)
-  }
 
   /**
    * Чем участник занят. «Ждёт» существует только пока идёт круг: вне его очереди нет,
@@ -477,79 +468,66 @@ export default function App() {
         </header>
 
         {!started ? (
-          /* Пустая комната не говорит «здесь тихо»: она рассказывает, куда ты попал,
-             зачем сюда ходят и как здесь идёт разговор. Комнаты листаются стрелками —
-             это и выбор, и знакомство разом, вместо списка из шести плиток. */
-          <div className="relative min-h-0 flex-1 overflow-hidden">
-            {/* Имя комнаты во всю ширину: узнаётся раньше, чем прочитано название. */}
-
-            {flipTo.length > 1 && (
-              <>
-                <button
-                  className="text-muted-foreground hover:text-foreground absolute top-1/2 left-2 z-10 -translate-y-1/2 rounded-full p-2 transition-colors"
-                  aria-label={t("space.prev")}
-                  onClick={() => flip(-1)}
-                >
-                  <ChevronLeft className="size-6" />
-                </button>
-                <button
-                  className="text-muted-foreground hover:text-foreground absolute top-1/2 right-2 z-10 -translate-y-1/2 rounded-full p-2 transition-colors"
-                  aria-label={t("space.next")}
-                  onClick={() => flip(1)}
-                >
-                  <ChevronRight className="size-6" />
-                </button>
-              </>
-            )}
-
-            {now && (
-              <div className="relative flex h-full items-center justify-center px-12">
-                <div key={`комната-${room}`} className="animate-in fade-in slide-in-from-bottom-2 flex w-full max-w-2xl gap-4 duration-500">
-                  <span
-                    className={cn(
-                      "flex size-12 shrink-0 items-center justify-center rounded-full",
-                      now.color ? "tone-face" : "bg-muted text-muted-foreground"
-                    )}
-                    style={now.color ? toneVars(now.color) : undefined}
+          /* Пустая комната показывает не «здесь тихо», а куда можно пойти: карточка
+             на комнату, все одного роста и без выделения текущей. */
+          <div className="feed-fade min-h-0 flex-1 overflow-y-auto">
+            <div className="mx-auto flex min-h-full w-full max-w-3xl flex-col justify-center px-4 py-6">
+              <div className="grid auto-rows-fr gap-2 sm:grid-cols-2">
+                {/* Комнаты с персонами в сетку не идут: там не работают, и плитка рядом
+                    с рабочими читается как ещё один приём. Зайти в них можно списком.
+                    Нынешняя комната — такая же плитка, как остальные: выделять её незачем,
+                    где ты сейчас, и так написано выше. */}
+                {cfg.spaces?.filter((m) => !(m.sides ?? []).some((x) => x.color)).map((m) => (
+                  <button
+                    key={m.name}
+                    className="hover:bg-accent/40 flex h-full gap-3 rounded-lg border p-3 text-left transition-colors"
+                    onClick={() => go(m.name)}
                   >
-                    <Icon name={now.icon} className="size-6" />
-                  </span>
-                  <div className="grid min-w-0 gap-1.5">
-                    <h1 className="text-xl font-medium">
-                      {t("space.hello", { name: pick(lang, now.title, now.titleEn) })}
-                    </h1>
-                    <p className="text-muted-foreground">
-                      {typo(pick(lang, now.for || now.brief, now.forEn || now.briefEn))}
-                    </p>
-                    {now.laws && (
-                      <p className="text-muted-foreground text-sm">{typo(now.laws.split("\n\n")[0])}</p>
-                    )}
-                    <p className="text-muted-foreground text-sm">
-                      {typo(t(`space.flow.${now.flow}` as never) || "")}
-                    </p>
-                    <span className="mt-2 flex flex-wrap items-center gap-1.5">
-                      {now.faces?.map((f) => {
-                        const side = now.sides?.find((x) => x.roles?.includes(f.roleName.toLowerCase()))
-                        return (
-                          <Face
-                            key={f.name}
-                            name={side?.label ?? f.name}
-                            icon={side?.icon || f.icon}
-                            color={side?.color || f.color}
-                            size="sm"
-                          />
-                        )
-                      })}
+                    {/* Кружок красится цветом комнаты: он и есть её опознавательный знак. */}
+                    <span
+                      className={cn(
+                        "flex size-10 shrink-0 items-center justify-center rounded-full",
+                        m.color ? "tone-face" : "bg-muted text-muted-foreground"
+                      )}
+                      style={m.color ? toneVars(m.color) : undefined}
+                    >
+                      <Icon name={m.icon} className="size-5" />
                     </span>
-                    {now.missing?.length > 0 && (
-                      <span className="text-destructive/90 text-sm">
-                        {t("space.missing", { names: now.missing.join(", ") })}
+                    <span className="flex min-w-0 flex-1 flex-col gap-0.5">
+                      <span className="flex items-center gap-2 font-medium">
+                        {pick(lang, m.title, m.titleEn)}
+                        {/* Где ты сейчас — словом, а не заливкой: плитки должны быть одинаковые. */}
+                        {m.name === room && <Badge variant="secondary">{t("space.current")}</Badge>}
                       </span>
-                    )}
-                  </div>
-                </div>
+                      <span className="text-muted-foreground text-sm">
+                        {typo(pick(lang, m.for || m.brief, m.forEn || m.briefEn))}
+                      </span>
+                      <span className="mt-auto flex flex-wrap items-center gap-1.5 pt-2">
+                        {m.faces?.map((f) => {
+                          // Карточка обещает состав — значит, показывает и лица: у комнаты
+                          // с персонами это её персонажи, а не наши ники.
+                          const side = m.sides?.find((x) => x.roles?.includes(f.roleName.toLowerCase()))
+                          return (
+                            <Face
+                              key={f.name}
+                              name={side?.label ?? f.name}
+                              icon={side?.icon || f.icon}
+                              color={side?.color || f.color}
+                              size="sm"
+                            />
+                          )
+                        })}
+                      </span>
+                      {m.missing.length > 0 && (
+                        <span className="text-destructive/90 text-sm">
+                          {t("space.missing", { names: m.missing.join(", ") })}
+                        </span>
+                      )}
+                    </span>
+                  </button>
+                ))}
               </div>
-            )}
+            </div>
           </div>
         ) : (
           <ChatFeed
@@ -579,6 +557,10 @@ export default function App() {
             <Button
               size="icon-lg"
               className="pointer-events-auto absolute -top-14 right-6 z-20 rounded-full shadow-lg"
+              aria-label={t("feed.unread", {
+                n: unread.length,
+                word: plural(lang, unread.length, ["реплике", "репликах", "репликах"]),
+              })}
               onClick={() => {
                 const first = unread[0]
                 document

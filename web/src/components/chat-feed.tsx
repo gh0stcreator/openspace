@@ -34,7 +34,7 @@ import { pick, useLang } from "@/lib/i18n"
  */
 export const COLOR_ORDER = [
   "red", "coral", "orange", "yellow", "lime", "green", "teal",
-  "sky", "blue", "indigo", "plum", "pink", "white", "black",
+  "sky", "blue", "indigo", "violet", "plum", "pink", "white", "black",
 ]
 
 /** Переменные тона для элемента: дальше цвет считают классы .tone-* из темы. */
