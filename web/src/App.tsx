@@ -33,7 +33,7 @@ import { SettingsDialog } from "@/components/settings-dialog"
 import { cn } from "@/lib/utils"
 import { useLang, pick, plural } from "@/lib/i18n"
 import { typo } from "@/lib/typo"
-import { api, listen, type Agent, type Config, type Msg, type RoomState } from "@/lib/api"
+import { api, listen, type Agent, type Config, type FullSpace, type Msg, type RoomState, type Space } from "@/lib/api"
 
 /** Знак вкладки: слева комната, в скобках предмет разговора. Тот же, что в шапке. */
 const sign = (slug?: string, topic?: string) => `${slug || "open"}(${topic || "space"})`
@@ -657,15 +657,17 @@ export default function App() {
               <DropdownMenuLabel>{t("space.label")}</DropdownMenuLabel>
               {cfg.spaces?.map((m, i) => {
                 const current = m.name === room
-                // Комнаты без регламента идут последними и отделены чертой: в них не
-                // работают, и в одном ряду с рабочими они читались бы как ещё один приём.
-                const apart = m.talk && !cfg.spaces[i - 1]?.talk
+                // Комнаты с персонами идут последними и отделены чертой: в них выходят
+                // не собой, и в одном ряду с рабочими они читались бы как ещё один приём.
+                // Цвет у стороны есть только у персонажа: у должности в споре его нет.
+                const masked = (s?: Space | FullSpace) => (s?.sides ?? []).some((x) => x.color)
+                const apart = masked(m) && !masked(cfg.spaces[i - 1])
                 return (
                   <React.Fragment key={`${m.name}-wrap`}>
                   {apart && <DropdownMenuSeparator />}
                   {apart && (
                     <DropdownMenuLabel className="text-muted-foreground font-normal">
-                      {t(cfg.spaces.filter((x) => x.talk).length > 1 ? "space.specialMany" : "space.special")}
+                      {t(cfg.spaces.filter(masked).length > 1 ? "space.specialMany" : "space.special")}
                     </DropdownMenuLabel>
                   )}
                   <DropdownMenuItem

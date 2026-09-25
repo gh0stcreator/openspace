@@ -124,7 +124,7 @@ export type Settings = Omit<Config, "defaultResponders" | "off" | "spaces" | "sp
 
 export type Space = {
   name: string
-  /** Опенспейс: его нельзя удалить, там разговаривают без задачи. */
+  /** Белая: её нельзя удалить, там разговаривают без задачи. */
   builtin: boolean
   slug: string
   short: string
