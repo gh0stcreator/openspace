@@ -925,6 +925,27 @@ test('после круга отвечает тот, кого задело чу�
   assert.deepEqual(после, ['второй'], 'после круга не отозвался задетый — или отозвались лишние');
 });
 
+test('вклад считается по ленте и ничего не меняет', async () => {
+  const { orch } = setup(['первый', 'второй', 'третий']);
+  orch.post(ROOM, { from: 'Roman', text: 'начали' });
+  orch.post(ROOM, { from: 'первый', text: 'раз, @второй' });
+  orch.post(ROOM, { from: 'первый', text: 'и два' });
+  orch.post(ROOM, { from: 'второй', text: 'три' });
+  orch.store.append(ROOM, { from: 'третий', kind: 'skip', text: '', mentions: [] });
+
+  const rows = orch.worth(ROOM);
+  const кто = Object.fromEntries(rows.map((r) => [r.имя, r]));
+  assert.equal(кто['первый'].сказал, 2);
+  assert.equal(кто['первый'].ответил, 1, 'тег соседу не засчитан как обращение');
+  assert.equal(кто['второй'].звали, 1, 'его позвали один раз');
+  assert.equal(кто['третий'].промолчал, 1, 'молчание не учтено');
+  assert.equal(кто['первый'].доля, 67, 'доля реплик считается неверно');
+
+  // Отчёт и только отчёт: состав комнаты он не трогает.
+  assert.deepEqual(orch.here(ROOM).sort(), ['второй', 'первый', 'третий']);
+  assert.match(orch.worthLine(ROOM), /Доля реплик/);
+});
+
 test('сходимость проверяется одним вызовом на комнату', async () => {
   const { orch } = setup(['первый', 'второй', 'третий']);
   const спросили = [];

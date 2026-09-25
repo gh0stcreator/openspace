@@ -291,7 +291,7 @@ spaces/                 по файлу на комнату: белая, зел�
 web/src/                клиент: React + Vite + Tailwind 4 + shadcn/ui
 web/public/             фавиконка и знаки — исходники, не сборка
 test/                   движок и разбор файлов на заглушках, `npm test`
-bin/                    dev, say, hire, duel, replay — из терминала
+bin/                    dev, say, hire, duel, replay, worth — из терминала
 docs/                   концепция, устройство, научная база, карта механизмов
 CHANGELOG.md            что менялось в продукте и почему
 ```

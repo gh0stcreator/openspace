@@ -18,11 +18,11 @@ Not a chat with several models. A space for one task: you invite the minds it ne
 how exactly they should work together, and the conversation leaves behind more than a transcript.
 
 ```text
-open(product_strategy)
-research(market)
-roast(pricing)
-brainstorm(naming)
-premortem(launch)
+white(product_strategy)
+green(naming)
+red(pricing)
+blue(landing)
+black(launch)
 ```
 
 They explore independently, disagree, test each other's arguments and assemble a decision.
@@ -133,31 +133,35 @@ the same mark and answers without seeing their neighbours. Positions first, coll
 
 ## What it looks like
 
-A premortem in an empty room: give it a subject, and the team walks the steps instead of answering
-at random.
+The red room: you bring something finished, and each first answer is written without seeing
+the others.
 
 ```text
 Roman
 In a week we roll the mega-menu out to all traffic.
 
-premortem(megamenu) · 1/3 · The funeral · blind
-Scholar, Sceptic and Engineer answer without seeing each other
+red(megamenu) · they answer without seeing each other
 
 Sceptic
-Six months on. The menu shipped, sign-up conversion fell 4%.
-The cause: on mobile the second level opens on the same tap…
+The menu shipped, sign-up conversion fell 4%. On mobile the second
+level opens on the same tap as the section itself…
 
 Engineer
-We failed differently: the category tree is assembled on the client,
+It breaks earlier: the category tree is assembled on the client, and
 on slow phones the first screen waits 900 ms…
 
-premortem(megamenu) · 2/3 · The autopsy
-Roman
-The second one matters more. What does it cost to check?
+Advocate
+Someone with three branches in the list will not find theirs: they
+are folded into “2 more”, and that is what they came for…
+
+Sceptic
+@Engineer, your 900 ms covers loading but not the case where the
+tree arrived and the branch they need is not in it.
 ```
 
-A blind step is not decoration: everyone gets the feed up to the same mark, so the first answer
-does not frame the rest. A message from the human stops the queue at any point: they answer that,
+A blind circle is not decoration: everyone gets the feed up to the same mark, so the first answer
+does not frame the rest. And once the circle is over, the one who answers is not whose turn it is
+but whoever was struck by someone else's answer. A message from the human stops the queue at any point: they answer that,
 not what came before.
 
 ## What this rests on
