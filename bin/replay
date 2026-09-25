@@ -5,7 +5,7 @@
  * остаётся верой: то ли помогла, то ли момент больше не повторился сам.
  *
  *   ./bin/replay rooms/общая.2026-09-21T11-17-36-862Z.jsonl 91 Инженер
- *   ./bin/replay rooms/лента.jsonl 572 Дизайнер --step прожарка:Удар
+ *   ./bin/replay rooms/лента.jsonl 572 Дизайнер --круг красная
  *   ./bin/replay rooms/лента.jsonl 91 Инженер --dry        # показать промпт, движок не звать
  *   ./bin/replay --moments rooms/moments.json               # список моментов подряд
  *
@@ -20,7 +20,7 @@ import path from 'node:path';
 import { fileURLToPath } from 'node:url';
 import { buildAgent } from '../lib/agents.js';
 import { loadConfig } from '../lib/config.js';
-import { loadMode } from '../lib/modes.js';
+import { loadSpace } from '../lib/spaces.js';
 import { Memory } from '../lib/memory.js';
 import { Orchestrator } from '../lib/orchestrator.js';
 import { systemPrompt, turnPrompt } from '../lib/prompt.js';
@@ -47,7 +47,7 @@ const dry = flag('dry');
 const model = opt('model', 'sonnet');
 const memoryRoom = opt('memory', null);
 const momentsFile = opt('moments');
-const stepArg = opt('step');
+const stepArg = opt('круг') ?? opt('circle');
 
 const config = loadConfig(root);
 
@@ -79,21 +79,23 @@ async function replay({ file, seq, who, step: stepName, note }) {
   const orch = new Orchestrator({ store, config, log: { error() {} }, build: () => ({ reset() {} }) });
   const delta = orch.tailFor('replay', seq);
 
+  // Переиграть можно и круг: тогда участник получает то же задание, что получил бы
+  // вслепую в этой комнате.
   let step;
   if (stepName) {
-    const [modeName, name] = stepName.split(':');
-    step = loadMode(modeName).steps.find((s) => s.name.toLowerCase() === name.toLowerCase());
-    if (!step) throw new Error(`в режиме «${modeName}» нет шага «${name}»`);
+    const circle = loadSpace(stepName).circle;
+    if (!circle) throw new Error(`в комнате «${stepName}» круга нет`);
+    step = { name: 'круг', hear: false, prompt: circle };
   }
 
-  const memory = memoryRoom ? new Memory(path.join(root, 'rooms')).brief(memoryRoom) : '';
+  const memory = memoryRoom ? new Memory(path.join(root, 'rooms')).brief(memoryRoom, { me: who }) : '';
   const ctx = {
     me: who, roster: config.agents, user: config.user, workdir: config.workdir,
     laws: config.laws, memory, anew: true, persona: null,
   };
 
   const last = delta.at(-1);
-  console.log(`\n${'═'.repeat(72)}\n@${who} · реплика ${seq} · ${path.basename(file)}${stepName ? ` · шаг ${stepName}` : ''}`);
+  console.log(`\n${'═'.repeat(72)}\n@${who} · реплика ${seq} · ${path.basename(file)}${stepName ? ` · круг ${stepName}` : ''}`);
   if (note) console.log(`Тогда: ${note}`);
   console.log(`Последнее в хвосте — @${last?.from}: ${String(last?.text ?? '').replace(/\s+/g, ' ').slice(0, 160)}`);
   console.log(`Хвост: ${delta.length} реплик, ${delta.reduce((n, m) => n + String(m.text ?? '').length, 0)} знаков\n${'─'.repeat(72)}`);
