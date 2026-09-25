@@ -1055,7 +1055,7 @@ export function ChatFeed({ messages, user, agents, personas, thinking, waiting, 
             )}
           </MessageScrollerContent>
         </MessageScrollerViewport>
-        <MessageScrollerButton className="ms-[min(17rem,36vw)]" />
+        <MessageScrollerButton className="ms-[min(22rem,45vw)] data-[direction=end]:bottom-20" />
       </MessageScroller>
     </MessageScrollerProvider>
   )
