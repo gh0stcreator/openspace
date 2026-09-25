@@ -90,7 +90,7 @@ The most valuable part of hard work is not the transcript. It is the decisions, 
 the facts found, the constraints and the open questions.
 
 None of that should disappear with a finished chat. Today the space holds the conversation, the
-team, the modes and the shared goal; structured memory is the next stage — more on it below.
+team, the rooms and the shared goal; structured memory is the next stage — more on it below.
 
 **The conversation ends. The space remains.**
 
@@ -126,7 +126,7 @@ The critical element is **independent exploration**.
 If agents see each other's answers straight away, the first answer becomes an anchor, and several
 intelligences quickly turn into several ways of agreeing with the first one.
 
-That is why a step of a mode can run with `hear: no`: everyone on that step gets the feed up to
+That is why the first question in a room is answered in a round: everyone gets the feed up to
 the same mark and answers without seeing their neighbours. Positions first, collision after.
 
 ---
@@ -162,7 +162,7 @@ not what came before.
 
 ## What this rests on
 
-The modes are not a matter of taste. Here is what they lean on, with numbers and links.
+The rooms are not a matter of taste. Here is what they lean on, with numbers and links.
 The full breakdown with evidence labels, including work that does **not** support the popular
 claims, is in [`docs/dynamics.md`](docs/dynamics.md) (in Russian).
 
@@ -187,7 +187,7 @@ but 4 and 5 are no better than 3 ([Laughlin et al.
 2006](https://pubmed.ncbi.nlm.nih.gov/16649860/)). Size only helps where a correct answer is
 recognisable once seen ([Amir et al.
 2018](https://journals.plos.org/plosone/article?id=10.1371/journal.pone.0192213)). Hence
-3–4 participants per mode rather than "everyone".
+3–4 participants per room rather than "everyone".
 
 **Agent debate does not pay for itself.** Across 5 methods, 9 benchmarks and 4 models, debate
 often loses to plain chain-of-thought at many times the cost; what helps is **model
@@ -205,39 +205,35 @@ premortem "finds 30% more risks" — its confirmed effect is knocking down confi
 ([Veinott, Klein, Wiggins
 2010](https://idl.iscram.org/files/veinott/2010/1049_Veinott_etal2010.pdf)).
 
-## `mode(subject)`
+## `room(subject)`
 
 The name of the product is its interface. **Open space** — a shared room where people talk;
 **`open(space)`** — a function call: open a space.
 
-The sign in the header shows where you are: on the left, how we are thinking; in the brackets,
-what about.
+The sign in the header shows where you are: on the left, which room you are in; in the brackets,
+what the talk is about.
 
 ```text
 open(space)               nothing started yet
-open(product_strategy)    no procedure, but the subject is named
-sixhats(megamenu)         taking the question apart in rounds
-premortem(launch)         looking for how this fails
+open(product_strategy)    the common room, and the subject is named
+red(megamenu)             stress-testing what is finished
+green(launch)             looking for a move nobody expects
 ```
 
-## Which mode to pick
+## Which room to go to
 
-| Situation | Mode |
+| Situation | Room |
 | --- | --- |
-| The decision is made and expensive to change | Strategy session |
-| There is a plan and a lot of confidence in it | Premortem |
-| The solution is ready; find where it breaks | Roast |
-| Finished work — code, copy, a layout — and something is off | Review |
-| You defend a position tomorrow, and the questions will be sharp | Defense |
-| The obvious answer won't do; you need moves | Brainstorm |
-| A hard question, and the argument goes in circles | Six hats |
-| You want everyone's view, once each | Round |
-| You need one decision fast, without a common argument | Command |
-| The task goes through several pairs of hands in turn | Relay |
-| Just a conversation | Open |
+| Something finished needs stress-testing: where it tears, what was missed | 🔴 Red |
+| Something has to be written, rewritten or built | 🔵 Blue |
+| The obvious answer won't do; you need moves nobody expects | 🟢 Green |
+| Improving one thing spoils another, and you need to find what fights what | 🟣 Violet |
+| You need to separate what is known from what everyone assumes is known | ⚪ White |
+| Just a conversation | Common |
 
-A mode is switched in the bar under the composer or straight from the empty screen. In an empty
-room it waits for the first subject: steps need a conversation about something.
+Each room has its own cast, its own way of working and its own readiness to speak up.
+You pick a room from the cards on the empty screen or the list in the bar under the composer;
+each has its own feed and its own memory, so moving there is moving, not switching a mode.
 
 ## The human decides
 
@@ -268,7 +264,7 @@ task lives in the shared goal and in what the participants remember.
 
 ## Local first
 
-`open(space)` itself runs on your machine: the server, the feed, the role and mode files. The
+`open(space)` itself runs on your machine: the server, the feed, the role and room files. The
 models do not. It launches your installed and authorised `claude` and `codex` through their usual
 CLIs: no separate API keys and no separate per-token billing for `open(space)`, and requests go
 where they normally go from those CLIs.
