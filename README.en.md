@@ -362,8 +362,8 @@ A space as a portable thing — with its own team, laws and memory — starts wi
 ## Settings
 
 Everything is edited in the interface, **Profile → Settings**, and applies without a restart:
-participants (who is here), modes (how you work) and the space (why you are here and what is
-remembered). The mode editor writes the same `modes/*.md` files. On disk the same state is described by `openspace.config.json` — it is created on first run
+participants (who is here), rooms (how you work there) and the space (why you are here and what is
+remembered). The room editor writes the same `spaces/*.md` files. On disk the same state is described by `openspace.config.json` — it is created on first run
 and stays out of the repository: these are your machine's settings.
 
 ## Repository map
@@ -379,7 +379,7 @@ and stays out of the repository: these are your machine's settings.
 | `docs/architecture.md` | engines, access, context economy, API |
 | `roles/` | agent roles |
 | `archetypes/` | ready-made voices: one file per archetype |
-| `modes/` | ways of working |
+| `spaces/` | one file per room: who lives there, its dynamics, its laws |
 
 ---
 

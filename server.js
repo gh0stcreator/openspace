@@ -197,7 +197,10 @@ const server = http.createServer(async (req, res) => {
       const raw = url.searchParams.get('name') || 'file';
       // Имя от клиента — недоверенные данные: оставляем только базовое имя без путей.
       const safe = path.basename(raw).replace(/[^\w.\-\u0400-\u04FF ]+/g, '_').slice(0, 120) || 'file';
-      const dir = path.join(root, 'rooms', 'files', room.replace(/[^a-z0-9_-]/gi, '_'));
+      // Кириллица в имени комнаты — обычное дело, и вычёркивать её нельзя: «красная»
+      // и «зелёная» превращались в семь подчёркиваний каждая и складывали свои файлы
+      // в один каталог. Одинаковое имя файла из разных комнат там затирало соседа.
+      const dir = path.join(root, 'rooms', 'files', room.replace(/[^\w\-\u0400-\u04FF]/g, '_'));
       fs.mkdirSync(dir, { recursive: true });
 
       const stamp = Date.now().toString(36);
@@ -219,7 +222,7 @@ const server = http.createServer(async (req, res) => {
       return json(res, 200, {
         name: safe,
         size,
-        url: `/files/${path.basename(dir)}/${encodeURIComponent(name)}`,
+        url: `/files/${encodeURIComponent(path.basename(dir))}/${encodeURIComponent(name)}`,
         // Путь от рабочей папки — по нему участник откроет файл сам.
         path: path.relative(config.workdir, dest),
       });

@@ -338,7 +338,12 @@ export function Composer({
           <InputGroupAddon align="inline-start" className="self-end pb-1.5 pl-1.5 has-[>button]:ml-0">
             <Tooltip>
               <TooltipTrigger asChild>
-                <InputGroupButton variant="ghost" size="icon-xs" onClick={() => picker.current?.click()}>
+                <InputGroupButton
+                  variant="ghost"
+                  size="icon-xs"
+                  onClick={() => picker.current?.click()}
+                  aria-label={t("composer.attach")}
+                >
                   <Paperclip />
                 </InputGroupButton>
               </TooltipTrigger>

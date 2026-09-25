@@ -51,6 +51,7 @@ export function FacePicker({
           className="flex items-center gap-2 rounded-full text-sm transition-shadow"
           style={toneVars(color)}
           title={t("card.face")}
+          aria-label={t("card.face")}
         >
           <Face name={name} icon={icon} color={color} size={size} className="tone-hover" />
           {label && <span className="text-muted-foreground hover:text-foreground">{label}</span>}
@@ -63,6 +64,7 @@ export function FacePicker({
             <button
               key={c}
               title={c}
+              aria-label={c}
               onClick={() => onChange({ color: c })}
               className={cn(
                 "tone-dot size-6 rounded-full transition-transform hover:scale-110",
@@ -81,6 +83,7 @@ export function FacePicker({
               variant={ic === icon ? "secondary" : "ghost"}
               size="icon"
               title={ic}
+              aria-label={ic}
               onClick={() => onChange({ icon: ic })}
             >
               <Icon name={ic} />

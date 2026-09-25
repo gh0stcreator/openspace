@@ -451,6 +451,7 @@ export default function App() {
               <Button
                 variant="ghost"
                 className="hover:bg-accent/50 data-[state=open]:bg-accent/50 h-10 shrink-0 gap-2 pr-2 pl-1 font-normal"
+                aria-label={cfg.user}
               >
                 <Face name={cfg.user} icon={cfg.userIcon} color={cfg.userColor || null} size="md" muted={!cfg.userColor} />
                 <span className="hidden sm:inline">{cfg.user}</span>
