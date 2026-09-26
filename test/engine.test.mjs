@@ -827,6 +827,26 @@ test('своя мысль своей головой: спрашивают не �
   assert.equal(общие.find((m) => m.name === 'первый').thought, 'общая мысль первого');
 });
 
+test('движок велел начать сессию заново: рвём её и повторяем ход', async () => {
+  const { saysStale, saysAuth } = await import('../lib/orchestrator.js');
+  const REFUSAL = "API Error: Sonnet 5 can't help with this. Start a new session to continue.";
+  assert.ok(saysStale(REFUSAL));
+  assert.ok(!saysStale('You have hit your usage limit'), 'лимит — это не просьба начать заново');
+  assert.ok(!saysAuth(REFUSAL), 'отказ по сессии — это не отказ входа');
+
+  const { orch, calls, resets } = setup(['первый', 'второй'], { fail: { первый: [REFUSAL] } });
+  orch.post(ROOM, { from: 'Roman', text: 'начали, @первый' });
+  await sleep(400);
+
+  const лента = orch.store.load(ROOM);
+  assert.equal(лента.filter((m) => m.kind === 'error').length, 0, 'отказ по сессии в ленту не идёт');
+  assert.ok(лента.some((m) => m.from === 'первый' && m.kind === 'message'), 'ход состоялся со второй попытки');
+  assert.ok(resets.includes('первый'), 'сессию порвали');
+  const его = calls.filter((c) => c.who === 'первый');
+  assert.equal(его.length, 2, 'спросили ровно дважды');
+  assert.ok(его[1].anew, 'повтор идёт с хвостом ленты: сессии, которая помнила разговор, больше нет');
+});
+
 test('движок разлогинен: в ленте по-русски, с командой, и без повторов', async () => {
   const { saysAuth, saysLimit } = await import('../lib/orchestrator.js');
   assert.ok(saysAuth('Failed to authenticate: OAuth session expired and could not be refreshed'));
